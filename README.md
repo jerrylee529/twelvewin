@@ -1,3 +1,1 @@
-# twelvewin
-# twelvewin
-# twelvewin
+twelvewin是一个基于python和flask组件开发的股票分析平台，并整合了scikit learn机器学习库进行数据分类和结果预测。
