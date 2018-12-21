@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import "bootstrap/wtf.html" as wtf %}
+
+{% block page_content %}
+
+<h1>忘记密码?</h1>
+<br />
+<!--
+<form class="form-signin" role="form" method="post" action="">
+  {{ form.csrf_token }}
+  {{ form.email(placeholder="email") }}
+    <span class="error">
+      {% if form.email.errors %}
+        {% for error in form.email.errors %}
+          {{ error }}
+        {% endfor %}
+      {% endif %}
+    </span>
+  </p>
+  <button class="btn btn-success" type="submit">重置密码</button>
+</form>
+-->
+{{ wtf.quick_form(form) }}
+<br/>
+<ul>
+<li>返回 <a href="/login">登录</a></li>
+<li>需要 <a href="/register">注册</a>?</li>
+</ul>
+{% endblock %}

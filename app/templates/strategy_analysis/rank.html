@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_content %}
+<table id="table" class="table table-striped table-bordered table-hover">
+</table>
+{% endblock %}
+
+{% block scripts %}
+   {{super()}}
+   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+   <script type="text/javascript">
+     $(function() {
+        $('#table').bootstrapTable({
+            url: '/{{ path }}/data',  // 请求数据源的路由
+            dataType: "json",
+            pagination: true, //前端处理分页
+            singleSelect: false,//是否只能单选
+            search: false, //显示搜索框，此搜索是客户端搜索，不会进服务端，所以，个人感觉意义不大
+            toolbar: '#toolbar', //工具按钮用哪个容器
+            cache: false, //是否使用缓存，默认为true，所以一般情况下需要设置一下这个属性（*）
+            pageNumber: 1, //初始化加载第10页，默认第一页
+            pageSize: 10, //每页的记录行数（*）
+            pageList: [10, 20, 50, 100], //可供选择的每页的行数（*）
+            strictSearch: true,//设置为 true启用 全匹配搜索，false为模糊搜索
+            showColumns: true, //显示内容列下拉框
+            showRefresh: true, //显示刷新按钮
+            minimumCountColumns: 2, //当列数小于此值时，将隐藏内容列下拉框
+            clickToSelect: true, //设置true， 将在点击某行时，自动勾选rediobox 和 checkbox
+            uniqueId: "id", //每一行的唯一标识，一般为主键列
+            cardView: false, //是否显示详细视图
+            sidePagination: "client", //分页方式：client客户端分页，server服务端分页（*）
+            columns: [{ 
+                field: 'id',
+                title: '序号',
+                align: 'center',  //对齐方式，居中
+            }, {
+                field: 'code',
+                title: '代码',
+                align: 'center'
+            }, {
+                field: 'name',
+                title: '名称',
+                align: 'center',
+            }, {
+                field: 'year',
+                title: '年份',
+                align: 'center'
+            }, {
+                field: 'report_date',
+                title: '发布日期',
+                align: 'center',
+            }, {
+                field: 'divi',
+                title: '分红金额',
+                align: 'center'
+            }, {
+                field: 'shares',
+                title: '送股或转增(每10股)',
+                align: 'center',
+            }, {
+                field: 'per',
+                title: '市盈率',
+                align: 'center'
+            }, {
+                field: 'pb',
+                title: '市净率',
+                align: 'center',
+            }, {
+                field: 'roe',
+                title: '净资产收益率',
+                align: 'center'
+            }, {
+                field: 'close',
+                title: '股价',
+                align: 'center',
+            }, {
+                field: 'rate',
+                title: '股息率(%)',
+                align: 'center',
+            }, {
+                field: 'valueprice',
+                title: '估值',
+                align: 'center'
+            }, {
+                title: '操作',
+                field: 'code',
+                align: 'center'
+            }
+            ],
+            responseHandler: function(data){
+                return data.rows;
+            }
+        });
+    });
+
+   </script>
+{% endblock %}

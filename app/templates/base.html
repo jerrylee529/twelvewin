@@ -1,0 +1,33 @@
+{% extends "bootstrap/base.html" %}
+{% block title %}团赢数据{% endblock %}
+
+
+{% block navbar %}
+{% include "navigation.html" %}
+{% endblock navbar %}
+
+{% block content %}
+<div class="container">
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <ul class=flashes>
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+
+    {% block page_content %}{% endblock %}
+
+<!-- Copyright -->
+<footer class="container-fluid navbar-fixed-bottom">
+<div class="footer-copyright text-center py-3">Copyright &copy; 2018
+    <a href="http://www.twelvewin.com/">团赢数据</a> All Rights Reserved.
+</div>
+</footer>
+</div>
+{% endblock %}
+
+
+<!-- Copyright -->

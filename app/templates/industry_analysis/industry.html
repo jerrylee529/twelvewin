@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+{% block title %} {{ title }} {% endblock %}
+
+{% block page_content %}
+<div id="toolbar">
+    <div class="form-inline" role="form">
+        <div class="form-group">
+            <label class="control-label">行业</label>
+        </div>
+        <div class="form-group">
+            <select class="selectpicker show-tick form-control" data-live-search="true" id="industries">
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-default btn-sm" onclick="filter()"><span class="glyphicon glyphicon-edit"></span> 计算</button>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-sm-2"><h5><strong>平均市盈率: </strong><span id="pe" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>市盈率中位数: </strong><span id="mid_pe" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>平均市净率: </strong><span id="pb" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>市净率中位数: </strong><span id="mid_pb" class="label label-info"></span></h5></div>
+</div>
+<div class="row">
+    <div class="col-sm-2"><h5><strong>平均毛利率: </strong><span  id="gpr" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>毛利率中位数: </strong><span id="mid_gpr" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>平均净利率: </strong><span id="npr" class="label label-info"></span></h5></div>
+    <div class="col-sm-2"><h5><strong>净利率中位数: </strong><span id="mid_npr" class="label label-info"></span></h5></div>
+</div>
+<!--
+<div class="row">
+    <div class="col-sm-2"><h5><strong>平均股息率: </strong></h5><span></span></div>
+    <div class="col-sm-2"><h5><strong>股息率中位数: </strong></h5><span></span></div>
+</div>
+-->
+<table id="table" class="table table-striped table-bordered table-hover table-condensed">
+</table>
+
+<div id="chartModel" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title" id="instrument">股票名称</h4>
+            </div>
+            <div id="candlestick" class="modal-body" style="height: 500px">
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+    {{super()}}
+    <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+    <script src="/static/js/my_app_code.js"></script>
+    <script type="text/javascript" src="/static/js/echarts.min.js"></script>
+    <script type="text/javascript" src="/static/js/candlestick_chart.js"></script>
+    <script type="text/javascript" src="/static/js/basic_table.js"></script>
+    <script type="text/javascript" src="/static/js/bootstrap-typeahead.js"></script>
+    <script src="https://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/js/bootstrap-select.js"></script>
+    <link rel="stylesheet" type="text/css" href="http://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/css/bootstrap-select.css">
+    <link rel="stylesheet" type="text/css" href="/static/css/industry.css" />
+    <script type="text/javascript">
+    function operations_formatter(value, row, index, field) {
+        var b = '<a href="#" mce_href="#" onclick="addSelfSelectedStock(\'' + row.code + '\')"><span class="glyphicon glyphicon-plus"></span></a> ';
+        return b;
+    }
+
+    function code_formatter(value, row, index, field) {
+        var d = '<a href="#" mce_href="#" onclick="show(\'' + row.code + '\',\'' + row.name + '\')">' + value + '</a> ';
+        return d;
+    }
+
+    function chart_formatter(value, row, index) {
+        var d = '<p><span class="label color_cluster' + row.label + '">' + value + '</span></p>';
+        return d;
+    }
+
+    function great_formatter(value, cmp_value) {
+        var d;
+        if (value > cmp_value)
+            d = '<p><span class="label label-success">' + value + '</span></p>';
+        else
+            d = '<p><span class="label label-warning">' + value + '</span></p>';
+        return d;
+    }
+
+    function less_formatter(value, cmp_value) {
+        var d;
+        if (value > cmp_value)
+            d = '<p><span class="label label-warning">' + value + '</span></p>';
+        else
+            d = '<p><span class="label label-success">' + value + '</span></p>';
+        return d;
+    }
+
+    function pe_formatter(value, row, index) {
+        return less_formatter(value, window.jsonData.avg_pe);
+    }
+
+    function pb_formatter(value, row, index) {
+        return less_formatter(value, window.jsonData.avg_pb);
+    }
+
+    function gpr_formatter(value, row, index) {
+        return great_formatter(value, window.jsonData.avg_gpr);
+    }
+
+    function npr_formatter(value, row, index) {
+        return great_formatter(value, window.jsonData.avg_npr);
+    }
+
+    function addSelfSelectedStock(code) {
+        $.post("/stock/add_self_selected_stock", {"code":code}, function(data) {
+            alert("添加自选成功");
+        }, "json");
+    }
+
+    function show(code, name) {
+        $('#instrument').html('<span class="label label-primary">' + code + '</span><span class="label label-info">' + name + '</span>');
+
+        $('#chartModel').modal('show');
+
+        show_chart(code)
+    }
+
+    function filter() {
+        //$('#table').bootstrapTable('refresh');
+        industry = $('#industries').selectpicker('val');
+        $('#table').bootstrapTable('refresh',  {query: {industry:industry}});
+    }
+
+    var tab = createBootstrapTable('#table', '{{ url_for("industry_analysis.list_stock") }}',
+        ['label', 'code', 'name', 'outstanding', 'totals', 'total_assets', 'liquid_assets', 'fixed_assets', 'pe', 'pb', 'esp', 'bvps', 'gpr', 'npr', 'code'],
+        ['类别', '代码', '名称', '流通股本(亿)', '总股本(亿)', '总资产(万)', '流动资产', '固定资产', '市盈率', '市净率', '每股收益', '每股净资产', '毛利率(%)', '净利润率(%)', '操作'],
+        [null, code_formatter, chart_formatter, null, null, null, null, null, pe_formatter, pb_formatter, null, null, gpr_formatter, npr_formatter, operations_formatter],
+        false, '#toolbar');
+
+
+    $('table').on('load-success.bs.table', function (e, data) {
+                console.info("setup values")
+                jsonData = window.jsonData;
+                $('#pe').html('<span>' + jsonData.avg_pe + '</span>');
+                $('#mid_pe').html('<span>' + jsonData.mid_pe + '</span>');
+                $('#pb').html('<span>' + jsonData.avg_pb + '</span>');
+                $('#mid_pb').html('<span>' + jsonData.mid_pb + '</span>');
+                $('#gpr').html('<span>' + jsonData.avg_gpr + '</span>');
+                $('#mid_gpr').html('<span>' + jsonData.mid_gpr + '</span>');
+                $('#npr').html('<span>' + jsonData.avg_npr + '</span>');
+                $('#mid_npr').html('<span>' + jsonData.mid_npr + '</span>');
+    });
+
+/*
+    $(function () {
+        $("#filterLabels").typeahead({
+            ajax: {
+                url: "{{ url_for('industry_analysis.get_industries') }}",
+                //timeout: 300,
+                method: 'post',
+                triggerLength: 1,
+                dataType: 'JSON',
+                loadingClass: null,
+                displayField: 'name',
+                preProcess: function (result) {
+
+                    return result.industries;
+                }
+            },
+            display: "name",
+            val: "id",
+            items: 8,
+            itemSelected: function (item, val, text) {
+                $("#filterLabels").attr("tag", val);
+                $("#filterLabels").val(text);
+            },
+            matcher: function (obj) {
+                //var item = JSON.parse(obj);
+                return true;
+            }
+        });
+        $("#filterLabels").blur(function (e) {
+            var txt = $("#filterLabels").val();
+            if (txt == null || txt == undefined || $.trim(txt) == "")
+            {
+                $("#filterLabels").removeAttr("tag");
+            }
+        })
+    });
+*/
+        $(document).ready(function(){
+            $.ajax({url:"/industry/industries",success:function(result) {
+
+                industries = result.industries;
+                var m = "";
+                for (var i = 0; i < industries.length; i++) {
+                    $('#industries').append("<option value=" + industries[i].name + ">" + industries[i].name + "</option>");
+                }
+
+                // 缺一不可
+                $('#industries').selectpicker('refresh');
+                //$('#industries').selectpicker('render');
+            }});
+        });
+    </script>
+
+{% endblock %}

@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block page_content %}
+
+<h1>你的信息</h1>
+<br>
+
+{% if current_user.is_authenticated() %}
+  <p>电子邮件地址: <strong>{{current_user.email}}</strong></p>
+{% endif %}
+
+<h2>改变密码</h2>
+<br>
+<form class="form-reset" role="form" method="post" action="">
+  {{ form.csrf_token }}
+  <p>
+    {{ form.password(placeholder="password") }}
+    <span class="error">
+      {% if form.password.errors %}
+        {% for error in form.password.errors %}
+          {{ error }}
+        {% endfor %}
+      {% endif %}
+    </span>
+  </p>
+  <p>
+  {{ form.confirm(placeholder="confirm") }}
+    <span class="error">
+      {% if form.confirm.errors %}
+        {% for error in form.confirm.errors %}
+          {{ error }}
+        {% endfor %}
+      {% endif %}
+    </span>
+  </p>
+  <button class="btn btn-success" type="submit">更新</button>
+</form>
+
+
+{% endblock %}

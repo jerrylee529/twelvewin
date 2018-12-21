@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}欢迎来到团赢数据{% endblock %}
+
+{% block page_content %}
+   <!--<div class="container">-->
+   <img src="/static/images/default.jpg" width="100%" height="100%" style="z-index:-100;position:absolute;left:0;top:0"/>
+   <div class="row">
+       <div class="col-md-6 col-md-offset-3">
+            <form action="/main/predict" role="form">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="代码/简称" id="sensor-search" name="sensor-search"  data-provide="typeahead" autocomplete="off">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="submit">预测</button>
+                    </span>
+                </div>
+            </form>
+        </div>
+    </div>
+   <!--
+    {% if current_user.is_authenticated %}
+      <h1>Welcome, {{ current_user.email }}</h1>
+    {% else %}
+      <h1>Welcome!</h1>
+    {% endif %}
+    <br />
+
+    {% if current_user.is_authenticated %}
+      <p>You are <span style="color:green">authenticated</span></p>
+      <ul>
+        <li><a href="/logout">Logout</a></li>
+      </ul>
+    {% else %}
+      <p>You are <span style="color:red">not authenticated</span>:</p>
+      <ul>
+        <li><a href="/login">Sign In</a></li>
+        <li>Need to <a href="/register">register</a>?</li>
+        <li><a href="/forgot">Forgot</a> your password?</li>
+      </ul>
+    {% endif %}
+    -->
+{% endblock %}
+
+{% block scripts %}
+    {{super()}}
+    <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+    <script src="/static/js/my_app_code.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+    <script type="text/javascript">
+    var array = null;
+
+    $(document).ready(function(){
+        $.ajax({url:"/main/instruments",success:function(result) {
+            instruments = result.instruments;
+            array = new Array()
+            for (var i = 0; i < instruments.length; i++) {
+                array[i] = instruments[i].code + " " + instruments[i].name
+            }
+    	}});
+    });
+
+    $('#sensor-search').typeahead(
+                        {
+                            source : function(query, process) {
+                                if (array == null) {
+                                    var parameter = {
+                                        query : query
+                                        };
+                                    $.post('/main/instruments',     //第一个参数为调用的action，parameter为用户输入的数据，data为返回的提示数据。
+                                            parameter, function(data) {
+                                                instruments = data.instruments;
+                                                array = new Array()
+                                                for (var i = 0; i < instruments.length; i++) {
+                                                    array[i] = instruments[i].code + " " + instruments[i].name
+                                                }
+                                                process(array); //process中传入数组
+                                            });
+                                } else {
+                                    process(array)
+                                }
+                            }
+
+    });
+    </script>
+
+
+{% endblock %}

@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block title %} {{ title }} {% endblock %}
+
+{% block page_content %}
+{% if current_user.is_authenticated %}
+<div id="toolbar">
+    <div class="form-inline" role="form">
+        <div class="form-group">
+            <input id="filterLabels" type="text" class="form-control" placeholder="请输入标签">
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-default btn-sm" onclick="filter()"><span class="glyphicon glyphicon-filter"></span> 筛选</button>
+        </div>
+    </div>
+</div>
+<table id="table" 
+       data-classes="table table-bordered table-hover"
+       data-striped="true"
+       data-toggle="table" 
+       data-toolbar="#toolbar"
+       data-pagination="true"
+       data-search="false"
+       data-show-refresh="true"
+       data-show-toggle="false"
+       data-show-columns="true"
+       data-page-size="15"
+       data-page-list="[15,20,30]"
+       data-response-handler="responseHandler" 
+       data-query-params="queryParams"
+       data-url="/data">
+    <thead>
+    <tr>
+        <th data-field="id" data-sortable="true">序号</th>
+        <th data-field="code">代码</th>
+        <th data-field="name">名称</th>
+        <th data-field="turnoverratio" data-sortable="true">换手率</th>
+        <th data-field="per" data-sortable="true">市盈率</th>
+        <th data-field="pb" data-sortable="true">市净率</th>
+        <th data-field="nmc" data-sortable="true">流通市值(万元)</th>
+        <th data-field="roe" data-sortable="true">ROE</th>
+        <th data-field="close" data-sortable="true">股价</th>
+        <th data-field="wma10" data-sortable="true">10周线支撑位</th>
+        <th data-field="labels" data-sortable="true">标签</th>
+        {% if current_user.admin %}
+        <th data-field="code" data-formatter="formatter">操作</th>
+        {% endif %}
+     </tr>
+     </thead>
+</table>
+
+<div id="myModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title" id="code">股票代码</h4>
+            </div>
+            <div class="modal-body">
+                标签：<input class="form-control" type="text" name="labels" id="labels" />
+            </div>
+           <div class="modal-footer">
+              <!--<button class="btn btn-info" data-dismiss="modal">关闭</button>-->
+              <!--<button id="updateButton" type="button" class="btn btn-primary" onclick="update()">更新</button>-->
+              <button id="updateButton" type="button" class="btn btn-primary">更新</button>
+           </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<h1>请<a href="/login">登录</a>后查看</h1>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+   {{super()}}
+   <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+   <script src="/static/js/my_app_code.js"></script>
+
+   <script type='text/javascript'>
+    var $td = null;
+
+    function editLabel(obj){
+        $td= $(obj).parents('tr').children('td');
+        var paramName = $td.eq(2).text();
+        var paramCode = $td.eq(1).text();
+        var paramLabels = $td.eq(10).text();
+
+        //向模态框中传值
+        $('#code').text(paramCode)
+
+        $('#labels').val(paramLabels);
+
+        $('#myModal').modal('show');
+    }
+
+
+   function responseHandler(data) {
+        return data.rows;
+   }
+
+   function formatter(value, row, index, field) {
+       //return '<button class="btn btn-link btn-sm" onclick="editInfo(this)">编辑</button>';
+       return '<button class="btn btn-link btn-sm" onclick="editLabel(this)">编辑</button>';
+   }
+
+   function queryParams(params) {
+       params["labels"] = $("#filterLabels").val();
+
+       return params;
+   }
+
+
+   $(function () {
+       $('#updateButton').click(function() {
+            var code = $('#code').text();
+            var labels = $('#labels').val();
+
+            $('#table').bootstrapTable('updateCell', {
+                index: $td.eq(0).text()-1,
+                field: 'labels',
+                value: labels
+            });
+
+            $.post("/dataFromAjax", {"code":code,"labels":labels}, function(data){
+                $('#myModal').modal('hide');
+            },"json");
+
+        });
+
+       /*
+       $('#table').formatNoMatches(function(){
+           return "没有相关的匹配结果";
+       });
+
+        $('#table').formatNoMatches(function(){
+           return "请稍等，正在加载中。。。";
+       });
+       */ 
+    })
+
+ 
+    function filter() {
+        var $table = $('#table');
+      
+        $('#table').bootstrapTable('refresh');
+
+       /*      
+       var filterLabels = $("#filterLabels").val();
+
+       if (filterLabels == null || filterLabels.length == 0) {
+           return;
+       }
+       
+       $.ajax({
+           type: "post",
+           url: "/business/filter",
+           data: "labels=" + filterLabels,
+           dataType:"json",
+           success : function(json) {
+               $("#table").bootstrapTable('refresh', json);//主要是要这种写法
+           }
+       });
+       */
+    }
+
+   </script>
+{% endblock %}

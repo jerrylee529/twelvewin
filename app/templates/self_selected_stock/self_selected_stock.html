@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %} {{ title }} {% endblock %}
+
+{% block page_content %}
+{% if current_user.is_authenticated %}
+<div id="toolbar">
+    <div class="form-inline" role="form">
+        <div class="form-group">
+            <input id="filterLabels" type="text" class="form-control" placeholder="请输入标签">
+        </div>
+        <div class="form-group">
+            <button type="button" class="btn btn-default btn-sm" onclick="filter()"><span class="glyphicon glyphicon-filter"></span> 筛选</button>
+        </div>
+    </div>
+</div>
+<table id="table" class="table table-striped table-bordered table-hover table-condensed">
+</table>
+
+<div id="myModal" class="modal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title"><span id="stock_code"></span> <span id="stock_name"></span></h4>
+            </div>
+            <div class="modal-body">
+                标签：<input class="form-control" type="text" name="labels" id="labels" />
+            </div>
+           <div class="modal-footer">
+              <!--<button class="btn btn-info" data-dismiss="modal">关闭</button>-->
+              <!--<button id="updateButton" type="button" class="btn btn-primary" onclick="update()">更新</button>-->
+              <button id="updateButton" type="button" class="btn btn-primary">更新</button>
+           </div>
+        </div>
+    </div>
+</div>
+
+<div id="chartModel" class="modal">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+                <h4 class="modal-title" id="instrument">股票名称</h4>
+            </div>
+            <div id="candlestick" class="modal-body" style="height: 500px">
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
+<h1>请<a href="/login">登录</a>后查看</h1>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+   {{super()}}
+    <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
+    <script type="text/javascript" src="/static/js/my_app_code.js"></script>
+    <script type="text/javascript" src="/static/js/echarts.min.js"></script>
+    <script type="text/javascript" src="/static/js/candlestick_chart.js"></script>
+    <script type="text/javascript" src="/static/js/basic_table.js"></script>
+    <script type="text/javascript" src="/static/js/self_selected_stock_table.js"></script>
+    <script type="text/javascript" src="/static/js/bar_chart.js"></script>
+    <script type="text/javascript">
+    function npr_formatter(value, row, index) {
+        var d = '<a href="#" mce_href="#" onclick="show_bar_chart(\'' + row.code + '\',\'' + row.name + '\', \'净利润\', \'万元\', \'candlestick\', \'npr\')">' + value + '</a> ';
+        return d;
+    }
+
+    function roe_formatter(value, row, index) {
+        var d = '<a href="#" mce_href="#" onclick="show_bar_chart(\'' + row.code + '\',\'' + row.name + '\', \'净资产收益率\', \'百分比\', \'candlestick\', \'roe\')">' + value + '</a> ';
+        return d;
+    }
+
+    createBootstrapTable('#table', '{{ url_for("self_selected_stock.list_stock") }}',
+    ['id', 'code', 'name', 'industry', 'outstanding', 'totals', 'esp', 'bvps', 'roe', 'gpr', 'npr', 'pe', 'pb', 'labels', 'code'],
+    ['序号', '代码', '名称', '行业', '流通股本(亿)', '总股本(亿)', '每股收益', '每股净资产', '净资产收益率', '毛利率(%)', '净利润率(%)', '市盈率', '市净率', '标签', '操作'],
+    [null, null, chart_formatter, null, null, null, null, null, roe_formatter, null, npr_formatter, null, null, labels_formatter, operations_formatter],
+    false, '#toolbar');
+
+    function filter() {
+        $('#table').bootstrapTable('refresh');
+    }
+
+    function show_bar_chart(code, name, title, subTitle, id, field) {
+        $('#instrument').html('<span class="label label-primary">' + code + '</span><span class="label label-info">' + name + '</span>');
+
+        $('#chartModel').modal('show');
+
+        show_bar(title, subTitle, id, code, field)
+    }
+
+    </script>
+{% endblock %}

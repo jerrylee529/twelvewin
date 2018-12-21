@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block page_content %}
+<div id="candlestick" style="height: 500px"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+   {{super()}}
+   <script type="text/javascript" src="/static/js/echarts.min.js"></script>
+   <script type="text/javascript" src="/static/js/candlestick_chart.js"></script>
+{% endblock %}

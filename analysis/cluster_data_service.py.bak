@@ -1,0 +1,223 @@
+# coding=utf8
+
+__author__ = 'Administrator'
+
+"""
+对股票进行分类
+"""
+
+import pandas as pd
+from datetime import timedelta, datetime, date
+from config import config
+from bin.quotation import get_history_data
+import tushare as ts
+import numpy as np
+from sklearn import cluster, covariance, manifold
+import os
+from sqlalchemy import create_engine
+from sklearn import cluster, covariance, manifold
+from models import StockCluster, StockClusterItem, Session
+
+# 设置精度
+pd.set_option('precision', 2)
+
+import sys
+reload(sys)
+sys.setdefaultencoding('utf-8')
+
+
+class ClusterItem(object):
+    '''
+    聚类中的股票以及相关系数
+    '''
+    def __init__(self, code, name, corr):
+        self.code = code
+        self.name = name
+        self.corr = corr
+
+    def __str__(self):
+        return "[{}:{}:{}:{}]".format(self.__class__.__name__, self.code, self.name, self.corr)
+
+
+class Cluster(object):
+    '''
+    一个分类，包含多个股票
+    '''
+    def __init__(self, code, name):
+        self.name = name
+        self.code = code
+        self.stocks = {}
+
+    def add(self, item):
+        self.stocks[item.code] = item
+
+    def exists(self, code):
+        if self.stocks.has_key(code):
+            return self.stocks[code]
+        else:
+            return None
+
+    def remove(self, item):
+        del self.stocks[item.code]
+
+    def empty(self):
+        return len(self.stocks) <= 0
+
+    def __str__(self):
+        return "[{}:{}:{}:{}]".format(self.__class__.__name__, self.code, self.name, len(self.stocks))
+
+
+class Clusters(object):
+    def __init__(self):
+        self.items = []
+
+    def add(self, cluster):
+        self.items.append(cluster)
+
+    def exists(self, code):
+        for item in self.items:
+            if item.exists(code):
+                return True
+
+        return False
+
+
+def read_data(code, day_file_path):
+    start_date = '2018-01-01'
+    end_date = '2018-06-30'
+
+    file_path = day_file_path + '/' + code + '.csv'
+    df = pd.read_csv(file_path)
+    df.set_index('date', inplace=True)
+    df = df.loc[start_date:end_date, ]
+    #df.fillna(method='ffill', inplace=True)  # 前向填充
+    #df.fillna(method='bfill', inplace=True)  # 后向填充
+    #df.fillna(1.0, inplace=True)
+
+    df['rate'] = (df['close'] - df['open'])*100/df['close']
+
+    return df['rate']
+
+
+# 对聚集进行裁剪
+def cluster_cut(clusters, code, corr):
+
+    for cluster in clusters.items:
+        stock = cluster.exists(code)
+        if stock is not None:
+            if (stock.corr < corr):
+                cluster.remove(stock)
+                if cluster.empty():
+                    clusters.items.remove(cluster)
+            return True
+
+    return False
+
+# 分类计算
+def compute_cluster(instruments, result_file_path, day_file_path, filename):
+    data = pd.DataFrame()
+    for code in instruments.index:
+        s = read_data(code, day_file_path)
+        data[code] = s
+
+    data_corr = data.corr()
+
+    data_filename = result_file_path + '/' + filename + '.csv'
+
+    data_corr.to_csv(data_filename, index=False, float_format='%.2f')
+
+    clusters = Clusters()
+
+    for code in instruments.index:
+        # 如果在前面的聚集中已经包含了当前的股票，则忽略当前的股票
+        if clusters.exists(code):
+            continue
+
+        # 取出一个聚集中的所有股票
+        cols = data_corr[code]
+
+        stock_list = cols[cols > 0.5]
+
+        # 生成一个聚集
+        cluster = Cluster(code, instruments.loc[str(code), 'name'].encode('utf-8'))
+
+        for index, value in stock_list.iteritems():
+            # 如果股票在前面的聚集中已经存在并且corr值更小，则将该股票从前面的聚集中删除，添加到新的聚集
+            if not cluster_cut(clusters, index, value):
+                clusteritem = ClusterItem(index, instruments.loc[str(index), 'name'].encode('utf-8'), value)
+                cluster.add(clusteritem)
+
+        # 增加一个聚集
+        clusters.add(cluster)
+
+    for cluster in clusters.items:
+        item_str = ''
+        for code in cluster.stocks:
+            item_str += code
+            item_str += ':'
+            item_str += str(cluster.stocks[code].corr)
+            item_str += ','
+        print('code: %s, name: %s, items: %s' % (cluster.code, cluster.name, item_str))
+
+    return clusters
+
+# 写入数据库
+def write_to_db(clusters, section):
+    if len(clusters.items) <= 0:
+        return
+
+    session = Session()
+
+    for cluster in clusters.items:
+        for code in cluster.stocks:
+            stock_cluster_item = StockClusterItem(section=section, parent_code=cluster.code, code=code,
+                                                  name=cluster.stocks[code].name, corr=cluster.stocks[code].corr)
+
+            session.add(stock_cluster_item)
+
+        stock_cluster = StockCluster(section=section, code=cluster.code, name=cluster.name)
+
+        session.add(stock_cluster)
+
+    session.commit()
+
+    session.close()
+
+
+def sz50_cluster():
+    instruments = ts.get_sz50s()
+
+    #print(instruments)
+
+    instruments.set_index('code', inplace=True)
+
+    #print (instruments.loc['601628', 'name']).encode('utf-8')
+
+    clusters = compute_cluster(instruments, config.RESULT_PATH, config.DAY_FILE_PATH, 'sz50')
+
+    write_to_db(clusters=clusters, section='sz50')
+
+
+def hs300_cluster():
+    instruments = ts.get_hs300s()
+
+    instruments.set_index('code', inplace=True)
+
+    clusters = compute_cluster(instruments, config.RESULT_PATH, config.DAY_FILE_PATH, 'hs300')
+
+    write_to_db(clusters=clusters, section='hs300')
+
+def zz500_cluster():
+    instruments = ts.get_zz500s()
+
+    instruments.set_index('code', inplace=True)
+
+    clusters = compute_cluster(instruments, config.RESULT_PATH, config.DAY_FILE_PATH, 'zz500')
+
+    write_to_db(clusters=clusters, section='zz500')
+
+if __name__ == '__main__':
+    #sz50_cluster()
+    hs300_cluster()
+    zz500_cluster()
+
