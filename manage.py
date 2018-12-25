@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 # manage.py
 
 
@@ -8,6 +10,7 @@ import datetime
 
 from flask_script import Manager
 from flask_migrate import Migrate, MigrateCommand
+
 '''
 COV = coverage.coverage(
         branch=True,
@@ -19,7 +22,6 @@ COV.start()
 from app import app, db
 from app.models import User
 
-app.config.from_object(os.environ['APP_SETTINGS'])
 
 migrate = Migrate(app, db)
 manager = Manager(app)
