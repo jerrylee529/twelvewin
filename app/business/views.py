@@ -7,6 +7,7 @@ import json
 from app.models import StockLabels
 from app import db
 from flask_login import login_required
+from flask import current_app
 
 import sys  # reload()之前必须要引入模块
 
@@ -27,7 +28,7 @@ class LabelResult:
 
 # 处理精选排行
 def handle_business(labels):
-    pic_path = '/home/dev/data/product/stock_business.csv'
+    pic_path = current_app.config['RESULT_PATH'] + '/stock_business.csv'
 
     # 读取csv至字典
     csvFile = open(pic_path, "r")
@@ -68,7 +69,7 @@ def handle_business(labels):
 
 # 获取精选排行数据
 def create_business_data(labels):
-    pic_path = '/home/dev/data/product/stock_business.csv'
+    pic_path = current_app.config['RESULT_PATH'] + '/stock_business.csv'
 
     # 读取csv至字典
     csvFile = open(pic_path, "r")

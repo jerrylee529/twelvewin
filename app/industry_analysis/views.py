@@ -149,7 +149,7 @@ def industry_cluster(source):
         print source
         return None
 
-    data = source.drop(['name', 'industry', 'area', 'timeToMarket'], axis=1)
+    data = source.drop(['name', 'industry', 'area', 'timeToMarket', 'pe', 'pb'], axis=1)
     data = data.fillna(0.00)
     data = data.astype('float64')
 
@@ -237,6 +237,8 @@ def list_stock():
         bvps_list.append(instrument.bvps)
         gpr_list.append(instrument.gpr)
         npr_list.append(instrument.npr)
+
+    rows = sorted(rows, key=lambda e: e.__getitem__('label'))
 
     result_data = {}
     rows_len = len(rows)
