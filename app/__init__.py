@@ -1,4 +1,4 @@
-# project/__init__.py
+# -*- coding: utf-8 -*-
 
 
 #################
@@ -14,6 +14,9 @@ from flask_mail import Mail
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
+from redis_op import RedisOP
+from analyzer import Analyzer
+
 
 
 ################
@@ -49,9 +52,14 @@ def _check_config_variables_are_set(config):
 
 app = Flask(__name__)
 
-#app.config.from_object(os.environ['APP_SETTINGS'])
 
+print(os.environ['APP_SETTINGS'])
+
+app.config.from_object(os.environ['APP_SETTINGS'])
 #_check_config_variables_are_set(app.config)
+
+# 创建redis连接池
+RedisOP.create_pool(app.config)
 
 ####################
 #### extensions ####
@@ -64,7 +72,7 @@ mail = Mail(app)
 toolbar = DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
-
+analyzer = Analyzer(app)
 
 ####################
 #### blueprints ####
