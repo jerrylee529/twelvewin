@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 
 
-from flask import request, jsonify, Blueprint, render_template, flash
+from flask import request, jsonify, Blueprint, render_template, flash, current_app
 from flask_login import current_user
 import csv
 import os
 import time
 import datetime
+from flask_login import login_required
+from app.decorators import check_confirmed
+
 
 import sys   #reload()之前必须要引入模块
 reload(sys)
@@ -21,6 +24,7 @@ technical_analysis_blueprint = Blueprint('technical_analysis', __name__,)
 
 # 突破历史最高价
 @technical_analysis_blueprint.route('/tech/<path>/data', methods=['POST', 'GET'])
+@login_required
 def get_data(path):
     print("get technical analysis data")
 
@@ -43,7 +47,7 @@ def get_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = '/home/dev/data/product/' + csv_filename
+    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
 
     filemt = time.localtime(os.stat(pic_path).st_mtime)
 
@@ -66,6 +70,8 @@ def get_data(path):
 
 # 处理首页的导航
 @technical_analysis_blueprint.route('/tech/<path>', methods=['GET', 'POST'])
+@login_required
+@check_confirmed
 def index(path):
     if path == 'highest':
         flash('股价创历史新高的股票列表','历史新高')
@@ -92,6 +98,7 @@ def index(path):
 
 
 @technical_analysis_blueprint.route('/tech/filter/data', methods=['POST', 'GET'])
+@login_required
 def get_filter_data():
     print("get filter analysis data")
 
@@ -117,7 +124,7 @@ def get_filter_data():
 
     data = []
 
-    pic_path = '/home/dev/data/product/price_change.csv'
+    pic_path = current_app.config['RESULT_PATH'] + '/price_change.csv'
 
     filemt = time.localtime(os.stat(pic_path).st_mtime)
 

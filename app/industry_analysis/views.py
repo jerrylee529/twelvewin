@@ -173,6 +173,7 @@ def industry_cluster(source):
 
 # 增加行业聚类分析
 @industry_analysis_blueprint.route('/industry/data')
+@login_required
 def list_stock():
     industry = request.values.get('industry', '')
 
@@ -263,6 +264,8 @@ def list_stock():
 
 
 @industry_analysis_blueprint.route('/industry')
+@login_required
+@check_confirmed
 def index():
     template_filename = 'industry_analysis/industry.html'
 

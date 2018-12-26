@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-from flask import request, jsonify, Blueprint, render_template
+from flask import request, jsonify, Blueprint, render_template, current_app
+from flask_login import login_required, current_user
 import csv
 
 import sys   #reload()之前必须要引入模块
@@ -13,6 +14,7 @@ strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)
 
 # 处理市盈率排行的ajax数据请求
 @strategy_analysis_blueprint.route('/<path>/data', methods=['POST', 'GET'])
+@login_required
 def get_data(path):
     print("get stock data")
 
@@ -37,7 +39,7 @@ def get_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = '/home/dev/data/product/' + csv_filename
+    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
 
     # 读取csv至字典
     csvFile = open(pic_path, "r")

@@ -191,7 +191,6 @@ def delete():
 
 # 获取净利润
 @self_selected_stock_blueprint.route('/bar/<code>/<field>', methods=['GET', 'POST'])
-@login_required
 def get_net_profit(code, field):
     data = []
 

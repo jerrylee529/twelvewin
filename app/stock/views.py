@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from flask import request, jsonify, Blueprint, render_template
+from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
 import csv
 import os
@@ -9,6 +9,7 @@ import time
 import json
 from app import db
 from app.models import SelfSelectedStock
+from app.decorators import check_confirmed
 from app.util import model_to_json
 
 import sys   #reload()之前必须要引入模块
@@ -20,6 +21,7 @@ stock_blueprint = Blueprint('stock', __name__,)
 
 # 处理市盈率排行的ajax数据请求
 @stock_blueprint.route('/<path>/data', methods=['POST', 'GET'])
+@login_required
 def get_stock_data(path):
     print("get_stock_data")
 
@@ -44,7 +46,7 @@ def get_stock_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = '/home/dev/data/product/' + csv_filename
+    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
 
     filemt = time.localtime(os.stat(pic_path).st_mtime)
     #print time.strftime("%Y-%m-%d", filemt)
@@ -68,6 +70,8 @@ def get_stock_data(path):
 
 # 处理首页的导航
 @stock_blueprint.route('/<path>', methods=['GET', 'POST'])
+@login_required
+@check_confirmed
 def list_stock(path):
     template_filename = 'stock/rank.html'
 
@@ -104,7 +108,7 @@ def get_history_quotation(code):
 
     data = []
 
-    pic_path = '/home/dev/data/day/' + code + '.csv'
+    pic_path = current_app.config['DAY_FILE_PATH'] + '/' + code + '.csv'
 
     filemt = time.localtime(os.stat(pic_path).st_mtime)
     #print time.strftime("%Y-%m-%d", filemt)
@@ -125,7 +129,6 @@ def get_history_quotation(code):
         data.append(item)
 
     #del data[:-100]
-
 
     return jsonify({'rows': data, 'updateTime': time.strftime("%Y-%m-%d", filemt)})
 
