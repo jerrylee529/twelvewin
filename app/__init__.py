@@ -15,7 +15,6 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
 from redis_op import RedisOP
-from analyzer import Analyzer
 
 
 
@@ -65,14 +64,15 @@ RedisOP.create_pool(app.config)
 #### extensions ####
 ####################
 
-login_manager = LoginManager()
-login_manager.init_app(app)
+login_manager = LoginManager(app)
 bcrypt = Bcrypt(app)
 mail = Mail(app)
 toolbar = DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
-analyzer = Analyzer(app)
+
+from analyzer import Analyzer
+analyzer = Analyzer(app, db)
 
 ####################
 #### blueprints ####

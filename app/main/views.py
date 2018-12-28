@@ -39,22 +39,7 @@ def get_instruments():
     if query is not None:
         print(u"get instruments %s" % query)
 
-    instruments = db.session.query(Instrument).all()
-
-    items = []
-
-    id = 1
-    for instrument in instruments:
-        if (instrument.code is None) or (instrument.code == ''):
-            continue
-        item = {}
-        item['id'] = id
-        item['code'] = instrument.code
-        item['name'] = instrument.name
-        items.append(item)
-        id += 1
-
-    return jsonify({'instruments': items})
+    return jsonify({'instruments': analyzer.instruments})
 
 
 @main_blueprint.route('/main/predict', methods=['GET', 'POST'])
@@ -63,7 +48,6 @@ def predict():
 
     # 获取行情数据
     quot = analyzer.get_quotation(code)
-
     print quot
 
     return render_template('main/result.html', current_user=current_user, quot=quot)

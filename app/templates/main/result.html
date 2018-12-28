@@ -28,11 +28,11 @@
    <script type="text/javascript" src="/static/js/bar_chart.js"></script>
    <script type="text/javascript">
    $(document).ready(function(){
-       show_chart({{ quot.code }} )
+       show_chart("{{ quot.code }}" )
 
-       show_bar("净利润", "万元", "npr", {{ quot.code }}, "npr")
+       show_bar("净利润", "万元", "npr", "{{ quot.code }}", "npr")
 
-       show_bar("净资产收益率", "百分比", "roe", {{ quot.code }}, "roe")
+       show_bar("净资产收益率", "百分比", "roe", "{{ quot.code }}", "roe")
    });
    </script>
 {% endblock %}
