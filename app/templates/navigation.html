@@ -54,6 +54,12 @@
           </ul>
         </li>
         <li> <a href="{{ url_for('industry_analysis.index') }}">行业分析</a></li>
+        <li class="dropdown">
+          <a href="#" class="dropdown-toggle" data-toggle="dropdown">年度报告<b class="caret"></b></a>
+          <ul class="dropdown-menu">
+            <li> <a href="{{ url_for('annual_report.index', path="2018") }}">2018</a></li>
+          </ul>
+        </li>
         <li> <a href="{{ url_for('stock.list_stock', path="business") }}">精选股票</a></li>
         <li> <a href="{{ url_for('self_selected_stock.index') }}">自选股</a></li>
       </ul>
