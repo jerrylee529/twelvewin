@@ -70,6 +70,9 @@ def update():
 
 if __name__ == '__main__':
     while True:
-        update()
-        time.sleep(60*random.randint(10, 30))
-
+        current_time = time.localtime(time.time())
+        if (current_time.tm_hour <= 15) and (current_time.tm_hour >= 9) and (current_time.tm_wday >= 0) and (current_time.tm_wday <= 6):
+            update()
+            time.sleep(60*random.randint(10, 30))
+        else:
+            time.sleep(60)
