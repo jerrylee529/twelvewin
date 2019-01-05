@@ -15,6 +15,7 @@ from flask_debugtoolbar import DebugToolbarExtension
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
 from redis_op import RedisOP
+import logging
 
 
 
@@ -57,8 +58,15 @@ print(os.environ['APP_SETTINGS'])
 app.config.from_object(os.environ['APP_SETTINGS'])
 #_check_config_variables_are_set(app.config)
 
+handler = logging.FileHandler('flask.log', encoding='UTF-8')
+handler.setLevel(logging.DEBUG)
+logging_format = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s - %(funcName)s - %(lineno)s - %(message)s')
+handler.setFormatter(logging_format)
+app.logger.addHandler(handler)
+
 # 创建redis连接池
 RedisOP.create_pool(app.config)
+
 
 ####################
 #### extensions ####
@@ -87,6 +95,7 @@ from app.technical_analysis.views import technical_analysis_blueprint
 from app.self_selected_stock.views import self_selected_stock_blueprint
 from app.industry_analysis.views import industry_analysis_blueprint
 from app.cluster_analysis.views import cluster_analysis_blueprint
+from app.annual_report.views import annual_report_blueprint
 app.register_blueprint(main_blueprint)
 app.register_blueprint(user_blueprint)
 app.register_blueprint(stock_blueprint)
@@ -96,6 +105,7 @@ app.register_blueprint(technical_analysis_blueprint)
 app.register_blueprint(self_selected_stock_blueprint)
 app.register_blueprint(industry_analysis_blueprint)
 app.register_blueprint(cluster_analysis_blueprint)
+app.register_blueprint(annual_report_blueprint)
 
 
 ####################
