@@ -38,8 +38,8 @@ def predict(code, day_file_path, result_file_path):
 
     # 选取数据的80%作为训练集，20%作为测试集
     L = len(df)
-    train = int(L * 0.8)
-    total_predict_data = L - train
+    predict_length = 1
+    train_length = L-predict_length
 
     # 对样本特征进行归一化处理
     df_X = df.drop(['Value'], axis=1)
@@ -47,9 +47,6 @@ def predict(code, day_file_path, result_file_path):
 
     # 开始循环预测，每次向前预测一个值
     correct = 0
-    train_original = train
-
-    classifier = None
 
     model_filename = result_file_path + '/' + code + '.model'
 
@@ -57,32 +54,20 @@ def predict(code, day_file_path, result_file_path):
     if os.path.exists(model_filename):
         classifier = joblib.load(model_filename)
     else:
-        classifier = svm.SVC(C=1.0, kernel='poly')
+        classifier = svm.SVC(C=1.0, kernel='rbf')
 
-    while train < L:
-        data_train = df_X[train - train_original:train]
-        value_train = value[train - train_original:train]
-        data_predict = df_X[train:train + 1]
-        value_real = value[train:train + 1]
-        # 核函数分别选取'ploy','linear','rbf'
-        #classifier = svm.SVC(C=1.0, kernel='poly')
-        # classifier = svm.SVC(kernel='linear')
-        # classifier = svm.SVC(C=1.0,kernel='rbf')
-        classifier.fit(data_train, value_train)
-        value_predict = classifier.predict(data_predict)
-        print("value_real=%d value_predict=%d" % (value_real[0], value_predict))
+    data_train = df_X[0:train_length]
+    value_train = value[0:train_length]
+    data_predict = df_X[train_length:]
 
-        # 计算测试集中的正确率
-        if value_real[0] == int(value_predict):
-            correct += 1
+    classifier.fit(data_train, value_train)
+    value_predict = classifier.predict(data_predict)
 
-        train += 1
+    joblib.dump(classifier, model_filename)
 
-    #joblib.dump(classifier, model_filename)
+    print value_predict
 
-    # 输出准确率
-    correct = correct * 100 / total_predict_data
-    print("Correct=%.2f%%" % correct)
+    return value_predict
 
 '''
 def predict(code, day_file_path, result_file_path):
