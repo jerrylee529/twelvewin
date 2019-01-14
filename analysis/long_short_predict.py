@@ -8,7 +8,7 @@ import pickle
 import os
 import sys
 import tushare as ts
-
+from models import StockPrediction, Session
 
 def predict(code, day_file_path, result_file_path):
     file_path = day_file_path + '/' + code + '.csv'
@@ -203,7 +203,7 @@ def train(code, day_file_path, result_file_path):
 
     rate = correct*100/len(value_predict)
 
-    print "correct: %f" % (rate,)
+    print "code: %s, correct: %f" % (code, rate,)
 
     # 输出模型文件
     joblib.dump(classifier, model_filename)
@@ -221,26 +221,28 @@ def train_all(instrument_filename, day_file_path, result_file_path):
         return
 
     instruments.sort_index(inplace=True)
-    instruments.reset_index(inplace=True)
+    #instruments.reset_index(inplace=True)
 
-    results = []
-    fileObject = open(result_file_path + '/sampleList.txt', 'w')
-    for code in instruments['code']:
+    session = Session()
+
+    session.query(StockPrediction).delete()
+
+    session.commit()
+
+    for index, row in instruments.iterrows():
         try:
-            rate = train(code, day_file_path=day_file_path, result_file_path=result_file_path)
-            result = {}
-            result['code'] = code
-            result['rate'] = rate
-            results.append(result)
-            str_row = "%(code)s,%(rate)f" % result
-            print str_row
-            fileObject.write(str_row)
-            fileObject.write('\n')
+            rate = train(index, day_file_path=day_file_path, result_file_path=result_file_path)
+
+            item = StockPrediction(index, name=row['name'], accu_rate=rate)
+
+            session.add(item)
+
+            session.commit()
         except:
-            print("%s compute failure" % code)
+            print("%s compute failure" % index)
             continue
 
-    fileObject.close()
+    session.close()
 
 if __name__ == '__main__':
     if len(sys.argv) < 3:

@@ -171,5 +171,24 @@ class StockClusterItem(Base):
         self.update_time = datetime.datetime.now()
 
 
+class StockPrediction(Base):
+    '''
+    股票预测结果表
+    '''
+    __tablename__ = 'stock_prediction'
+
+    id = Column(Integer, primary_key=True)
+    code = Column(String(8), index=True, nullable=False, comment=u"股票代码")
+    name = Column(String(32),  index=True, nullable=False, comment=u"股票名称")  # 名称
+    accu_rate = Column(Float, nullable=False, comment=u"精确度")
+    update_time = Column(DateTime, nullable=False)
+
+    def __init__(self, code, name, accu_rate):
+        self.code = code
+        self.name = name
+        self.accu_rate = accu_rate
+        self.update_time = datetime.datetime.now()
+
+
 if __name__ == '__main__':
     Base.metadata.create_all(engine) 
