@@ -68,7 +68,7 @@ def update():
     except Exception as e:
         print str(e)
 
-if __name__ == '__main__':
+def update_on_timer():
     while True:
         current_time = time.localtime(time.time())
         if (current_time.tm_hour <= 15) and (current_time.tm_hour >= 9) and (current_time.tm_wday >= 0) and (current_time.tm_wday <= 6):
@@ -76,3 +76,9 @@ if __name__ == '__main__':
             time.sleep(60*random.randint(10, 30))
         else:
             time.sleep(60)
+
+
+if __name__ == '__main__':
+    #update()
+
+    update_on_timer()
