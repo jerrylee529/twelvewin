@@ -65,9 +65,9 @@ def predict(code, day_file_path, result_file_path):
 
     joblib.dump(classifier, model_filename)
 
-    print value_predict
+    print df.index[L-1], value_predict
 
-    return value_predict
+    return df.index[L-1], value_predict
 
 '''
 def predict(code, day_file_path, result_file_path):
@@ -216,11 +216,11 @@ def train_all(instrument_filename, day_file_path, result_file_path):
     #instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
     instruments = ts.get_stock_basics()
 
-
     if instruments is None:
         print("Could not find any instruments, exit")
         return
 
+    instruments.sort_index(inplace=True)
     instruments.reset_index(inplace=True)
 
     results = []

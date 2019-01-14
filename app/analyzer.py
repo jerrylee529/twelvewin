@@ -5,6 +5,10 @@ __author__ = 'Jerry Lee'
 
 from redis_op import RedisOP
 from app.models import Instrument
+from sklearn import svm,preprocessing
+from sklearn.externals import joblib
+import pandas as pd
+import os
 
 
 class Analyzer(object):
@@ -52,4 +56,61 @@ class Analyzer(object):
 
     # 获取预测值
     def get_prediction(self, code):
-        pass
+        file_path = self.app.config['DAY_FILE_PATH'] + '/' + code + '.csv'
+        df = pd.read_csv(file_path)
+        df.set_index('date', inplace=True)
+        df.drop(['code'], axis=1, inplace=True)
+
+        # 将日期作为index,顺序排列
+        df = df.sort_index()
+        # print df.head()
+        # value表示涨跌
+        value = pd.Series(df['close'] - df['close'].shift(1), index=df.index)
+
+        value = value.bfill()
+        value[value >= 0] = 1
+        value[value < 0] = 0
+        df['Value'] = value
+
+        df['ma5'] = df['close'].rolling(window=5).mean()
+        df['ma10'] = df['close'].rolling(window=10).mean()
+        df['ma20'] = df['close'].rolling(window=20).mean()
+        df['ma250'] = df['close'].rolling(window=250).mean()
+
+        # 后向填充空缺值
+        df = df.fillna(method='bfill')
+        df = df.astype('float64')
+        # print df.head()
+
+        # 选取数据的80%作为训练集，20%作为测试集
+        L = len(df)
+        predict_length = 10
+        train_length = L-predict_length
+
+        # 对样本特征进行归一化处理
+        df_X = df.drop(['Value'], axis=1)
+        df_X = preprocessing.scale(df_X)
+
+        # 开始循环预测，每次向前预测一个值
+        correct = 0
+
+        model_filename = self.app.config['RESULT_PATH'] + '/' + code + '.model'
+
+        # 如果存在模型文件则加载改模型文件，不存在则创建一个
+        if os.path.exists(model_filename):
+            classifier = joblib.load(model_filename)
+        else:
+            classifier = svm.SVC(C=1.0, kernel='rbf')
+
+        data_train = df_X[0:train_length]
+        value_train = value[0:train_length]
+        data_predict = df_X[train_length:]
+
+        #classifier.fit(data_train, value_train)
+        value_predict = classifier.predict(data_predict)
+
+        joblib.dump(classifier, model_filename)
+
+        print df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
+
+        return df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
