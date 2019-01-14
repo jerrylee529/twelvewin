@@ -39,7 +39,7 @@
         </div>
 
         <div class="col-lg-6">
-        <table class="table table-bordered">
+        <table class="table table-bordered table-striped table-hover">
         <thead>
         <tr>
               <th scope="col">日期</th>
@@ -48,7 +48,10 @@
         </tr>
         </thead>
         {% for item in quot.predictions %}
-        <tr><td>{{ item.date }}</td><td>{{ item.real }}</td><td>{{ item.predict }}</td></tr>
+        <tr><td>{{ item.date }}</td>
+        {% if item.real == "涨" %}<td class='text-danger'>{% else %}<td class='text-success'>{% endif %}{{ item.real }}</td>
+        {% if item.predict == "涨" %}<td class='text-danger'>{% else %}<td class='text-success'>{% endif %}{{ item.predict }}</td>
+        </tr>
         {% endfor %}
         </table>
         </div>
