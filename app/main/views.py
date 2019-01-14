@@ -53,6 +53,8 @@ def predict():
 
     predictions = []
 
+    print dates, reals, predictions
+
     for i in range(1, len(dates)):
         item = {}
         item['date'] = dates[i]
@@ -60,9 +62,11 @@ def predict():
         item['predict'] = u"涨" if predicts[i-1] > 0.0 else u"跌"
         predictions.append(item)
 
-    item['date'] = "下个交易日"
-    item['real'] = u""
-    item['predict'] = u"涨" if predicts[len(dates)-1] > 0.0 else u"跌"
+    last_item = {}
+    last_item['date'] = "下个交易日"
+    last_item['real'] = u""
+    last_item['predict'] = u"涨" if predicts[len(dates)-1] > 0.0 else u"跌"
+    predictions.append(last_item)
 
     quot['predictions'] = predictions
 
