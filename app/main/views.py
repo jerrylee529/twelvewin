@@ -48,6 +48,26 @@ def predict():
 
     # 获取行情数据
     quot = analyzer.get_quotation(code)
+
+    dates, reals, predicts = analyzer.get_prediction(code)
+
+    predictions = []
+
+    for i in range(1, len(dates)):
+        item = {}
+        item['date'] = dates[i]
+        item['real'] = u"涨" if reals[i] > 0.0 else u"跌"
+        item['predict'] = u"涨" if predicts[i-1] > 0.0 else u"跌"
+        predictions.append(item)
+
+    item['date'] = "下个交易日"
+    item['real'] = u""
+    item['predict'] = u"涨" if predicts[len(dates)-1] > 0.0 else u"跌"
+
+    quot['predictions'] = predictions
+
     print quot
 
-    return render_template('main/result.html', current_user=current_user, quot=quot)
+    return render_template('main/index.html', current_user=current_user, quot=quot)
+
+

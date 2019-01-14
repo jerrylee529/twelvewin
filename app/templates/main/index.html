@@ -3,7 +3,9 @@
 
 {% block page_content %}
    <!--<div class="container">-->
+   {% if quot == null %}
    <img src="/static/images/default.jpg" width="100%" height="100%" style="z-index:-100;position:absolute;left:0;top:0"/>
+   {% endif %}
    <div class="row">
        <div class="col-md-6 col-md-offset-3">
             <form action="/main/predict" role="form">
@@ -11,11 +13,56 @@
                     <input type="text" class="form-control" placeholder="代码/简称" id="code-search" name="code-search"  data-provide="typeahead" autocomplete="off">
                     <span class="input-group-btn">
                         <button class="btn btn-default" type="submit">预测</button>
+                        <!--<button class="btn btn-default" id="btn_predict" onclick="load_home()">预测</button>-->
                     </span>
                 </div>
             </form>
         </div>
-    </div>
+   </div>
+   <br/>
+   <br/>
+   {% if quot != null %}
+   <div class="row" id="result_page" style=";height: 800px;padding: 5px">
+        <div><h2><strong>{{ quot.code }} {{ quot.name }}</strong></h2></div>
+        <div><h1><strong>{{ quot.trade }}</strong>  <small>{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
+        <div><h4>更新时间: <small> {{ quot.update_time }}</small></h4></div>
+
+        <div class="container">
+        <div class="row">
+        <div class="col-lg-6 bg-light">
+        <table class="table">
+        <tr><td>最高：<span>{{ quot.high }}</span></td><td>今开：<span>{{ quot.open }}</span></td><td>成交量：<span>{{ "%d"|format(quot.volume|int/100) }}手</span></td></tr>
+        <tr><td>最低：<span>{{ quot.low }}</span></td><td>昨收：<span>{{ quot.settlement }}</span></td><td>成交额：<span>{{ "%.2f"|format(quot.amount|int/10000) }}万</span></td></tr>
+        <tr><td>换手：<span>{{ "%.2f"|format(quot.turnoverratio|float) }}%</span></td><td>市盈率：<span>{{ "%.2f"|format(quot.per|float) }}</span></td><td>市净率：<span>{{ "%.2f"|format(quot.pb|float) }}</span></td></tr>
+        <tr><td>流通市值：<span>{{ "%.2f"|format(quot.mktcap|int/10000) }}亿</span></td><td>总市值：<span>{{ "%.2f"|format(quot.nmc|int/10000) }}亿</span></td></tr>
+        </table>
+        </div>
+
+        <div class="col-lg-6">
+        <table class="table table-bordered">
+        <thead>
+        <tr>
+              <th scope="col">日期</th>
+              <th scope="col">真实值</th>
+              <th scope="col">预测值</th>
+        </tr>
+        </thead>
+        {% for item in quot.predictions %}
+        <tr><td>{{ item.date }}</td><td>{{ item.real }}</td><td>{{ item.predict }}</td></tr>
+        {% endfor %}
+        </table>
+        </div>
+        </div>
+        </div>
+
+        <div id="candlestick" style="height: 450px"></div>
+        <br>
+        <div id="roe" style="height: 300px"></div>
+        <br>
+        <div id="npr" style="height: 300px"></div>
+   </div>
+   {% endif %}
+
    <!--
     {% if current_user.is_authenticated %}
       <h1>Welcome, {{ current_user.email }}</h1>
@@ -45,6 +92,10 @@
     <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-table/1.11.1/bootstrap-table.min.js"></script>
     <script src="/static/js/my_app_code.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-3-typeahead/4.0.2/bootstrap3-typeahead.min.js"></script>
+    <script type="text/javascript" src="/static/js/echarts.min.js"></script>
+    <script type="text/javascript" src="/static/js/candlestick_chart.js"></script>
+    <script type="text/javascript" src="/static/js/bar_chart.js"></script>
+
     <script type="text/javascript">
     var array = null;
 
@@ -56,6 +107,12 @@
                 array[i] = instruments[i].code + " " + instruments[i].name
             }
     	}});
+
+        {% if quot != null %}
+ 	    show_chart("{{ quot.code }}" )
+        show_bar("净利润", "万元", "npr", "{{ quot.code }}", "npr")
+        show_bar("净资产收益率", "百分比", "roe", "{{ quot.code }}", "roe")
+        {% endif %}
     });
 
     $('#code-search').typeahead(
