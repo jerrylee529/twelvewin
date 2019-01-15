@@ -77,3 +77,30 @@
 .color_cluster20 {
     color: #FF00FF;
 }
+
+html {
+  position: relative;
+  min-height: 100%;
+}
+
+body {
+  /* Margin bottom by footer height */
+  margin-bottom: 60px;
+}
+
+.wrapper {
+    position: relative;
+    min-height: 100%;
+    padding-bottom: 50px;
+    box-sizing: border-box;
+}
+
+.footer {
+    width: 100%;
+    height:50px;   /* footer的高度一定要是固定值*/
+    position:absolute;
+    bottom:0px;
+    left:0px;
+}
+
+

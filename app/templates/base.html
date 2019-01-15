@@ -2,6 +2,12 @@
 {% block title %}团赢数据{% endblock %}
 
 
+{% block styles %}
+    {{super()}}
+    <link rel="stylesheet" type="text/css" href="/static/css/industry.css" />
+{% endblock styles %}
+
+
 {% block navbar %}
 {% include "navigation.html" %}
 {% endblock navbar %}
@@ -20,14 +26,24 @@
 
     {% block page_content %}{% endblock %}
 
-<!-- Copyright -->
-<footer class="container-fluid navbar-fixed-bottom">
-<div class="footer-copyright text-center py-3">Copyright &copy; 2018
-    <a href="http://www.twelvewin.com/">团赢数据</a> All Rights Reserved.
-</div>
-</footer>
+    <!-- Copyright -->
+    <!--<footer class="container-fluid navbar-fixed-bottom">-->
+    <footer class="footer">
+    <div class="container text-center">Copyright &copy; 2018
+        <a href="http://www.twelvewin.com/">团赢数据</a> All Rights Reserved.
+    </div>
+    </footer>
+
 </div>
 {% endblock %}
 
 
 <!-- Copyright -->
+{% block scripts %}
+
+    {{ super() }}
+    <script type="text/javascript">
+    $(document).ready(function(){
+    });
+    </script>
+{% endblock %}
