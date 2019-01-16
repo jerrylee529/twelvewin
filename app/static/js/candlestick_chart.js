@@ -18,7 +18,8 @@ function show_chart(code) {
             for (var j = 0; j < dayCount; j++) {
                 sum += data[i - j][1];
             }
-            result.push(sum / dayCount);
+            var avg = sum / dayCount
+            result.push(avg.toFixed(2));
         }
         return result;
     }
@@ -26,7 +27,7 @@ function show_chart(code) {
     var option = {
         backgroundColor: '#21202D',
         legend: {
-            data: ['日K', 'MA5', 'MA10', 'MA20'],
+            data: ['日K'],
             inactiveColor: '#777',
             textStyle: {
                 color: '#fff'

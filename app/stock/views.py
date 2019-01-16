@@ -133,10 +133,10 @@ def get_history_quotation(code):
     if quot:
         last_item = []
         last_item.append(quot['update_time'].split()[0])
-        last_item.append(quot['open'])
-        last_item.append(quot['trade'])
-        last_item.append(quot['low'])
-        last_item.append(quot['high'])
+        last_item.append(float(quot['open']))
+        last_item.append(float(quot['trade']))
+        last_item.append(float(quot['low']))
+        last_item.append(float(quot['high']))
 
         data.append(last_item)
 
