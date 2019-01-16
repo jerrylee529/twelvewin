@@ -22,23 +22,30 @@
    <br/>
    <br/>
    {% if quot != null %}
-   <div class="row" id="result_page" style=";height: 800px;padding: 5px">
+   <div class="row" id="result_page" style=";padding: 5px">
         <div><h2><strong>{{ quot.code }} {{ quot.name }}</strong></h2></div>
-        <div><h1><strong>{{ quot.trade }}</strong>  <small>{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
-        <div><h4>更新时间: <small> {{ quot.update_time }}</small></h4></div>
+        {% if quot.trade|float > quot.settlement|float %}
+        <div><h1><strong class="color_up">{{ quot.trade }}</strong>  <small class="color_up">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
+        {% elif quot.trade|float < quot.settlement|float %}
+        <div><h1><strong class="color_down">{{ quot.trade }}</strong>  <small class="color_down">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
+        {% else %}
+        <div><h1><strong class="text-muted">{{ quot.trade }}</strong>  <small class="text-muted">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
+        {% endif %}
 
         <div class="container">
         <div class="row">
         <div class="col-lg-6 bg-light">
+        <div><h4><strong>更新时间: </strong> <small> {{ quot.update_time }}</small></h4></div>
         <table class="table">
         <tr><td>最高：<span>{{ quot.high }}</span></td><td>今开：<span>{{ quot.open }}</span></td><td>成交量：<span>{{ "%d"|format(quot.volume|int/100) }}手</span></td></tr>
         <tr><td>最低：<span>{{ quot.low }}</span></td><td>昨收：<span>{{ quot.settlement }}</span></td><td>成交额：<span>{{ "%.2f"|format(quot.amount|int/10000) }}万</span></td></tr>
         <tr><td>换手：<span>{{ "%.2f"|format(quot.turnoverratio|float) }}%</span></td><td>市盈率：<span>{{ "%.2f"|format(quot.per|float) }}</span></td><td>市净率：<span>{{ "%.2f"|format(quot.pb|float) }}</span></td></tr>
-        <tr><td>流通市值：<span>{{ "%.2f"|format(quot.mktcap|int/10000) }}亿</span></td><td>总市值：<span>{{ "%.2f"|format(quot.nmc|int/10000) }}亿</span></td></tr>
+        <tr><td>流通市值：<span>{{ "%.2f"|format(quot.nmc|int/10000) }}亿</span></td><td>总市值：<span>{{ "%.2f"|format(quot.mktcap|int/10000) }}亿</span></td></tr>
         </table>
         </div>
 
         <div class="col-lg-6">
+        <div><h4><strong>预测准确率: </strong> <small> {{ quot.accu_rate }}%</small></h4></div>
         <table class="table table-bordered table-striped table-hover">
         <thead>
         <tr>
@@ -49,8 +56,8 @@
         </thead>
         {% for item in quot.predictions %}
         <tr><td>{{ item.date }}</td>
-        {% if item.real == "涨" %}<td class='text-danger'>{% else %}<td class='text-success'>{% endif %}{{ item.real }}</td>
-        {% if item.predict == "涨" %}<td class='text-danger'>{% else %}<td class='text-success'>{% endif %}{{ item.predict }}</td>
+        {% if item.real == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.real }}</td>
+        {% if item.predict == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.predict }}</td>
         </tr>
         {% endfor %}
         </table>
@@ -63,6 +70,12 @@
         <div id="roe" style="height: 300px"></div>
         <br>
         <div id="npr" style="height: 300px"></div>
+        <br>
+        <div id="profits_yoy" style="height: 300px"></div>
+        <br>
+        <div id="eps" style="height: 300px"></div>
+        <br>
+        <div id="eps_yoy" style="height: 300px"></div>
    </div>
    {% endif %}
 
@@ -115,6 +128,9 @@
  	    show_chart("{{ quot.code }}" )
         show_bar("净利润", "万元", "npr", "{{ quot.code }}", "npr")
         show_bar("净资产收益率", "百分比", "roe", "{{ quot.code }}", "roe")
+        show_bar("净利润同比增长率", "百分比", "profits_yoy", "{{ quot.code }}", "profits_yoy")
+        show_bar("每股收益", "元", "eps", "{{ quot.code }}", "eps")
+        show_bar("每股收益同比增长率", "元", "eps_yoy", "{{ quot.code }}", "eps_yoy")
         {% endif %}
     });
 

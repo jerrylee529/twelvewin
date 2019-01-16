@@ -9,7 +9,7 @@ from flask import render_template
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from flask_login import login_required
-from app.models import SelfSelectedStock, Instrument, Report
+from app.models import SelfSelectedStock, Instrument, Report, StockPrediction
 from app import db
 from app import analyzer
 
@@ -49,11 +49,18 @@ def predict():
     # 获取行情数据
     quot = analyzer.get_quotation(code)
 
+    dates = []
+
     try:
         dates, reals, predicts = analyzer.get_prediction(code)
+
+        stock = db.session.query(StockPrediction).filter_by(code=code).first()
+
+        if stock:
+            quot['accu_rate'] = stock.accu_rate
     except Exception as e:
         print("could not get prediction, %s" % code)
-        
+
     predictions = []
 
     if len(dates) > 0:

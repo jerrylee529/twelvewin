@@ -104,8 +104,7 @@ def show_stock(code):
 # 获取历史行情数据
 @stock_blueprint.route('/candlestick/<code>/hq', methods=['GET', 'POST'])
 def get_history_quotation(code):
-    print("get_history_quotation")
-
+    print("get_history_quotation: " + code)
     data = []
 
     pic_path = current_app.config['DAY_FILE_PATH'] + '/' + code + '.csv'

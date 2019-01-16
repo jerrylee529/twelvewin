@@ -67,7 +67,7 @@ class Analyzer(object):
         # value表示涨跌
         value = pd.Series(df['close'] - df['close'].shift(1), index=df.index)
 
-        value = value.bfill()
+        value = value.ffill()
         value[value >= 0] = 1
         value[value < 0] = 0
         df['Value'] = value
@@ -84,7 +84,7 @@ class Analyzer(object):
 
         # 选取数据的80%作为训练集，20%作为测试集
         L = len(df)
-        predict_length = 10
+        predict_length = 5
         train_length = L-predict_length
 
         # 对样本特征进行归一化处理

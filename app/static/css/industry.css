@@ -78,6 +78,14 @@
     color: #FF00FF;
 }
 
+.color_up {
+    color: #DD2200;
+}
+
+.color_down {
+    color: #009933;
+}
+
 html {
   position: relative;
   min-height: 100%;

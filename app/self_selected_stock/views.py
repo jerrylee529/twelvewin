@@ -204,6 +204,12 @@ def get_net_profit(code, field):
                 item.append(row.net_profits)
             elif field == 'roe':
                 item.append(row.roe)
+            elif field == 'profits_yoy':
+                item.append(row.profits_yoy)
+            elif field == 'eps':
+                item.append(row.eps)
+            elif field == 'eps_yoy':
+                item.append(row.eps_yoy)
             else:
                 item.append(0)
         except ValueError:

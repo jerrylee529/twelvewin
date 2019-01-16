@@ -230,3 +230,22 @@ class StockClusterItem(db.Model):
         self.name = name
         self.corr = corr
         self.update_time = datetime.datetime.now()
+
+
+class StockPrediction(db.Model):
+    '''
+    股票预测结果表
+    '''
+    __tablename__ = 'stock_prediction'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")  # 名称
+    accu_rate = db.Column(db.Float, nullable=False, comment=u"精确度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, accu_rate):
+        self.code = code
+        self.name = name
+        self.accu_rate = accu_rate
+        self.update_time = datetime.datetime.now()
