@@ -10,6 +10,7 @@ import json
 from app import db
 from app.models import SelfSelectedStock
 from app.decorators import check_confirmed
+from app import analyzer
 from app.util import model_to_json
 
 import sys   #reload()之前必须要引入模块
@@ -126,6 +127,18 @@ def get_history_quotation(code):
         except ValueError:
             continue
         data.append(item)
+
+    quot = analyzer.get_quotation(code)
+
+    if quot:
+        last_item = []
+        last_item.append(quot['update_time'].split()[0])
+        last_item.append(quot['open'])
+        last_item.append(quot['trade'])
+        last_item.append(quot['low'])
+        last_item.append(quot['high'])
+
+        data.append(last_item)
 
     #del data[:-100]
 
