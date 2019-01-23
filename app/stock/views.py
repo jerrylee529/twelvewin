@@ -131,14 +131,18 @@ def get_history_quotation(code):
     quot = analyzer.get_quotation(code)
 
     if quot:
-        last_item = []
-        last_item.append(quot['update_time'].split()[0])
-        last_item.append(float(quot['open']))
-        last_item.append(float(quot['trade']))
-        last_item.append(float(quot['low']))
-        last_item.append(float(quot['high']))
+        d = quot['update_time'].split()[0]
 
-        data.append(last_item)
+        # 如果当天的k先不存在，则取实时行情补上
+        if len(data) > 0 and data[len(data)-1][0] != d:
+            last_item = []
+            last_item.append(d)
+            last_item.append(float(quot['open']))
+            last_item.append(float(quot['trade']))
+            last_item.append(float(quot['low']))
+            last_item.append(float(quot['high']))
+
+            data.append(last_item)
 
     #del data[:-100]
 
