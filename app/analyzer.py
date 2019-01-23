@@ -9,7 +9,10 @@ from sklearn import svm,preprocessing
 from sklearn.externals import joblib
 import pandas as pd
 import os
-
+import tushare as ts
+from sklearn.cluster import AffinityPropagation
+from datetime import date
+from sklearn.decomposition import PCA
 
 class Analyzer(object):
     """
@@ -24,10 +27,14 @@ class Analyzer(object):
 
         self.instruments = []
 
-        self._get_instruments()
+        self.__get_instruments()
+
+        self.stock_basic = None
+
+        self.stock_basic_update_date = None
 
     # 获取所有的股票信息
-    def _get_instruments(self):
+    def __get_instruments(self):
         try:
             self.securities = self.db.session.query(Instrument).all()
 
@@ -39,6 +46,7 @@ class Analyzer(object):
                 item['id'] = index
                 item['code'] = security.code
                 item['name'] = security.name
+                item['industry'] = security.industry
                 self.instruments.append(item)
                 index += 1
         except Exception, e:
@@ -114,3 +122,111 @@ class Analyzer(object):
         print df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
 
         return df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
+
+    # 行业聚类分析
+    def industry_cluster(self, industry):
+        curr_date = date.today().strftime("%Y-%m-%d")
+
+        if (self.stock_basic_update_date is None) or (curr_date != self.stock_basic_update_date):
+            self.stock_basic = ts.get_stock_basics()
+            self.stock_basic_update_date = curr_date
+
+        instruments = self.stock_basic[self.stock_basic['industry'] == industry]
+
+        if len(instruments) <= 0:
+            return None
+
+        data = instruments.drop(['name', 'industry', 'area', 'timeToMarket', 'pe', 'pb'], axis=1)
+        data = data.fillna(0.00)
+        data = data.astype('float64')
+
+        #x = preprocessing.scale(data)
+        x = data.values
+
+        #pca = PCA(n_components=8, copy=False)
+        #x = pca.fit_transform(x)
+
+        #print x
+
+        af = AffinityPropagation(affinity='euclidean').fit(x)
+        labels = af.labels_
+
+        instruments['label'] = None
+
+        label_index = list(instruments.columns).index('label')
+
+        i = 0
+        for label in labels:
+            instruments.iloc[i, label_index] = label
+            i += 1
+
+        return instruments
+
+    # 读取历史数据并返回每日涨跌幅
+    def __read_data(self, folder, begin_date, code):
+        file_path = folder + '/' + code + '.csv'
+        today = date.today()
+
+        end_date = today.strftime("%Y-%m-%d")
+
+        df = pd.read_csv(file_path)
+        df.set_index('date', inplace=True)
+
+        df = df.loc[begin_date:end_date, ]
+        df.fillna(method='ffill', inplace=True)  # 前向填充
+
+        value = pd.Series(df['close'] - df['close'].shift(1), index=df.index)
+        value = value.ffill()
+
+        df['value'] = value
+        df['rate'] = value/df['close']*100
+
+        return df['rate']
+
+    # 行业对涨跌幅进行聚类分析
+    def industry_cluster_by_tech(self, industry, begin_date):
+        curr_date = date.today().strftime("%Y-%m-%d")
+
+        if (self.stock_basic_update_date is None) or (curr_date != self.stock_basic_update_date):
+            self.stock_basic = ts.get_stock_basics()
+            self.stock_basic_update_date = curr_date
+
+        instruments = self.stock_basic[self.stock_basic['industry'] == industry]
+
+        if len(instruments) <= 0:
+            return None
+
+        df = pd.DataFrame()
+
+        index_code = '000001'
+        index_data = self.__read_data(self.app.config['INDEX_FILE_PATH'], begin_date, index_code)
+        index_code = '9' + index_code
+        df[index_code] = index_data
+
+        for code in instruments.index:
+            data = self.__read_data(self.app.config['DAY_FILE_PATH'], begin_date, code)
+            df[code] = data
+
+        df.fillna(method='ffill', inplace=True)
+        df.fillna(0.01, inplace=True)
+        df = df.astype('float64')
+
+        df.drop([index_code], axis=1, inplace=True)
+
+        df = df.T
+
+        x = df.values
+
+        af = AffinityPropagation(affinity='euclidean').fit(x)
+        labels = af.labels_
+
+        instruments['label'] = None
+
+        label_index = list(instruments.columns).index('label')
+
+        i = 0
+        for label in labels:
+            instruments.iloc[i, label_index] = label
+            i += 1
+
+        return instruments

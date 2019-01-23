@@ -64,6 +64,8 @@ logging_format = logging.Formatter('%(asctime)s - %(levelname)s - %(filename)s -
 handler.setFormatter(logging_format)
 app.logger.addHandler(handler)
 
+log = app.logger
+
 # 创建redis连接池
 RedisOP.create_pool(app.config)
 

@@ -12,6 +12,14 @@
             </select>
         </div>
         <div class="form-group">
+            <div class="btn-group" id="cluster_type" data-toggle="buttons">
+                <label class="btn btn-info btn-sm active">
+                    <input type="radio" name="options" id="option1" checked="" value="0"> 基本面聚类
+                </label>
+                <label class="btn btn-info btn-sm">
+                    <input type="radio" name="options" id="option2" value="1"> 涨跌幅聚类
+                </label>
+            </div>
             <button type="button" class="btn btn-default btn-sm" onclick="filter()"><span class="glyphicon glyphicon-edit"></span> 计算</button>
         </div>
     </div>
@@ -62,7 +70,6 @@
     <script type="text/javascript" src="/static/js/bootstrap-typeahead.js"></script>
     <script src="https://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/js/bootstrap-select.js"></script>
     <link rel="stylesheet" type="text/css" href="http://cdn.bootcss.com/bootstrap-select/2.0.0-beta1/css/bootstrap-select.css">
-    <link rel="stylesheet" type="text/css" href="/static/css/industry.css" />
     <script type="text/javascript">
     function operations_formatter(value, row, index, field) {
         var b = '<a href="#" mce_href="#" onclick="addSelfSelectedStock(\'' + row.code + '\')"><span class="glyphicon glyphicon-plus"></span></a> ';
@@ -130,7 +137,8 @@
     function filter() {
         //$('#table').bootstrapTable('refresh');
         industry = $('#industries').selectpicker('val');
-        $('#table').bootstrapTable('refresh',  {query: {industry:industry}});
+        var cluster_type = $('#cluster_type input:radio:checked').val();
+        $('#table').bootstrapTable('refresh',  {query: {industry:industry, cluster_type:cluster_type}});
     }
 
     var tab = createBootstrapTable('#table', '{{ url_for("industry_analysis.list_stock") }}',
@@ -143,53 +151,18 @@
     $('table').on('load-success.bs.table', function (e, data) {
                 console.info("setup values")
                 jsonData = window.jsonData;
-                $('#pe').html('<span>' + jsonData.avg_pe + '</span>');
-                $('#mid_pe').html('<span>' + jsonData.mid_pe + '</span>');
-                $('#pb').html('<span>' + jsonData.avg_pb + '</span>');
-                $('#mid_pb').html('<span>' + jsonData.mid_pb + '</span>');
-                $('#gpr').html('<span>' + jsonData.avg_gpr + '</span>');
-                $('#mid_gpr').html('<span>' + jsonData.mid_gpr + '</span>');
-                $('#npr').html('<span>' + jsonData.avg_npr + '</span>');
-                $('#mid_npr').html('<span>' + jsonData.mid_npr + '</span>');
-    });
-
-/*
-    $(function () {
-        $("#filterLabels").typeahead({
-            ajax: {
-                url: "{{ url_for('industry_analysis.get_industries') }}",
-                //timeout: 300,
-                method: 'post',
-                triggerLength: 1,
-                dataType: 'JSON',
-                loadingClass: null,
-                displayField: 'name',
-                preProcess: function (result) {
-
-                    return result.industries;
+                if (jsonData.total > 0) {
+                    $('#pe').html('<span>' + jsonData.avg_pe + '</span>');
+                    $('#mid_pe').html('<span>' + jsonData.mid_pe + '</span>');
+                    $('#pb').html('<span>' + jsonData.avg_pb + '</span>');
+                    $('#mid_pb').html('<span>' + jsonData.mid_pb + '</span>');
+                    $('#gpr').html('<span>' + jsonData.avg_gpr + '</span>');
+                    $('#mid_gpr').html('<span>' + jsonData.mid_gpr + '</span>');
+                    $('#npr').html('<span>' + jsonData.avg_npr + '</span>');
+                    $('#mid_npr').html('<span>' + jsonData.mid_npr + '</span>');
                 }
-            },
-            display: "name",
-            val: "id",
-            items: 8,
-            itemSelected: function (item, val, text) {
-                $("#filterLabels").attr("tag", val);
-                $("#filterLabels").val(text);
-            },
-            matcher: function (obj) {
-                //var item = JSON.parse(obj);
-                return true;
-            }
-        });
-        $("#filterLabels").blur(function (e) {
-            var txt = $("#filterLabels").val();
-            if (txt == null || txt == undefined || $.trim(txt) == "")
-            {
-                $("#filterLabels").removeAttr("tag");
-            }
-        })
     });
-*/
+
         $(document).ready(function(){
             $.ajax({url:"/industry/industries",success:function(result) {
 
