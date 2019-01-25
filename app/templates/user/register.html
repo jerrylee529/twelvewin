@@ -2,6 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block page_content %}
+<div class="col-md-4">
 <h1>请注册</h1>
 <br>
 <!--
@@ -44,4 +45,5 @@
   {{ wtf.quick_form(form) }}
   <br><br>
   <p>已经有帐号? <a href="/login">登录</a>.</p>
+</div>
 {% endblock %}

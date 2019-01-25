@@ -2,6 +2,7 @@
 {% import "bootstrap/wtf.html" as wtf %}
 
 {% block page_content %}
+<div class="col-md-4">
 <h1>忘记密码?</h1>
 <br />
 <!--
@@ -32,5 +33,5 @@
 </form>
 -->
 {{ wtf.quick_form(form) }}
-
+</div>
 {% endblock %}
