@@ -249,3 +249,193 @@ class StockPrediction(db.Model):
         self.name = name
         self.accu_rate = accu_rate
         self.update_time = datetime.datetime.now()
+
+
+class StockReportBasic():
+    def to_dict(self):
+        return {c.name: getattr(self, c.name, None) for c in self.__table__.columns}
+
+
+class StockProfitReport(db.Model, StockReportBasic):
+    '''
+    盈利能力报告
+    '''
+    __tablename__ = 'stock_profit_report'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")
+    roe = db.Column(db.Float, nullable=True, comment=u"净资产收益率(%)")
+    net_profit_ratio = db.Column(db.Float, nullable=True, comment=u"净利率(%)")
+    gross_profit_rate = db.Column(db.Float, nullable=True, comment=u"毛利率(%)")
+    net_profits = db.Column(db.Float, nullable=True, comment=u"净利润(万元)")
+    eps = db.Column(db.Float, nullable=True, comment=u"每股收益")
+    business_income = db.Column(db.Float, nullable=True, comment=u"营业收入(百万元)")
+    bips = db.Column(db.Float, nullable=True, comment=u"每股主营业务收入(元)")
+    year = db.Column(db.Integer, nullable=False, comment=u"财报年份")
+    season = db.Column(db.Integer, nullable=False, comment=u"财报季度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, roe, net_profit_ratio, gross_profit_rate, net_profits, eps, business_income, bips,
+                 year, season):
+        self.code = code
+        self.name = name
+        self.update_time = datetime.datetime.now()
+        self.roe = roe
+        self.net_profit_ratio = net_profit_ratio
+        self.gross_profit_rate = gross_profit_rate
+        self.net_profits = net_profits
+        self.eps = eps
+        self.business_income = business_income
+        self.bips = bips
+        self.year = year
+        self.season = season
+
+
+class StockOperationReport(db.Model, StockReportBasic):
+    '''
+    运营能力报告
+    '''
+    __tablename__ = 'stock_operation_report'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")
+    arturnover = db.Column(db.Float, nullable=True, comment=u"应收账款周转率(次)")
+    arturndays = db.Column(db.Float, nullable=True, comment=u"应收账款周转天数(天)")
+    inventory_turnover = db.Column(db.Integer, nullable=True, comment=u"存货周转率(次)")
+    inventory_days = db.Column(db.Integer, nullable=True, comment=u"存货周转天数(天)")
+    currentasset_turnover = db.Column(db.Integer, nullable=True, comment=u"流动资产周转率(次)")
+    currentasset_days = db.Column(db.Integer, nullable=True, comment=u"流动资产周转天数(天)")
+    year = db.Column(db.Integer, index=True, nullable=False, comment=u"财报年份")
+    season = db.Column(db.Integer, index=True, nullable=False, comment=u"财报季度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, arturnover, arturndays, inventory_turnover, inventory_days, currentasset_turnover,
+                 currentasset_days, year, season):
+        self.code = code
+        self.name = name
+        self.update_time = datetime.datetime.now()
+        self.arturnover = arturnover
+        self.arturndays = arturndays
+        self.inventory_turnover = inventory_turnover
+        self.inventory_days = inventory_days
+        self.currentasset_days = currentasset_days
+        self.currentasset_turnover = currentasset_turnover
+        self.year = year
+        self.season = season
+
+
+class StockGrowthReport(db.Model, StockReportBasic):
+    '''
+    成长能力报告
+    '''
+    __tablename__ = 'stock_growth_report'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")
+    mbrg = db.Column(db.Float, nullable=True, comment=u"主营业务收入增长率(%)")
+    nprg = db.Column(db.Float, nullable=True, comment=u"净利润增长率(%)")
+    nav = db.Column(db.Float, nullable=True, comment=u"净资产增长率")
+    targ = db.Column(db.Float, nullable=True, comment=u"总资产增长率")
+    epsg = db.Column(db.Float, nullable=True, comment=u"每股收益增长率")
+    seg = db.Column(db.Float, nullable=True, comment=u"股东权益增长率")
+    year = db.Column(db.Integer, index=True, nullable=False, comment=u"财报年份")
+    season = db.Column(db.Integer, index=True, nullable=False, comment=u"财报季度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, mbrg, nprg, nav, targ, epsg, seg, year, season):
+        self.code = code
+        self.name = name
+        self.update_time = datetime.datetime.now()
+        self.mbrg = mbrg
+        self.nprg = nprg
+        self.nav = nav
+        self.targ = targ
+        self.epsg = epsg
+        self.seg = seg
+        self.year = year
+        self.season = season
+
+
+class StockDebtPayingReport(db.Model, StockReportBasic):
+    '''
+    偿债能力报告
+    '''
+    __tablename__ = 'stock_debtpaying_report'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")
+    currentratio = db.Column(db.Float, nullable=True, comment=u"流动比率")
+    quickratio = db.Column(db.Float, nullable=True, comment=u"速动比率")
+    cashratio = db.Column(db.Float, nullable=True, comment=u"现金比率")
+    icratio = db.Column(db.Float, nullable=True, comment=u"利息支付倍数")
+    sheqratio = db.Column(db.Float, nullable=True, comment=u"股东权益比率")
+    adratio = db.Column(db.Float, nullable=True, comment=u"股东权益增长率")
+    year = db.Column(db.Integer, index=True, nullable=False, comment=u"财报年份")
+    season = db.Column(db.Integer, index=True, nullable=False, comment=u"财报季度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, currentratio, quickratio, cashratio, icratio, sheqratio, adratio, year, season):
+        self.code = code
+        self.name = name
+        self.update_time = datetime.datetime.now()
+        self.currentratio = currentratio
+        self.quickratio = quickratio
+        self.cashratio = cashratio
+        self.icratio = icratio
+        self.sheqratio = sheqratio
+        self.adratio = adratio
+        self.year = year
+        self.season = season
+
+
+class StockCashFlowReport(db.Model, StockReportBasic):
+    '''
+    现金流量报告
+    '''
+    __tablename__ = 'stock_cashflow_report'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    name = db.Column(db.String(32),  index=True, nullable=False, comment=u"股票名称")
+    cf_sales = db.Column(db.Float, nullable=True, comment=u"经营现金净流量对销售收入比率")
+    rateofreturn = db.Column(db.Float, nullable=True, comment=u"资产的经营现金流量回报率")
+    cf_nm = db.Column(db.Float, nullable=True, comment=u"经营现金净流量与净利润的比率")
+    cf_liabilities = db.Column(db.Float, nullable=True, comment=u"经营现金净流量对负债比率")
+    cashflowratio = db.Column(db.Float, nullable=True, comment=u"现金流量比率")
+    year = db.Column(db.Integer, index=True, nullable=False, comment=u"财报年份")
+    season = db.Column(db.Integer, index=True, nullable=False, comment=u"财报季度")
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, code, name, cf_sales, rateofreturn, cf_nm, cf_liabilities, cashflowratio, year, season):
+        self.code = code
+        self.name = name
+        self.update_time = datetime.datetime.now()
+        self.cf_sales = cf_sales
+        self.rateofreturn = rateofreturn
+        self.cf_nm = cf_nm
+        self.cf_liabilities = cf_liabilities
+        self.cashflowratio = cashflowratio
+        self.year = year
+        self.season = season
+
+
+class XueQiuReportInfo(db.Model):
+    __tablename__ = 'xueqiu_report_info'
+
+    id = db.Column(db.Integer, primary_key=True)
+    security_code = db.Column(db.String(8), index=True, nullable=False, comment=u"股票代码")
+    security_name = db.Column(db.String(8), index=True, nullable=False, comment=u"股票名称")
+    report_type = db.Column(db.Integer, nullable=False, comment=u"报表类型 0: 资产负债表 1: 利润分配表 2: 现金流量表")
+    report_data = db.Column(db.Text, nullable=False, comment=u"报表内容，json格式")
+    update_time = db.Column(db.DateTime, nullable=False, comment=u"更新时间")
+
+    def __init__(self, security_code, security_name, report_type, report_data):
+        self.security_code = security_code
+        self.security_name = security_name
+        self.update_time = datetime.datetime.now()
+        self.report_type = report_type
+        self.report_data = report_data

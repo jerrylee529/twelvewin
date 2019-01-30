@@ -8,7 +8,7 @@
 from flask import render_template, jsonify, Blueprint, request
 from flask_login import current_user, login_required
 from app.models import SelfSelectedStock, Instrument, Report
-from app import db
+from app import db, analyzer
 from app.decorators import check_confirmed
 import time
 import json
@@ -188,35 +188,46 @@ def delete():
 
     return jsonify(myClassJson)
 
+def convert_float(value, is_amount=False):
+    result = 0.0
+
+    if value is not None:
+        result = round(value/10000 if is_amount else value, 2)
+
+    return result
 
 # 获取净利润
 @self_selected_stock_blueprint.route('/bar/<code>/<field>', methods=['GET', 'POST'])
 def get_net_profit(code, field):
     data = []
 
-    reports = db.session.query(Report).filter_by(code=code, season=4).order_by(Report.year.asc()).all()
+    reports = analyzer.get_finance_indicators(code)
 
-    for row in reports:
+    for key in sorted(reports.keys(), reverse=False):
+        row = reports[key]
+
+        #print row
+
         item = []
-        item.append(row.year)
+        item.append(key)
         try:
             if field == 'npr':
-                item.append(row.net_profits)
+                item.append(convert_float(row['net_profit_after_nrgal_atsolc'], is_amount=True))
             elif field == 'roe':
-                item.append(row.roe)
+                item.append(convert_float(row['avg_roe']))
             elif field == 'profits_yoy':
-                item.append(row.profits_yoy)
+                item.append(convert_float(row['np_atsopc_nrgal_yoy']))
             elif field == 'eps':
-                item.append(row.eps)
+                item.append(convert_float(row['basic_eps']))
             elif field == 'eps_yoy':
-                item.append(row.eps_yoy)
+                item.append(convert_float(row['gross_selling_rate']))
+            elif field == 'np_per_share':
+                item.append(convert_float(row['np_per_share']))
             else:
                 item.append(0)
         except ValueError:
             continue
         data.append(item)
-
-    #del data[:-100]
 
     return jsonify({'rows': data})
 

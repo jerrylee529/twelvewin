@@ -63,19 +63,24 @@
         </table>
         </div>
         </div>
-        </div>
 
-        <div id="candlestick" style="height: 450px"></div>
+        <div id="candlestick" class="row" style="height: 450px"></div>
         <br>
-        <div id="roe" style="height: 300px"></div>
+        <div class="row">
+        <div id="eps_yoy" class="col-lg-6" style="height: 300px"></div>
+        <div id="roe" class="col-lg-6" style="height: 300px"></div>
+        </div>
         <br>
-        <div id="npr" style="height: 300px"></div>
+        <div class="row">
+        <div id="npr" class="col-lg-6" style="height: 300px"></div>
+        <div id="profits_yoy" class="col-lg-6" style="height: 300px"></div>
+        </div>
         <br>
-        <div id="profits_yoy" style="height: 300px"></div>
-        <br>
-        <div id="eps" style="height: 300px"></div>
-        <br>
-        <div id="eps_yoy" style="height: 300px"></div>
+        <div class="row">
+        <div id="eps" class="col-lg-6" style="height: 300px"></div>
+        <div id="np_per_share" class="col-lg-6" style="height: 300px"></div>
+        </div>
+        </div>
    </div>
    {% endif %}
 
@@ -126,11 +131,12 @@
 
         {% if quot != null %}
  	    show_chart("{{ quot.code }}" )
-        show_bar("净利润", "万元", "npr", "{{ quot.code }}", "npr")
+        show_bar("毛利率", "百分比", "eps_yoy", "{{ quot.code }}", "eps_yoy")
         show_bar("净资产收益率", "百分比", "roe", "{{ quot.code }}", "roe")
-        show_bar("净利润同比增长率", "百分比", "profits_yoy", "{{ quot.code }}", "profits_yoy")
+        show_bar("扣非净利润", "万元", "npr", "{{ quot.code }}", "npr")
+        show_bar("扣非净利润同比增长率", "百分比", "profits_yoy", "{{ quot.code }}", "profits_yoy")
         show_bar("每股收益", "元", "eps", "{{ quot.code }}", "eps")
-        show_bar("每股收益同比增长率", "元", "eps_yoy", "{{ quot.code }}", "eps_yoy")
+        show_bar("每股净资产", "元", "np_per_share", "{{ quot.code }}", "np_per_share")
         {% endif %}
     });
 
