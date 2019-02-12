@@ -22,7 +22,7 @@ stock_blueprint = Blueprint('stock', __name__,)
 
 # 处理市盈率排行的ajax数据请求
 @stock_blueprint.route('/<path>/data', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_stock_data(path):
     print("get_stock_data")
 
@@ -71,8 +71,8 @@ def get_stock_data(path):
 
 # 处理首页的导航
 @stock_blueprint.route('/<path>', methods=['GET', 'POST'])
-@login_required
-@check_confirmed
+#@login_required
+#@check_confirmed
 def list_stock(path):
     template_filename = 'stock/rank.html'
 
