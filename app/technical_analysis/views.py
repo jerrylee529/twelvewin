@@ -24,7 +24,7 @@ technical_analysis_blueprint = Blueprint('technical_analysis', __name__,)
 
 # 突破历史最高价
 @technical_analysis_blueprint.route('/tech/<path>/data', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_data(path):
     print("get technical analysis data")
 
@@ -70,8 +70,8 @@ def get_data(path):
 
 # 处理首页的导航
 @technical_analysis_blueprint.route('/tech/<path>', methods=['GET', 'POST'])
-@login_required
-@check_confirmed
+#@login_required
+#@check_confirmed
 def index(path):
     if path == 'highest':
         flash('股价创历史新高的股票列表','历史新高')
@@ -98,7 +98,7 @@ def index(path):
 
 
 @technical_analysis_blueprint.route('/tech/filter/data', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_filter_data():
     print("get filter analysis data")
 

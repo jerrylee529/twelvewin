@@ -14,7 +14,7 @@ strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)
 
 # 处理市盈率排行的ajax数据请求
 @strategy_analysis_blueprint.route('/<path>/data', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_data(path):
     print("get stock data")
 

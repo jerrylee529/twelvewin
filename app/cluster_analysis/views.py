@@ -27,7 +27,7 @@ cluster_analysis_blueprint = Blueprint('cluster', __name__,)
 
 # 处理行业分类的ajax数据请求
 @cluster_analysis_blueprint.route('/cluster/<path>/data', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_data(path):
     print("get_cluster_data")
 
@@ -82,8 +82,8 @@ def get_data(path):
 
 # 处理首页的导航
 @cluster_analysis_blueprint.route('/cluster/<path>', methods=['GET', 'POST'])
-@login_required
-@check_confirmed
+#@login_required
+#@check_confirmed
 def index(path):
     template_filename = 'cluster_analysis/cluster.html'
 

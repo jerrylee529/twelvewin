@@ -20,7 +20,7 @@ annual_report_blueprint = Blueprint('annual_report', __name__,)
 
 
 @annual_report_blueprint.route('/annual_report/<path>', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def index(path):
     print("annual report: " + path)
 
@@ -29,7 +29,7 @@ def index(path):
 
 #
 @annual_report_blueprint.route('/annual_report_stock/<year>/<amporchange>/<highorlow>', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_stock_report(year, amporchange, highorlow):
     print("annual report for stock: {}, {}, {}".format(year, amporchange, highorlow))
 
@@ -68,7 +68,7 @@ def get_stock_report(year, amporchange, highorlow):
 
 #
 @annual_report_blueprint.route('/annual_report_industry/<year>/<amporchange>/<highorlow>', methods=['POST', 'GET'])
-@login_required
+#@login_required
 def get_industry_report(year, amporchange, highorlow):
     print("annual report for industry: " + year)
 
