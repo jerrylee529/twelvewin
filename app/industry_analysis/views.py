@@ -52,7 +52,7 @@ def list_stock():
         return jsonify({"total": 0, "rows": []})
 
     if cluster_type == 0:
-        instruments = analyzer.industry_cluster(industry)
+        instruments = analyzer.industry_cluster_basic(industry)
     else:
         instruments = analyzer.industry_cluster_by_tech(industry, '2018-01-01')
 
