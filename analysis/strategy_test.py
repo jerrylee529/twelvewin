@@ -10,82 +10,19 @@ import sys
 import numpy as np
 import datetime
 import tushare as ts
+from models import StrategyResultInfo, Session
+from sqlalchemy import asc
 
 # 设置精度
 pd.set_option('precision', 2)
-
-
-class PriceChangePeriod(object):
-    """
-    涨跌幅计算的一个时间段
-    """
-    def __init__(self):
-        self.begin_date = ""
-        self.end_date = ""
-        self.title = ""
-
-
-def price_change(df, begin_date, end_date):
-
-    df = df[(df['date'] >= begin_date) & (df['date'] <= end_date)]
-
-    rate = -9999
-    update_date = None
-    close = -9999
-    if df.shape[0] > 0:
-        first_row = df.iloc[0]
-        last_row = df.iloc[-1]
-        rate = (last_row['close'] - first_row['close'])*100/first_row['close']
-        close = first_row['close']
-        update_date = last_row['date']
-
-    return rate, close, update_date
-
-
-def compute_all_instruments(instrument_filename, day_file_path, result_file_path, periods):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
-    if instruments is None:
-        print("Could not find any instruments, exit")
-        return
-
-    instruments['close'] = None
-    instruments['update_time'] = None
-
-    for period in periods:
-        instruments[period.title] = -9999
-
-    for code in instruments['code']:
-        try:
-            file_path = day_file_path + '/' + code + '.csv'
-            df = pd.read_csv(file_path)
-
-            for period in periods:
-                rate, close, update_time = price_change(df, period.begin_date, period.end_date)
-
-                instruments.loc[instruments['code'] == code, period.title] = rate
-                instruments.loc[instruments['code'] == code, 'close'] = close
-                instruments.loc[instruments['code'] == code, 'update_time'] = update_time
-        except Exception as e:
-            print(str(e))
-            continue
-
-    result_filename_date = result_file_path + "/price_change_" + datetime.date.today().strftime('%Y-%m-%d') + ".csv"
-
-    result_filename = result_file_path + "/price_change.csv"
-
-    instruments.to_csv(result_filename_date, index=False, float_format='%.2f')
-
-    instruments.to_csv(result_filename, index=False, float_format='%.2f')
-
-    return instruments
 
 
 # 选股策略
 class Strategy(object):
     def __init__(self, day_file_path):
         self._securities = None
-        self._choices = []
+        self._buy_list = []
+        self._sell_list = []
         self._day_file_path = day_file_path
 
     def _handle_data(self):
@@ -97,9 +34,9 @@ class Strategy(object):
     def run(self):
         self._securities = self._get_securities()
 
-        self._choices = self._handle_data()
+        self._buy_list, self._sell_list = self._handle_data()
 
-        return self._choices
+        return self._buy_list, self._sell_list
 
 
 # PE和均线选股策略
@@ -112,9 +49,28 @@ class PEMAStrategy(Strategy):
 
         return securities['code']
 
-    def _handle_data(self):
-        ma_choices = []
+    def __get_sell_list(self, under_ma20_list):
+        session = Session()
 
+        ret = session.query(StrategyResultInfo).filter(StrategyResultInfo.name == self.__class__.__name__).order_by(
+            asc(StrategyResultInfo.create_time)).first()
+
+        sell_list = []
+
+        if ret:
+            last_buy_list = ret.buy_list.split(',')
+
+            sell_list = [secId for secId in last_buy_list if secId in under_ma20_list]
+
+        session.close()
+
+        return sell_list
+
+    def _handle_data(self):
+        above_ma20_list = []
+        under_ma20_list = []
+
+        # 获取均线数据
         for security in self._securities:
             file_path = self._day_file_path + '/' + security + '.csv'
 
@@ -128,30 +84,38 @@ class PEMAStrategy(Strategy):
                 last_row = df.iloc[-1]
 
                 if (last_row['ma20'] <= last_row['close']) and (last_row['ma20'] > last_row['pre_close']):
-                    ma_choices.append(security)
+                    above_ma20_list.append(security)
+
+                if last_row['ma20'] > last_row['close']:
+                    under_ma20_list.append(security)
             except Exception as e:
                 print "Exception: %s" % repr(e)
 
-        print ma_choices
-
+        # 获取当天的pe
         df = ts.get_stock_basics()
 
         df.reset_index(inplace=True)
 
-        df = df[df['code'].isin(ma_choices)]
+        df = df[df['code'].isin(above_ma20_list)]
 
         df = df.sort_values(by='pe', ascending=True)
 
-        df.set_index('code', inplace=True)
+        buy_list = df['code'].values.tolist()
 
-        #print df
+        sell_list = self.__get_sell_list(under_ma20_list)
 
-        return df.index
+        session = Session()
+        strategy_result_info = StrategyResultInfo(self.__class__.__name__, ','.join(buy_list if len(buy_list) < 5 else buy_list[:5]), ','.join(sell_list))
+        session.add(strategy_result_info)
+        session.commit()
+        session.close()
+
+        return buy_list, sell_list
 
 
 if __name__ == '__main__':
     strategy = PEMAStrategy(config.DAY_FILE_PATH)
 
-    df = strategy.run()
+    buy_list, sell_list = strategy.run()
 
-    print df[:5]
+    print buy_list[:5], sell_list[:5]
