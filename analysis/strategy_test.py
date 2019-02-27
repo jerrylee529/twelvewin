@@ -11,7 +11,7 @@ import numpy as np
 import datetime
 import tushare as ts
 from models import StrategyResultInfo, Session
-from sqlalchemy import asc
+from sqlalchemy import desc
 
 # 设置精度
 pd.set_option('precision', 2)
@@ -53,9 +53,10 @@ class PEMAStrategy(Strategy):
         session = Session()
 
         ret = session.query(StrategyResultInfo).filter(StrategyResultInfo.name == self.__class__.__name__).order_by(
-            asc(StrategyResultInfo.create_time)).first()
+            desc(StrategyResultInfo.create_time)).first()
 
         sell_list = []
+        last_buy_list = []
 
         if ret:
             last_buy_list = ret.buy_list.split(',')
@@ -64,9 +65,10 @@ class PEMAStrategy(Strategy):
 
         session.close()
 
-        return sell_list
+        return last_buy_list, sell_list
 
     def _handle_data(self):
+        ma_window_size = 20
         above_ma20_list = []
         under_ma20_list = []
 
@@ -77,9 +79,12 @@ class PEMAStrategy(Strategy):
             try:
                 df = pd.read_csv(file_path)
 
+                if df.shape[0] < ma_window_size:
+                    continue
+
                 df['pre_close'] = df['close']
                 df['pre_close'] = df['pre_close'].shift(1)
-                df['ma20'] = df['close'].rolling(window=20, center=False).mean()
+                df['ma20'] = df['close'].rolling(window=ma_window_size, center=False).mean()
 
                 last_row = df.iloc[-1]
 
@@ -100,12 +105,15 @@ class PEMAStrategy(Strategy):
 
         df = df.sort_values(by='pe', ascending=True)
 
-        buy_list = df['code'].values.tolist()
+        pe_list = df['code'].values.tolist()
 
-        sell_list = self.__get_sell_list(under_ma20_list)
+        last_buy_list, sell_list = self.__get_sell_list(under_ma20_list)
+
+        buy_list = list(set(pe_list if len(pe_list) < 5 else pe_list[:5]).union(set(last_buy_list)))
+
+        strategy_result_info = StrategyResultInfo(self.__class__.__name__, ','.join(buy_list), ','.join(sell_list))
 
         session = Session()
-        strategy_result_info = StrategyResultInfo(self.__class__.__name__, ','.join(buy_list if len(buy_list) < 5 else buy_list[:5]), ','.join(sell_list))
         session.add(strategy_result_info)
         session.commit()
         session.close()
@@ -118,4 +126,4 @@ if __name__ == '__main__':
 
     buy_list, sell_list = strategy.run()
 
-    print buy_list[:5], sell_list[:5]
+    print buy_list, sell_list
