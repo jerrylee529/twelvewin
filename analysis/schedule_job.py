@@ -9,11 +9,13 @@ __author__ = 'Administrator'
 from datetime import datetime
 from history_data_service import HistoryDataService
 from technical_analysis_service import highest_in_history, ma_long_history, above_ma, break_ma, lowest_in_history
+from instruments import get_instrument_list
 import logging
 import os
 import sys
 sys.path.append("..")
-from app.util import string_to_obj
+from utils.util import string_to_obj
+from strategy_test import PEMAStrategy
 
 
 # 输出时间
@@ -21,6 +23,8 @@ def job():
     #print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     service_config = string_to_obj(os.environ['SERVICE_SETTINGS'])
+
+    get_instrument_list(service_config)
 
     print "start downloading history data, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
     history_data_service = HistoryDataService(instrument_filename=service_config.INSTRUMENT_FILENAME,
@@ -46,6 +50,11 @@ def job():
     above_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
              result_file_path=service_config.RESULT_PATH, ma1=250)
 
+    strategy = PEMAStrategy(service_config.DAY_FILE_PATH)
+
+    buy_list, sell_list = strategy.run()
+
+    print buy_list, sell_list
 
 if __name__ == '__main__':
     job()
