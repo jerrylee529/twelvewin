@@ -14,16 +14,21 @@ import logging
 import os
 import sys
 sys.path.append("..")
-from app.util import string_to_obj
 
 import getvaluation as gv
 import get_value_4_business as gv4b
+from instruments import get_instrument_list
+from utils.util import string_to_obj
+from strategy_test import PEMAStrategy
+
 
 # 输出时间
 def job():
     #print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
 
     service_config = string_to_obj(os.environ['SERVICE_SETTINGS'])
+
+    get_instrument_list(service_config)
 
     print "start downloading history data, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
     history_data_service = HistoryDataService(instrument_filename=service_config.INSTRUMENT_FILENAME,
@@ -35,8 +40,8 @@ def job():
                        result_file_path=service_config.RESULT_PATH)
 
     print "compute equities that price is lowest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    lowest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                      result_file_path=config.RESULT_PATH)
+    lowest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
+                      result_file_path=service_config.RESULT_PATH)
 
     print "compute equities that ma is long, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
     ma_long_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
@@ -50,10 +55,15 @@ def job():
     above_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
              result_file_path=service_config.RESULT_PATH, ma1=250)
 
-    gv.get_profit_report()
+    strategy = PEMAStrategy(service_config.DAY_FILE_PATH)
 
-    gv4b.get_profit_report()
+    buy_list, sell_list = strategy.run()
 
+    print buy_list, sell_list
+
+    #gv.get_profit_report()
+
+    #gv4b.get_profit_report()
 
 if __name__ == '__main__':
 
