@@ -52,7 +52,7 @@ def job():
 
     gv.get_profit_report()
 
-    gv4s.get_profit_report()
+    gv4b.get_profit_report()
 
 
 if __name__ == '__main__':
