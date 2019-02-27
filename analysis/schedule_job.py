@@ -8,7 +8,7 @@ __author__ = 'Administrator'
 
 from datetime import datetime
 from history_data_service import HistoryDataService
-from technical_analysis_service import highest_in_history, ma_long_history, above_ma, break_ma
+from technical_analysis_service import highest_in_history, ma_long_history, above_ma, break_ma, lowest_in_history
 import logging
 import os
 import sys
@@ -32,8 +32,7 @@ def job():
                        result_file_path=service_config.RESULT_PATH)
 
     print "compute equities that price is lowest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    lowest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                      result_file_path=config.RESULT_PATH)
+    lowest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH, result_file_path=service_config.RESULT_PATH)
 
     print "compute equities that ma is long, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
     ma_long_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
