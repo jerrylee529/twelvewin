@@ -72,5 +72,5 @@ if __name__ == '__main__':
 
     # BlockingScheduler
     scheduler = BlockingScheduler()
-    scheduler.add_job(job, 'cron', day_of_week='mon-fri', hour=17, minute=00)
+    scheduler.add_job(job, 'cron', day_of_week='tue-sat', hour=00, minute=00)
     scheduler.start()
