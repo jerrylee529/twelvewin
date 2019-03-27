@@ -10,8 +10,7 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from flask_login import login_required
 from app.models import SelfSelectedStock, Instrument, Report, StockPrediction
-from app import db
-from app import analyzer
+from app import db, analyzer, log
 
 ################
 #### config ####
@@ -40,6 +39,52 @@ def get_instruments():
         print(u"get instruments %s" % query)
 
     return jsonify({'instruments': analyzer.instruments})
+
+
+def convert_float(value, is_amount=False):
+    result = 0.0
+
+    if value is not None:
+        result = round(value/10000 if is_amount else value, 2)
+
+    return result
+
+
+@main_blueprint.route('/main/profile/<code>', methods=['GET', 'POST'])
+def get_profile(code):
+    result = {}
+    result['quot'] = None
+
+    fields = ['net_profit_after_nrgal_atsolc', 'avg_roe', 'np_atsopc_nrgal_yoy', 'basic_eps', 'gross_selling_rate', 'np_per_share']
+
+    for field in fields:
+        result[field] = []
+
+    try:
+        result['quot'] = analyzer.get_quotation(code)
+
+        reports = analyzer.get_finance_indicators(code)
+
+        fields_amount_flag = {'net_profit_after_nrgal_atsolc': True, 'avg_roe': False, 'np_atsopc_nrgal_yoy': False, 'basic_eps': False, 'gross_selling_rate': False, 'np_per_share': False}
+
+        #print reports
+
+        for key in sorted(reports.keys(), reverse=False):
+            row = reports[key]
+
+            for field in fields:
+                item = {}
+                item['date'] = key
+                item['value'] = convert_float(row[field], is_amount=fields_amount_flag[field])
+
+                result[field].append(item)
+
+        print result
+
+    except Exception as e:
+        log.error(repr(e))
+
+    return jsonify(result)
 
 
 @main_blueprint.route('/main/predict', methods=['GET', 'POST'])
