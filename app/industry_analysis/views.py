@@ -40,8 +40,7 @@ def get_median(data):
 
 
 # 增加行业聚类分析
-@industry_analysis_blueprint.route('/industry/data')
-@login_required
+@industry_analysis_blueprint.route('/industry/data', methods=['GET'])
 def list_stock():
     industry = request.values.get('industry', '')
     cluster_type = int(request.values.get('cluster_type', 0))
