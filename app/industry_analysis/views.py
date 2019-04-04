@@ -227,6 +227,8 @@ def get_industry_stock(code):
 
     label = instruments['label'][code]
 
+    num = 0
+
     for index, instrument in instruments.iterrows():
         total_pe += instrument.pe
         total_pb += instrument.pb
@@ -240,6 +242,8 @@ def get_industry_stock(code):
         bvps_list.append(instrument.bvps)
         gpr_list.append(instrument.gpr)
         npr_list.append(instrument.npr)
+
+        num += 1
 
         if instrument['label'] != label:
             continue
@@ -270,17 +274,16 @@ def get_industry_stock(code):
     rows = sorted(rows, key=lambda e: e.__getitem__('label'))
 
     result_data = {}
-    rows_len = len(rows)
-    result_data['total'] = rows_len
+    result_data['total'] = len(rows)
     result_data['rows'] = rows
 
-    if rows_len > 0:
-        result_data['avg_pe'] = round(total_pe/rows_len, 2)
-        result_data['avg_pb'] = round(total_pb/rows_len, 2)
-        result_data['avg_esp'] = round(total_esp/rows_len, 2)
-        result_data['avg_bvps'] = round(total_bvps/rows_len, 2)
-        result_data['avg_gpr'] = round(total_gpr/rows_len, 2)
-        result_data['avg_npr'] = round(total_npr/rows_len, 2)
+    if num > 0:
+        result_data['avg_pe'] = round(total_pe/num, 2)
+        result_data['avg_pb'] = round(total_pb/num, 2)
+        result_data['avg_esp'] = round(total_esp/num, 2)
+        result_data['avg_bvps'] = round(total_bvps/num, 2)
+        result_data['avg_gpr'] = round(total_gpr/num, 2)
+        result_data['avg_npr'] = round(total_npr/num, 2)
         result_data['mid_pe'] = round(get_median(pe_list), 2)
         result_data['mid_pb'] = round(get_median(pb_list), 2)
         result_data['mid_esp'] = round(get_median(esp_list), 2)
