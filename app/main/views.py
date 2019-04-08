@@ -9,7 +9,7 @@ from flask import render_template
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from flask_login import login_required
-from app.models import SelfSelectedStock, Instrument, Report, StockPrediction
+from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge
 from app import db, analyzer, log
 
 ################
@@ -129,3 +129,34 @@ def predict():
     return render_template('main/index.html', current_user=current_user, quot=quot)
 
 
+@main_blueprint.route('/main/knowledge', methods=['GET', 'POST'])
+def get_investment_knowledge():
+    page_index = request.values.get('page_index', 1)
+    page_size = request.values.get('page_size', 10)
+
+    page = []
+
+    total_size = 0
+
+    try:
+        total_size = db.session.query(InvestmentKnowledge).count()
+
+        result = db.session.query(InvestmentKnowledge).limit(page_size).offset((page_index-1)*page_size)
+
+        for rec in result:
+            item = {}
+            item['id'] = rec.id
+            item['title'] = rec.title
+            item['category'] = rec.category
+            item['content'] = rec.content
+
+            page.append(item)
+
+    except Exception as e:
+        print("could not get investment knowledge, %d, %s" % page_index, repr(e))
+
+    ret = {"total": total_size, "page": page}
+
+    log.debug(ret)
+
+    return jsonify(ret)
