@@ -141,7 +141,7 @@ def get_investment_knowledge():
     try:
         total_size = db.session.query(InvestmentKnowledge).count()
 
-        result = db.session.query(InvestmentKnowledge).limit(page_size).offset((page_index-1)*page_size)
+        result = db.session.query(InvestmentKnowledge).order_by(InvestmentKnowledge.priority).limit(page_size).offset((page_index-1)*page_size)
 
         for rec in result:
             item = {}

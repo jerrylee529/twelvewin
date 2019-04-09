@@ -448,12 +448,14 @@ class InvestmentKnowledge(db.Model):
     title = db.Column(db.String(32), index=True, nullable=False, comment=u"标题")
     category = db.Column(db.String(32), index=True, nullable=True, comment=u"股票名称")
     content = db.Column(db.Text, nullable=False, comment=u"内容")
+    priority = db.Column(db.Integer, nullable=False, comment=u"排序优先级")
     create_time = db.Column(db.DateTime, nullable=False, comment=u"创建时间")
     update_time = db.Column(db.DateTime, nullable=False, comment=u"更新时间")
 
-    def __init__(self, title, category, content):
+    def __init__(self, title, category, content, priority):
         self.title = title
         self.category = category
         self.create_time = datetime.datetime.now()
         self.update_time = datetime.datetime.now()
         self.content = content
+        self.priority = priority
