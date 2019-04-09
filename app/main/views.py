@@ -131,8 +131,8 @@ def predict():
 
 @main_blueprint.route('/main/knowledge', methods=['GET', 'POST'])
 def get_investment_knowledge():
-    page_index = request.values.get('page_index', 1)
-    page_size = request.values.get('page_size', 10)
+    page_index = request.values.get('page_index', default=1, type=int)
+    page_size = request.values.get('page_size', default=10, type=int)
 
     page = []
 
@@ -153,7 +153,7 @@ def get_investment_knowledge():
             page.append(item)
 
     except Exception as e:
-        print("could not get investment knowledge, %d, %s" % page_index, repr(e))
+        print("could not get investment knowledge, {}, {}, {}".format(page_index, page_size, repr(e)))
 
     ret = {"total": total_size, "page": page}
 
