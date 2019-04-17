@@ -179,7 +179,7 @@ def get_exam_questions():
             item['title'] = rec.title
             item['type'] = rec.type
             item['score'] = rec.score
-            item['right_answer'] = rec.title
+            item['right_answer'] = rec.right_answer
             item['option_a'] = rec.option_a
             item['option_b'] = rec.option_b
             item['option_c'] = rec.option_c
