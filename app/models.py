@@ -459,3 +459,50 @@ class InvestmentKnowledge(db.Model):
         self.update_time = datetime.datetime.now()
         self.content = content
         self.priority = priority
+
+
+class ExamQuestion(db.Model):
+    """
+    考试题数据结构
+    """
+    __tablename__ = 'exam_question'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(128), index=True, nullable=False, comment='试题描述')
+    type = db.Column(db.Integer, nullable=False, comment='试题类型, 0: 单选题, 1: 多选题, 2: 是非题')
+    score = db.Column(db.Integer, nullable=False, comment='试题分数')
+    right_answer = db.Column(db.String(16), nullable=False, comment='正确答案')
+    option_a = db.Column(db.String(32), nullable=False, comment='选项A')
+    option_b = db.Column(db.String(32), nullable=False, comment='选项B')
+    option_c = db.Column(db.String(32), nullable=True, comment='选项C')
+    option_d = db.Column(db.String(32), nullable=True, comment='选项D')
+    option_e = db.Column(db.String(32), nullable=True, comment='选项E')
+    option_f = db.Column(db.String(32), nullable=True, comment='选项F')
+    create_time = db.Column(db.DateTime, nullable=False, comment='创建时间')
+    update_time = db.Column(db.DateTime, nullable=False, comment='更新时间')
+
+    def __init__(self, title, type, score, right_answer):
+        self.title = title
+        self.type = type
+        self.create_time = datetime.datetime.now()
+        self.update_time = datetime.datetime.now()
+        self.score = score
+        self.right_answer = right_answer
+
+
+class ExamResult(db.Model):
+    """
+    考试结果
+    """
+    __tablename__ = 'exam_result'
+
+    user_nickname = db.Column(db.String(128), primary_key=True, nullable=False, comment='试题描述')
+    score = db.Column(db.Integer, nullable=False, comment='考试得分')
+    create_time = db.Column(db.DateTime, nullable=False, comment='创建时间')
+    update_time = db.Column(db.DateTime, nullable=False, comment='更新时间')
+
+    def __init__(self, user_nickname, score):
+        self.user_nickname = user_nickname
+        self.score = score
+        self.create_time = datetime.datetime.now()
+        self.update_time = datetime.datetime.now()
