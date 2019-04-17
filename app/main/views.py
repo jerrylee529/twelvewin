@@ -211,6 +211,8 @@ def update_exam_result():
 
         if item is None:
             item = ExamResult(nickname, score)
+        else:
+            item.score = score
 
         db.session.add(item)
 
