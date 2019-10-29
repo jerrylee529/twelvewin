@@ -17,7 +17,7 @@ Werkzeug==0.9.6
 alembic==0.6.7
 blinker==1.3
 coverage==4.0a1
-ecdsa==0.11
+ecdsa==0.13.3
 httplib2==0.9
 itsdangerous==0.24
 paramiko==1.15.1
