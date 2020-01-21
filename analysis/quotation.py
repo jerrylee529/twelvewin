@@ -35,8 +35,8 @@ def get_history_data(code, start, end, ktype='D', autype='qfq', index=False):
 
     try:
         df = ts.get_k_data(code=code, ktype=ktype, autype=autype, index=index, start=start, end=end)
-    except Exception, e:
-        print 'Exception:', repr(e)
+    except Exception as e:
+        print('Exception:', repr(e))
 
         # 发送异常通知
         text.send_text("获取历史数据失败, %s" % code)
