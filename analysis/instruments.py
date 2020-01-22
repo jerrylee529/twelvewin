@@ -28,7 +28,7 @@ def nan_2_none(value):
 
 
 # 获取所有股票列表并保存到文件
-def get_instrument_list(config):
+def get_instrument_list():
     try:
         # 下载数据
         df = ts.get_stock_basics()
@@ -36,14 +36,14 @@ def get_instrument_list(config):
         # 按照代码排序
         df.sort_index(inplace=True)
 
-        # 保存到文件
-        df.to_csv(config.INSTRUMENT_FILENAME)
-
         session = Session()
 
-        session.query(Instrument).delete()
+        codes = [item[0] for item in session.query(Instrument.code).all()]
 
         for index, row in df.iterrows():
+            if index in codes:
+                continue
+
             item = Instrument(index, name=row['name'], industry=nan_2_none(row['industry']), area=nan_2_none(row['area']),
                               pe=value_2_float(row['pe']), outstanding=value_2_float(row['outstanding']),
                               totals=value_2_float(row['totals']), total_assets=value_2_float(row['totalAssets']),
@@ -61,8 +61,8 @@ def get_instrument_list(config):
         session.commit()
 
         session.close()
-    except Exception, e:
-        print 'Exception:', repr(e)
+    except Exception as e:
+        print('Exception: {}'.format(repr(e)))
 
         # 发送异常通知
         #text.send_text("处理股票代码数据失败")
@@ -71,4 +71,4 @@ def get_instrument_list(config):
 
 
 if __name__ == '__main__':
-    get_instrument_list(config=config)
+    get_instrument_list()

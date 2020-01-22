@@ -12,7 +12,7 @@ from config import config
 Base = declarative_base()
 
 # 创建mysql数据库引擎
-engine = create_engine(config.SQLALCHEMY_DATABASE_URI, echo=False)
+engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
 
 # 创建数据库会话类
 Session = sessionmaker(bind=engine)
@@ -471,6 +471,7 @@ class StrategyResultInfo(Base):
         self.sell_list = sell_list
         self.create_time = datetime.datetime.now()
         self.update_time = datetime.datetime.now()
+
 
 if __name__ == '__main__':
     Base.metadata.create_all(engine) 

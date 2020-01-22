@@ -6,13 +6,13 @@ __author__ = 'Administrator'
 获取历史数据的服务，以增量方式对历史数据文件进行添加，每天收盘后运行一次
 """
 
-import pandas as pd
-from datetime import timedelta, datetime, date
-from config import config
-from bin.quotation import get_history_data
-import tushare as ts
 import os
-from sqlalchemy import create_engine
+from datetime import timedelta, datetime, date
+
+import pandas as pd
+from config import config
+from quotation import get_history_data
+from models import Instrument, Session
 
 # 设置精度
 pd.set_option('precision', 2)
@@ -20,50 +20,51 @@ pd.set_option('precision', 2)
 
 #
 class HistoryDataService:
-    def __init__(self, instrument_filename, day_file_path):
-        self.instrument_filename = instrument_filename
-        self.day_file_path = day_file_path
+    def __init__(self, start_date='1990-12-1'):
+        self.day_file_path = config['DAY_FILE_PATH']
+        self.start_date = start_date
 
     def run(self):
-        instruments = pd.read_csv(self.instrument_filename, index_col=False, dtype={'code': object})
+        session = Session()
 
-        if instruments is None:
-            print("Could not find any instruments, exit")
-            return
+        codes = [item[0] for item in session.query(Instrument.code).all()]
+
+        session.close()
 
         today = date.today()
 
-        for code in instruments['code']:
+        for code in codes:
             data_filename = "%s/%s.csv" % (self.day_file_path, code)  # 日线数据文件名
 
-            print "starting download %s, file path: %s" % (code, data_filename)
+            print("starting download %s, file path: %s" % (code, data_filename))
 
-            start_date = "1990-12-01"
+            start_date = self.start_date
 
             if os.path.exists(data_filename):
                 try:
                     df = pd.read_csv(data_filename, index_col=['date'])
                     last_date = datetime.strptime(df.index[-1], "%Y-%m-%d") + timedelta(days=1)
                     start_date = last_date.strftime("%Y-%m-%d")
-                    print "file %s exists, download data from %s" % (data_filename, start_date)
-                except pd.errors.EmptyDataError:
+                    print("file %s exists, download data from %s" % (data_filename, start_date))
+                except pd.errors.EmptyDataError as pderror:
+                    print(repr(pderror))
                     continue
-                except Exception, e:
-                    print repr(e)
+                except Exception as e:
+                    print(repr(e))
                     continue
 
             #end_date = (today + timedelta(days=1)).strftime("%Y-%m-%d")
             end_date = today.strftime("%Y-%m-%d")
 
-            if cmp(start_date, end_date) == 0:
+            if start_date == end_date:
                 continue
 
-            print "download data, code: %s, startdate: %s, enddate: %s" % (code, start_date, end_date)
+            print("download data, code: %s, startdate: %s, enddate: %s" % (code, start_date, end_date))
 
             try:
                 df_download = get_history_data(str(code), start=start_date, end=end_date, autype='qfq', ktype='D')
-            except Exception, e:
-                print "download failure, code: %s, exception: %s" % (code, repr(e))
+            except Exception as e:
+                print("download failure, code: %s, exception: %s" % (code, repr(e)))
                 continue
 
             if df_download is not None:
@@ -77,7 +78,6 @@ class HistoryDataService:
 
 
 if __name__ == '__main__':
-    history_data_service = HistoryDataService(instrument_filename=config.INSTRUMENT_FILENAME,
-                                              day_file_path=config.DAY_FILE_PATH)
+    history_data_service = HistoryDataService('2019-1-1')
     history_data_service.run()
 

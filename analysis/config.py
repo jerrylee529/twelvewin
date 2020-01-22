@@ -1,65 +1,41 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+import os
+import configparser
 
+config_parser = configparser.ConfigParser()
 
-class BasicConfig(object):
-    DEBUG = True
-    DATASET_PATH = '/home/dev/twelvewin_data/analysis/data/dataset'
-    CONFIG_PATH = '/home/dev/twelvewin_data/analysis'
-    RESULT_PATH = '/home/dev/twelvewin_data/analysis/product'
-    DAY_FILE_PATH = '/home/dev/twelvewin_data/analysis/day'
-    INDEX_FILE_PATH = '/home/dev/twelvewin_data/analysis/index'
+env = os.getenv('TW_ANALYSIS_ENV', 'debug')
+config_file_path = os.getenv('TW_ANALYSIS_CONFIG_FILE', 'config.ini')
 
+print('env: {}, config file: {}'.format(env, config_file_path))
 
-    # 股票代码文件路径
-    INSTRUMENT_FILENAME = CONFIG_PATH + '/instruments.csv'
+config_parser.read(config_file_path, encoding='UTF-8')
 
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:password@127.0.0.1:3306/stock_test?charset=utf8'
+config = dict()
 
-# 测试配置
-class TestConfig(BasicConfig):
-    DEBUG = True
-    DATASET_PATH = '/home/dev/twelvewin_data/analysis/data/dataset'
-    CONFIG_PATH = '/home/dev/twelvewin_data/analysis/data'
-    RESULT_PATH = '/home/dev/twelvewin_data/analysis/data/product'
-    DAY_FILE_PATH = '/home/dev/twelvewin_data/analysis/data/day'
-    INDEX_FILE_PATH = '/home/dev/twelvewin_data/analysis/index'
-    
-    # 股票代码文件路径
-    INSTRUMENT_FILENAME = CONFIG_PATH + '/instruments.csv'
+config['DEBUG'] = config_parser.getboolean(env, 'DEBUG')
+config['SECRET_KEY'] = config_parser.get(env, 'SECRET_KEY')
+config['SECURITY_PASSWORD_SALT'] = config_parser.get(env, 'SECRET_KEY')
 
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:password@127.0.0.1:3306/stock_test?charset=utf'
+# mail settings
+config['MAIL_SERVER'] = config_parser.get(env, 'MAIL_SERVER')
+config['MAIL_PORT'] = config_parser.getint(env, 'MAIL_PORT')
+config['MAIL_USE_TLS'] = config_parser.getboolean(env, 'MAIL_USE_TLS')
+config['MAIL_USE_SSL'] = config_parser.getboolean(env, 'MAIL_USE_SSL')
 
-# 开发配置
-class DevelopmentConfig(BasicConfig):
-    DEBUG = True
-    DATASET_PATH = '/home/dev/data/dataset'
-    CONFIG_PATH = '/home/dev/data'
-    RESULT_PATH = '/home/dev/data/product'
-    DAY_FILE_PATH = '/home/dev/data/day'
-    INDEX_FILE_PATH = '/home/dev/data/index'
+# mail authentication and sender
+config['MAIL_USERNAME'] = config_parser.get(env, 'MAIL_USERNAME')
+config['MAIL_PASSWORD'] = config_parser.get(env, 'MAIL_PASSWORD')
+config['MAIL_DEFAULT_SENDER'] = config_parser.get(env, 'MAIL_DEFAULT_SENDER')
 
-    INSTRUMENT_FILENAME = CONFIG_PATH + '/instruments.csv'
+# database URI
+config['SQLALCHEMY_DATABASE_URI'] = config_parser.get(env, 'SQLALCHEMY_DATABASE_URI')
 
-    # 股票代码文件路径
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:password@127.0.0.1:3306/stock_test?charset=utf'
+# stripe keys
+config['STRIPE_SECRET_KEY'] = config_parser.get(env, 'STRIPE_SECRET_KEY')
+config['STRIPE_PUBLISHABLE_KEY'] = config_parser.get(env, 'STRIPE_PUBLISHABLE_KEY')
 
+config['DAY_FILE_PATH'] = config_parser.get(env, 'DAY_FILE_PATH')
 
-# 生产配置
-class ProductionConfig(BasicConfig):
-    DEBUG = False
-    DATASET_PATH = '/home/dev/data/dataset'
-    CONFIG_PATH = '/home/dev/data'
-    RESULT_PATH = '/home/dev/data/product'
-    DAY_FILE_PATH = '/home/dev/data/day'
-    INDEX_FILE_PATH = '/home/dev/data/index'
-
-    INSTRUMENT_FILENAME = CONFIG_PATH + '/instruments.csv'
-
-    # 股票代码文件路径
-    SQLALCHEMY_DATABASE_URI = 'mysql://root:password@127.0.0.1:3306/stock_test?charset=utf'
-
-
-#config = DevelopmentConfig()
-config = ProductionConfig()
+print(config)
