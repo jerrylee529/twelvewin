@@ -9,6 +9,7 @@ from config import config
 import sys
 import numpy as np
 import datetime
+from instruments import get_all_instrument_codes_before
 
 
 # 设置精度
@@ -40,6 +41,14 @@ def price_change(df, begin_date, end_date):
         update_date = last_row['date']
 
     return rate, close, update_date
+
+
+def price_amplitude(df, begin_date, end_date):
+    result = df[(df['date'] >= begin_date) & (df['date'] <= end_date)]
+
+    result['amplitude'] = (result['high'] - result['low'])*100 / result['low']
+
+    return result
 
 
 def compute_all_instruments(instrument_filename, day_file_path, result_file_path, periods):
@@ -80,6 +89,47 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
 
     return instruments
 
+
+def compute_all_instruments_amplitude(period):
+    instruments = get_all_instrument_codes_before(20190101)
+
+    if instruments is None:
+        print("Could not find any instruments, exit")
+        return
+
+    result = pd.DataFrame()
+    result['close'] = None
+    result['update_time'] = None
+    result[period.title] = -9999
+    result['amp_std'] = None
+    result['code'] = instruments
+
+    for code in instruments:
+        try:
+            file_path = config['DAY_FILE_PATH'] + code + '.csv'
+            df = pd.read_csv(file_path)
+
+            df_amp = price_amplitude(df, period.begin_date, period.end_date)
+
+            result.loc[result['code'] == code, 'close'] = df.iloc[df.shape[0]-1, 2]
+            result.loc[result['code'] == code, 'update_time'] = df.iloc[df.shape[0]-1, 0]
+            result.loc[result['code'] == code, period.title] = df_amp['amplitude'].mean()
+            result.loc[result['code'] == code, 'amp_std'] = df_amp['amplitude'].std()
+        except Exception as e:
+            print(str(e))
+            continue
+
+    result_filename_date = config['RESULT_FILE_PATH'] + "price_amplitude_" + datetime.date.today().strftime('%Y-%m-%d') + ".csv"
+
+    result_filename = config['RESULT_FILE_PATH'] + "price_amplitude.csv"
+
+    result.to_csv(result_filename_date, index=False, float_format='%.2f')
+
+    result.to_csv(result_filename, index=False, float_format='%.2f')
+
+    return result
+
+
 if __name__ == '__main__':
     today = datetime.date.today()
 
@@ -96,4 +146,4 @@ if __name__ == '__main__':
 
     result = compute_all_instruments(config.INSTRUMENT_FILENAME, config.DAY_FILE_PATH, config.RESULT_PATH, periods)
 
-    print result
+    print(result)

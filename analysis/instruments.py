@@ -6,10 +6,10 @@
 
 __author__ = 'Administrator'
 
-import tushare as ts
 import numpy as np
+import tushare as ts
+from sqlalchemy import and_, cast, Integer
 from models import Instrument, Session
-from config import config
 
 
 # 字符串转换为浮点
@@ -27,8 +27,10 @@ def nan_2_none(value):
         return value
 
 
-# 获取所有股票列表并保存到文件
 def get_instrument_list():
+    """
+    获取所有股票列表并保存到数据库
+    """
     try:
         # 下载数据
         df = ts.get_stock_basics()
@@ -68,6 +70,34 @@ def get_instrument_list():
         #text.send_text("处理股票代码数据失败")
 
     return df
+
+
+def get_all_instrument_codes():
+    """
+    获取所有股票的代码
+    """
+    session = Session()
+
+    codes = [item[0] for item in session.query(Instrument.code).all()]
+
+    session.close()
+
+    return codes
+
+
+def get_all_instrument_codes_before(timeToMarket):
+    """
+    获取所有股票的代码
+    """
+    session = Session()
+
+    codes = [item[0] for item in session.query(Instrument.code).filter(
+        and_(cast(Instrument.time_2_market, Integer) < timeToMarket, Instrument.time_2_market != '0',
+             Instrument.time_2_market != None)).all()]
+
+    session.close()
+
+    return codes
 
 
 if __name__ == '__main__':

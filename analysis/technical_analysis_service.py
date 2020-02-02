@@ -11,7 +11,7 @@ from datetime import timedelta, datetime, date
 from config import config
 import os
 import time
-from price_change_analysis import compute_all_instruments, PriceChangePeriod
+from price_change_analysis import compute_all_instruments, PriceChangePeriod, compute_all_instruments_amplitude
 
 # 设置精度
 pd.set_option('precision', 2)
@@ -31,7 +31,7 @@ class HighestInHistory(Analysis):
     def analyze(self, index, instruments, df):
         idx_max = df['close'].idxmax()  # 最大值的索引
 
-        print "index: %d, date: %s, max date: %s" % (idx_max, df.ix[idx_max]['date'], df['date'].max(),)
+        print("index: %d, date: %s, max date: %s" % (idx_max, df.ix[idx_max]['date'], df['date'].max(),))
 
         t1 = time.strptime(df.ix[idx_max]['date'], "%Y-%m-%d")
         t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
@@ -64,24 +64,24 @@ def highest_in_history(instrument_filename, day_file_path, result_file_path):
 
         code_index += 1
 
-        print "calculate %s, file path: %s" % (code, data_filename)
+        print("calculate %s, file path: %s" % (code, data_filename))
 
         if os.path.exists(data_filename):
             try:
                 df = pd.read_csv(data_filename, index_col=False)
                 index = df['close'].idxmax()  # 最大值的索引
 
-                print "index: %d, date: %s, max date: %s" % (index, df.ix[index]['date'], df['date'].max(),)
+                print("index: %d, date: %s, max date: %s" % (index, df.ix[index]['date'], df['date'].max(),))
 
                 t1 = time.strptime(df.ix[index]['date'], "%Y-%m-%d")
                 t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
 
                 if t1 == t2:
                     instruments['close'][code_index] = df['close'].max()
-            except pd.errors.EmptyDataError:
+            except pd.errors.EmptyDataError as pderror:
                 continue
-            except Exception, e:
-                print repr(e)
+            except Exception as e:
+                print(repr(e))
                 break
 
     instruments = instruments.dropna(axis=0, subset=['close'])
@@ -119,14 +119,14 @@ def lowest_in_history(instrument_filename, day_file_path, result_file_path):
 
         code_index += 1
 
-        print "calculate %s, file path: %s" % (code, data_filename)
+        print("calculate %s, file path: %s" % (code, data_filename))
 
         if os.path.exists(data_filename):
             try:
                 df = pd.read_csv(data_filename, index_col=False)
                 index = df['close'].idxmin()  # 最小值的索引
 
-                print "index: %d, date: %s, min date: %s" % (index, df.ix[index]['date'], df['date'].max(),)
+                print("index: %d, date: %s, min date: %s" % (index, df.ix[index]['date'], df['date'].max()))
 
                 t1 = time.strptime(df.ix[index]['date'], "%Y-%m-%d")
                 t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
@@ -136,8 +136,8 @@ def lowest_in_history(instrument_filename, day_file_path, result_file_path):
                     instruments['close'][code_index] = df['close'].min()
             except pd.errors.EmptyDataError:
                 continue
-            except Exception, e:
-                print repr(e)
+            except Exception as e:
+                print(repr(e))
                 break
 
     instruments = instruments.dropna(axis=0, subset=['close'])
@@ -174,7 +174,7 @@ def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, m
 
         code_index += 1
 
-        print "calculate %s, file path: %s" % (code, data_filename)
+        print("calculate %s, file path: %s" % (code, data_filename))
 
         if os.path.exists(data_filename):
             try:
@@ -194,10 +194,10 @@ def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, m
                     if (last_row['ma'+str(ma1)][0] > last_row['ma'+str(ma2)][0]) \
                             and (last_row['ma'+str(ma2)][0] > last_row['ma'+str(ma3)][0]):
                         instruments['close'][code_index] = last_row['close'][0]
-            except pd.errors.EmptyDataError:
+            except pd.errors.EmptyDataError as pderror:
                 continue
-            except Exception, e:
-                print repr(e)
+            except Exception as e:
+                print(repr(e))
                 break
 
     instruments = instruments.dropna(axis=0, subset=['close'])
@@ -235,7 +235,7 @@ def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
 
         code_index += 1
 
-        print "calculate %s, file path: %s" % (code, data_filename)
+        print("calculate %s, file path: %s" % (code, data_filename))
 
         if os.path.exists(data_filename):
             try:
@@ -255,8 +255,8 @@ def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
                         instruments['close'][code_index] = last_row['close'][0]
             except pd.errors.EmptyDataError:
                 continue
-            except Exception, e:
-                print repr(e)
+            except Exception as e:
+                print(repr(e))
                 break
 
     instruments = instruments.dropna(axis=0, subset=['close'])
@@ -294,7 +294,7 @@ def above_ma(instrument_filename, day_file_path, result_file_path, ma1):
 
         code_index += 1
 
-        print "calculate %s, file path: %s" % (code, data_filename)
+        print("calculate %s, file path: %s" % (code, data_filename))
 
         if os.path.exists(data_filename):
             try:
@@ -314,8 +314,8 @@ def above_ma(instrument_filename, day_file_path, result_file_path, ma1):
                         instruments['close'][code_index] = last_row['close'][0]
             except pd.errors.EmptyDataError:
                 continue
-            except Exception, e:
-                print repr(e)
+            except Exception as e:
+                print(repr(e))
                 break
 
     instruments = instruments.dropna(axis=0, subset=['close'])
@@ -353,24 +353,39 @@ def price_change_computer(instrument_filename, day_file_path, result_file_path):
 
     result = compute_all_instruments(instrument_filename, day_file_path, result_file_path, periods)
 
-    print result
+    print(result)
+
+
+def price_amplitude_computer(days):
+    today = date.today()
+    period = PriceChangePeriod()
+    period.begin_date = (date.today() + timedelta(days=-days)).strftime('%Y-%m-%d')
+    period.end_date = today.strftime('%Y-%m-%d')
+    period.title = 'amp_' + str(days)
+
+    result = compute_all_instruments_amplitude(period)
+
+    print(result)
+
 
 if __name__ == '__main__':
    
-    highest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                       result_file_path=config.RESULT_PATH)
+    # highest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #                    result_file_path=config.RESULT_PATH)
+    #
+    # lowest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #                   result_file_path=config.RESULT_PATH)
+    #
+    # ma_long_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #                 result_file_path=config.RESULT_PATH, ma1=5, ma2=10, ma3=20)
+    #
+    # break_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #          result_file_path=config.RESULT_PATH, ma1=20)
+    #
+    # above_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #          result_file_path=config.RESULT_PATH, ma1=250)
+    #
+    # price_change_computer(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
+    #                       result_file_path=config.RESULT_PATH)
 
-    lowest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                      result_file_path=config.RESULT_PATH)
-
-    ma_long_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                    result_file_path=config.RESULT_PATH, ma1=5, ma2=10, ma3=20)
-
-    break_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-             result_file_path=config.RESULT_PATH, ma1=20)
-    
-    above_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-             result_file_path=config.RESULT_PATH, ma1=250)
-
-    price_change_computer(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-                          result_file_path=config.RESULT_PATH)
+    price_amplitude_computer(30)
