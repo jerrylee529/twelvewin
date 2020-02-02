@@ -37,5 +37,6 @@ config['STRIPE_SECRET_KEY'] = config_parser.get(env, 'STRIPE_SECRET_KEY')
 config['STRIPE_PUBLISHABLE_KEY'] = config_parser.get(env, 'STRIPE_PUBLISHABLE_KEY')
 
 config['DAY_FILE_PATH'] = config_parser.get(env, 'DAY_FILE_PATH')
+config['RESULT_FILE_PATH'] = config_parser.get(env, 'RESULT_FILE_PATH')
 
 print(config)

@@ -13,6 +13,7 @@ import pandas as pd
 from config import config
 from quotation import get_history_data
 from models import Instrument, Session
+from instruments import get_all_instrument_codes
 
 # 设置精度
 pd.set_option('precision', 2)
@@ -25,16 +26,13 @@ class HistoryDataService:
         self.start_date = start_date
 
     def run(self):
-        session = Session()
 
-        codes = [item[0] for item in session.query(Instrument.code).all()]
-
-        session.close()
+        codes = get_all_instrument_codes()
 
         today = date.today()
 
         for code in codes:
-            data_filename = "%s/%s.csv" % (self.day_file_path, code)  # 日线数据文件名
+            data_filename = "%s%s.csv" % (self.day_file_path, code)  # 日线数据文件名
 
             print("starting download %s, file path: %s" % (code, data_filename))
 
