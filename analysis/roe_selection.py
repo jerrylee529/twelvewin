@@ -15,6 +15,7 @@ import time
 import pandas as pd
 import requests
 from models import Session, XueQiuReportInfo, engine
+from config import my_headers
 
 
 def get_reports():
@@ -64,28 +65,56 @@ def roe_to_db():
     print(stocks)
 
 
-my_headers = [
-    "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/35.0.1916.153 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 6.1; WOW64; rv:30.0) Gecko/20100101 Firefox/30.0",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_2) AppleWebKit/537.75.14 (KHTML, like Gecko) Version/7.0.3 Safari/537.75.14",
-    "Mozilla/5.0 (compatible; MSIE 10.0; Windows NT 6.2; Win64; x64; Trident/6.0)",
-    'Mozilla/5.0 (Windows; U; Windows NT 5.1; it; rv:1.8.1.11) Gecko/20071127 Firefox/2.0.0.11',
-    'Opera/9.25 (Windows NT 5.1; U; en)',
-    'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1; .NET CLR 1.1.4322; .NET CLR 2.0.50727)',
-    'Mozilla/5.0 (compatible; Konqueror/3.5; Linux) KHTML/3.5.5 (like Gecko) (Kubuntu)',
-    'Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.8.0.12) Gecko/20070731 Ubuntu/dapper-security Firefox/1.5.0.12',
-    'Lynx/2.8.5rel.1 libwww-FM/2.14 SSL-MM/1.4.1 GNUTLS/1.2.9',
-    "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Ubuntu/11.04 Chromium/16.0.912.77 Chrome/16.0.912.77 Safari/535.7",
-    "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 "
-]
+def get_financial_report(session, headers, market, code):
+    """
+    获取2019第三季度和2018年报的营业收入以及扣非净利润数据
+    """
+
+    url = 'https://stock.xueqiu.com/v5/stock/finance/cn/indicator.json?symbol={}{}&type=all&is_detail=true&count=5&timestamp='
+
+    rsp = session.get(url.format(market, code), headers=headers)
+
+    item_2019_rev = None
+    item_2019_np = None
+    item_2019_ratio = None
+    item_2018_rev = None
+    item_2018_np = None
+
+    if rsp.status_code == 200:
+        json_date = rsp.json()
+        for item in json_date['data']['list']:
+            if item['report_date'] == 1569772800000:
+                item_2019_rev = item['total_revenue'][0]
+                item_2019_np = item['net_profit_after_nrgal_atsolc'][0]
+                item_2019_ratio = item['asset_liab_ratio'][0]
+            elif item['report_date'] == 1546185600000:
+                item_2018_rev = item['total_revenue'][0]
+                item_2018_np = item['net_profit_after_nrgal_atsolc'][0]
+                break
+            else:
+                continue
+
+    return item_2019_rev, item_2019_np, item_2019_ratio, item_2018_rev, item_2018_np
+
+
+def get_listed_date(session, headers, market, code):
+    url = 'https://stock.xueqiu.com/v5/stock/f10/cn/company.json?symbol={}{}'
+
+    rsp = session.get(url.format(market, code), headers=headers)
+
+    if rsp.status_code == 200:
+        json_data = rsp.json()
+        return json_data['data']['company']['listed_date']
+    else:
+        return None
+
 
 def roe_selection():
     stocks = []
 
-    sql = ''' SELECT code, name, (`2016`+`2017`+`2018`)/3 as avg_roe, (`2018`-`2016`)*100/`2016`/2 as growth_rate
-      FROM roe_per_year 
-      where `2016`>20 and `2017`>20 and `2018`>20 and `2018`>`2017` and `2017`>`2016` ORDER BY avg_roe DESC
+    sql = ''' SELECT code, name, (`2016`+`2017`+`2018`)/3 as avg_roe, (`2018`-`2016`)*100/`2016`/2 as growth_rate,
+      `2019` FROM roe_per_year 
+      where `2016` > 15 and `2017` > 15 and `2018` > 15 ORDER BY avg_roe DESC
      '''
 
     # read_sql_query的两个参数: sql语句， 数据库连接
@@ -95,6 +124,13 @@ def roe_selection():
     df['pe'] = None
     df['eps'] = None
     df['market_capital'] = None
+    df['2019_rev'] = None
+    df['2019_np'] = None
+    df['2018_rev'] = None
+    df['2018_np'] = None
+
+    df['pe_season3'] = None
+    df['peg_season3'] = None
 
     session = requests.session()
 
@@ -110,18 +146,44 @@ def roe_selection():
         else:
             market = 'SZ'
 
+        listed_date = get_listed_date(session, headers, market, code)
+
+        if listed_date is None or listed_date > 1483200000000:
+            continue
+        else:
+            #print(listed_date)
+            pass
+
         rsp = session.get(url.format(market, code), headers=headers)
 
         if rsp.status_code == 200:
             json_data = rsp.json()
-            df.loc[df['code'] == code, 'pe'] = json_data['data']['quote']['pe_ttm']
+            df.loc[df['code'] == code, 'pe'] = json_data['data']['quote']['pe_forecast']
             df.loc[df['code'] == code, 'pb'] = json_data['data']['quote']['pb']
             df.loc[df['code'] == code, 'eps'] = json_data['data']['quote']['eps']
-            df.loc[df['code'] == code, 'market_capital'] = json_data['data']['quote']['market_capital']
+            df.loc[df['code'] == code, 'market_capital'] = json_data['data']['quote']['market_capital'] /100000000 if json_data['data']['quote']['market_capital'] else 0
         else:
             print(rsp.content)
 
+        item_2019_rev, item_2019_np, item_2019_ratio, item_2018_rev, item_2018_np = get_financial_report(session, headers, market, code)
+
+        df.loc[df['code'] == code, '2019_rev'] = item_2019_rev/100000000 if item_2019_rev else item_2019_rev
+        df.loc[df['code'] == code, '2019_np'] = item_2019_np/100000000 if item_2019_np else item_2019_np
+        df.loc[df['code'] == code, '2019_ratio'] = item_2019_ratio
+        df.loc[df['code'] == code, '2018_rev'] = item_2018_rev/100000000 if item_2018_rev else item_2018_rev
+        df.loc[df['code'] == code, '2018_np'] = item_2018_np/100000000 if item_2018_np else item_2018_np
+
+    df['increase_rate'] = (df['2019_np']-df['2018_np'])*100/df['2018_np']
+    df['pe_season3'] = df['market_capital']/df['2019_np']
+    df['peg_season3'] = df['pe_season3']/df['increase_rate']
+
     print(df)
+
+    df = df.dropna(subset=["pe", "pb"])  # 删除指定列空值的行
+
+    df.drop(df[df.pe < 0].index, inplace=True)
+
+    df.drop(df[df.increase_rate < 0].index, inplace=True)
 
     df.to_csv('avg_roe.csv', index=False)
 
