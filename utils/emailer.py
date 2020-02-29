@@ -45,9 +45,9 @@ class EMailer(object):
 
         #发送邮件
         try:
-            server = smtplib.SMTP()
-            #server.set_debuglevel(1)
-            server.connect(self.smtp_server)
+            server = smtplib.SMTP_SSL(self.smtp_server, 465)
+            server.set_debuglevel(1)
+            # server.connect('smtp.163.com')
             server.login(self.account, self.passwd)#XXX为用户名，XXXXX为密码
             server.sendmail(msg['from'], mailto, msg.as_string())
             server.quit()

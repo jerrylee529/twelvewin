@@ -9,7 +9,10 @@
 """
 
 import os
-from .emailer import EMailer
+try:
+    from .emailer import EMailer
+except:
+    from emailer import EMailer
 
 
 class MailInformer(object):
