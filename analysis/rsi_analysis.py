@@ -148,7 +148,8 @@ def stock_rsi_compute(informer):
 
 
 def fund_rsi_compute(informer):
-    fund_codes = ['SH510050', 'SH510300', 'SH512000', 'SZ159949', 'SZ159952', 'SZ159901', 'SZ159920', 'SH510900']
+    fund_codes = ['SH510050', 'SH510300', 'SH512000', 'SZ159949', 'SZ159952', 'SZ159901', 'SZ159920', 'SH510900',
+                  'SH513100']
 
     security_codes_long, security_codes_short = rsi_compute(fund_codes)
 
