@@ -20,7 +20,7 @@ coverage==4.0a1
 ecdsa==0.11
 httplib2==0.9
 itsdangerous==0.24
-paramiko==1.15.1
+paramiko==2.10.1
 psycopg2==2.5.4
 py-bcrypt==0.4
 pycrypto==2.6.1
