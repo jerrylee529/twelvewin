@@ -24,4 +24,4 @@ paramiko==2.10.1
 psycopg2==2.5.4
 py-bcrypt==0.4
 pycrypto==2.6.1
-requests==2.6.2
+requests==2.20.0
