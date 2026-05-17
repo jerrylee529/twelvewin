@@ -4,7 +4,7 @@ from flask_mail import Message
 
 from app import app, mail
 
-from sendmail import send_mail
+from app.sendmail import send_mail
 
 def send_email(to, subject, template):
     '''

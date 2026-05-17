@@ -13,14 +13,6 @@ from app.decorators import check_confirmed
 import json
 from app import analyzer, log
 
-################
-#### config ####
-################
-
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 industry_analysis_blueprint = Blueprint('industry_analysis', __name__,)
 
 ################

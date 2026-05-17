@@ -5,10 +5,6 @@ from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
 import csv
 
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)
 
 

@@ -4,8 +4,6 @@ __author__ = 'jerry'
 
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from email import Encoders
-from email import Utils
 import os
 import smtplib
 
@@ -13,6 +11,10 @@ import smtplib
 #"突破60天均线的股票列表"
 
 def send_mail(subject, mailto, content, attachments):
+    if isinstance(mailto, str):
+        recipients = [mailto]
+    else:
+        recipients = list(mailto)
 
     #创建一个带附件的实例
     msg = MIMEMultipart()
@@ -32,7 +34,7 @@ def send_mail(subject, mailto, content, attachments):
 
 
     #加邮件头
-    msg['to'] = ",".join(mailto)
+    msg['to'] = ",".join(recipients)
     msg['from'] = 'xxx@163.com'
     msg['subject'] = subject
 
@@ -42,10 +44,10 @@ def send_mail(subject, mailto, content, attachments):
         #server.set_debuglevel(1)
         server.connect('smtp.163.com')
         server.login('xxx', 'xxxxx')#XXX为用户名，XXXXX为密码
-        server.sendmail(msg['from'], mailto, msg.as_string())
+        server.sendmail(msg['from'], recipients, msg.as_string())
         server.quit()
-        print '发送成功'
-    except Exception, e:
-        print str(e)
+        print('发送成功')
+    except Exception as e:
+        print(str(e))
 
 #sendmail('突破60天均线股票列表', content='突破60天均线股票列表', attachments=['C:/Stock/data/mafilter_60_20151128.txt'])

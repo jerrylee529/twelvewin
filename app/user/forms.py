@@ -22,8 +22,8 @@ class RegisterForm(FlaskForm):
     confirm = PasswordField('重复密码', validators=[DataRequired(), EqualTo('password', message='密码不相同')])
     submit = SubmitField('注册')
 
-    def validate(self):
-        initial_validation = super(RegisterForm, self).validate()
+    def validate(self, extra_validators=None):
+        initial_validation = super(RegisterForm, self).validate(extra_validators=extra_validators)
         if not initial_validation:
             return False
         user = User.query.filter_by(email=self.email.data).first()
@@ -40,8 +40,8 @@ class ForgotForm(FlaskForm):
 
     submit = SubmitField('发送')
 
-    def validate(self):
-        initial_validation = super(ForgotForm, self).validate()
+    def validate(self, extra_validators=None):
+        initial_validation = super(ForgotForm, self).validate(extra_validators=extra_validators)
         if not initial_validation:
             return False
         user = User.query.filter_by(email=self.email.data).first()
@@ -65,4 +65,3 @@ class ChangePasswordForm(FlaskForm):
     )
 
     submit = SubmitField('修改')
-

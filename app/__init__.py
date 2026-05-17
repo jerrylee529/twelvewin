@@ -14,7 +14,7 @@ from flask_mail import Mail
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
-from redis_op import RedisOP
+from app.redis_op import RedisOP
 import logging
 
 
@@ -41,7 +41,7 @@ def _check_config_variables_are_set(config):
            'SQLALCHEMY_DATABASE_URI is not set, '\
            'set it in the production config file.'
 
-    if os.environ['APP_SETTINGS'] == 'project.config.ProductionConfig':
+    if os.environ.get('APP_SETTINGS') == 'app.config.ProductionConfig':
         assert config['STRIPE_SECRET_KEY'] is not None,\
                'STRIPE_SECRET_KEY is not set, '\
                'set it in the production config file.'
@@ -53,10 +53,16 @@ def _check_config_variables_are_set(config):
 app = Flask(__name__)
 
 
-print(os.environ['APP_SETTINGS'])
+settings_object = os.environ.get('APP_SETTINGS', 'app.config.LocalConfig')
+print(settings_object)
 
-app.config.from_object(os.environ['APP_SETTINGS'])
+app.config.from_object(settings_object)
 #_check_config_variables_are_set(app.config)
+
+for path_key in ('DAY_FILE_PATH', 'RESULT_PATH', 'INDEX_FILE_PATH'):
+    path = app.config.get(path_key)
+    if path:
+        os.makedirs(path, exist_ok=True)
 
 handler = logging.FileHandler('flask.log', encoding='UTF-8')
 handler.setLevel(logging.DEBUG)
@@ -81,8 +87,48 @@ toolbar = DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
 
-from analyzer import Analyzer
-analyzer = Analyzer(app, db)
+class NullAnalyzer(object):
+    def __init__(self):
+        self.instruments = []
+
+    def get_quotation(self, code):
+        return None
+
+    def get_prediction(self, code):
+        return [], [], []
+
+    def get_finance_indicators(self, code):
+        return {}
+
+    def industry_cluster_basic(self, industry):
+        return None
+
+    def industry_cluster_by_tech(self, industry, begin_date):
+        return None
+
+    def industry_cluster_profit(self, industry):
+        return None
+
+    def industry_cluster_operation(self, industry):
+        return None
+
+    def industry_cluster_debtpaying(self, industry):
+        return None
+
+    def industry_cluster_growth(self, industry):
+        return None
+
+    def industry_cluster_cashflow(self, industry):
+        return None
+
+
+try:
+    from app.analyzer import Analyzer
+    with app.app_context():
+        analyzer = Analyzer(app, db)
+except Exception as exc:
+    app.logger.warning("Analyzer disabled in local runtime: %r", exc)
+    analyzer = NullAnalyzer()
 
 ####################
 #### blueprints ####

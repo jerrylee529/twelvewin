@@ -1,10 +1,7 @@
 # -*- coding: utf-8 -*-
 
-__author__ = 'Administrator'
-
-
 import redis
-import re
+from urllib.parse import urlparse
 
 
 class RedisOP(object):
@@ -18,21 +15,25 @@ class RedisOP(object):
 
     @staticmethod
     def create_pool(config):
-        url = config['REDIS_URL']
-        host = ''
-        port = 6793
-        password = ''
+        url = config.get('REDIS_URL') or 'redis://:@127.0.0.1:6379/0'
+        parsed = urlparse(url)
+
+        host = parsed.hostname or '127.0.0.1'
+        port = parsed.port or 6379
+        password = parsed.password or None
         db = 0
-        if url is not None:
-            match_result = re.match(r'redis://:(.*)@(.*):(.*)/(.?)', url, re.M|re.I)
 
-            if match_result:
-                password = match_result.group(1)
-                host = match_result.group(2)
-                port = int(match_result.group(3))
-                db = int(match_result.group(4))
+        path = (parsed.path or '').lstrip('/')
+        if path.isdigit():
+            db = int(path)
 
-        RedisOP.pool = redis.ConnectionPool(host=host, password=password, port=port, db=db)
+        RedisOP.pool = redis.ConnectionPool(
+            host=host,
+            password=password,
+            port=port,
+            db=db,
+            decode_responses=True,
+        )
 
     """
     string类型 {'key':'value'} redis操作

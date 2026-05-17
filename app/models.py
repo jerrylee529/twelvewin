@@ -7,10 +7,6 @@ import datetime
 from app import db, bcrypt
 from flask_login import UserMixin
 
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 
 class User(UserMixin, db.Model):
     __tablename__ = "users"
@@ -28,7 +24,8 @@ class User(UserMixin, db.Model):
                  admin=False, confirmed_on=None,
                  password_reset_token=None):
         self.email = email
-        self.password = bcrypt.generate_password_hash(password)
+        hashed = bcrypt.generate_password_hash(password)
+        self.password = hashed.decode('utf-8') if isinstance(hashed, bytes) else hashed
         self.registered_on = datetime.datetime.now()
         self.admin = admin
         self.confirmed = confirmed

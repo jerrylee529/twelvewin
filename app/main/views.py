@@ -12,14 +12,6 @@ from flask_login import login_required
 from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge, ExamQuestion, ExamResult
 from app import db, analyzer, log
 
-################
-#### config ####
-################
-
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 main_blueprint = Blueprint('main', __name__,)
 
 
@@ -79,7 +71,7 @@ def get_profile(code):
 
                 result[field].append(item)
 
-        print result
+        print(result)
 
     except Exception as e:
         log.error(repr(e))
@@ -92,7 +84,7 @@ def predict():
     code = request.values.get('code-search', '600000').split()[0]
 
     # 获取行情数据
-    quot = analyzer.get_quotation(code)
+    quot = analyzer.get_quotation(code) or {}
 
     dates = []
 
@@ -124,7 +116,7 @@ def predict():
 
     quot['predictions'] = predictions
 
-    print quot
+    print(quot)
 
     return render_template('main/index.html', current_user=current_user, quot=quot)
 

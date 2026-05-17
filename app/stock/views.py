@@ -13,10 +13,6 @@ from app.decorators import check_confirmed
 from app import analyzer
 from app.util import model_to_json
 
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 stock_blueprint = Blueprint('stock', __name__,)
 
 

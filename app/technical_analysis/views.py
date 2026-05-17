@@ -10,14 +10,7 @@ import datetime
 from flask_login import login_required
 from app.decorators import check_confirmed
 
-
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
-
-BASE_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(BASE_DIR)
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 technical_analysis_blueprint = Blueprint('technical_analysis', __name__,)
 
@@ -104,7 +97,7 @@ def get_filter_data():
 
     info = request.values
 
-    print info
+    print(info)
 
     PERIODS = {u'近一周': 7, u'近一月': 30, u'近三月': 30*3, u'近半年': 30*6, u'近一年': 30*12}
 
@@ -120,7 +113,7 @@ def get_filter_data():
     low = request.values.get('low', -30)
     high = request.values.get('high', 0)
 
-    print "begin date: {}, end date: {}, days: {}, low: {}, high: {}".format(begin_date, end_date, days, low, high)
+    print("begin date: {}, end date: {}, days: {}, low: {}, high: {}".format(begin_date, end_date, days, low, high))
 
     data = []
 

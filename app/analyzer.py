@@ -3,19 +3,27 @@
 __author__ = 'Jerry Lee'
 
 
-from redis_op import RedisOP
-from app.models import Instrument, StockCashFlowReport, StockProfitReport, StockGrowthReport, StockDebtPayingReport, StockOperationReport, XueQiuReportInfo
-from sklearn import svm, preprocessing
-from sklearn.externals import joblib
-import pandas as pd
 import os
-import tushare as ts
-from sklearn.cluster import AffinityPropagation
-from datetime import date
-from sklearn.decomposition import PCA
-from sqlalchemy import or_, and_
 import json
 import time
+from datetime import date
+
+from app.redis_op import RedisOP
+from app.models import Instrument, StockCashFlowReport, StockProfitReport, StockGrowthReport, StockDebtPayingReport, StockOperationReport, XueQiuReportInfo
+
+try:
+    import joblib
+    import pandas as pd
+    import tushare as ts
+    from sklearn import preprocessing, svm
+    from sklearn.cluster import AffinityPropagation
+except Exception:
+    joblib = None
+    pd = None
+    ts = None
+    preprocessing = None
+    svm = None
+    AffinityPropagation = None
 
 class Analyzer(object):
     """
@@ -52,11 +60,12 @@ class Analyzer(object):
                 item['industry'] = security.industry
                 self.instruments.append(item)
                 index += 1
-        except Exception, e:
+        except Exception as e:
             print(str(e))
 
     # 获取行情数据
     def get_quotation(self, code):
+        quot = None
         try:
             redisOP = RedisOP()
             quot = redisOP.get_hash(code)
@@ -67,6 +76,9 @@ class Analyzer(object):
 
     # 获取预测值
     def get_prediction(self, code):
+        if pd is None or preprocessing is None or svm is None or joblib is None:
+            return [], [], []
+
         file_path = self.app.config['DAY_FILE_PATH'] + '/' + code + '.csv'
         df = pd.read_csv(file_path)
         df.set_index('date', inplace=True)
@@ -122,12 +134,15 @@ class Analyzer(object):
 
         joblib.dump(classifier, model_filename)
 
-        print df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
+        print(df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict)
 
         return df.index.values[L-predict_length:], value.values[L-predict_length:], value_predict
 
     # 行业基本面聚类分析
     def industry_cluster_basic(self, industry):
+        if ts is None or pd is None or AffinityPropagation is None:
+            return None
+
         curr_date = date.today().strftime("%Y-%m-%d")
 
         if (self.stock_basic_update_date is None) or (curr_date != self.stock_basic_update_date):
@@ -167,6 +182,9 @@ class Analyzer(object):
 
     # 读取历史数据并返回每日涨跌幅
     def __read_data(self, folder, begin_date, code):
+        if pd is None:
+            return None
+
         file_path = folder + '/' + code + '.csv'
         today = date.today()
 
@@ -188,6 +206,9 @@ class Analyzer(object):
 
     # 计算聚类
     def __analyse_cluster(self, instruments, data):
+        if AffinityPropagation is None:
+            return instruments
+
         data = data.fillna(0.00)
         data = data.astype('float64')
 
@@ -216,6 +237,9 @@ class Analyzer(object):
 
     # 行业对涨跌幅进行聚类分析
     def industry_cluster_by_tech(self, industry, begin_date):
+        if ts is None or pd is None or AffinityPropagation is None:
+            return None
+
         curr_date = date.today().strftime("%Y-%m-%d")
 
         if (self.stock_basic_update_date is None) or (curr_date != self.stock_basic_update_date):
@@ -319,7 +343,7 @@ class Analyzer(object):
 
         instruments = instruments[pd.notnull(instruments['label'])]
 
-        print instruments
+        print(instruments)
 
         return instruments
 

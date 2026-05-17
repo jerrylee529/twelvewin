@@ -12,15 +12,10 @@ from app.models import StockCluster, StockClusterItem
 from app.decorators import check_confirmed
 from app.util import model_to_json
 
-
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
-BASE_DIR=os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(BASE_DIR)
-
-from analysis.cluster_data_service import instruments_cluster
+try:
+    from analysis.cluster_data_service import instruments_cluster
+except Exception:
+    instruments_cluster = None
 
 cluster_analysis_blueprint = Blueprint('cluster', __name__,)
 
@@ -36,7 +31,7 @@ def get_data(path):
     if industry =='all':
         return jsonify({'total': 0, 'rows': []})
 
-    if path != 'sz50' and path != 'zz500' and path != 'hs300': 
+    if path != 'sz50' and path != 'zz500' and path != 'hs300' and instruments_cluster is not None:
         print("compute industry cluster")
         instruments_cluster(industry)
 

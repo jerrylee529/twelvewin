@@ -9,11 +9,6 @@ from app import db
 from flask_login import login_required
 from flask import current_app
 
-import sys  # reload()之前必须要引入模块
-
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 business_blueprint = Blueprint('business', __name__)
 
 
@@ -128,5 +123,4 @@ def get_business_data():
     data = create_business_data(labels)
     # return jsonify({'total': len(data), 'rows': data[int(offset):(int(offset) + int(limit))]})
     return jsonify({'total': len(data), 'rows': data})
-
 

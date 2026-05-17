@@ -90,7 +90,8 @@ def profile():
     if form.validate_on_submit():
         user = User.query.filter_by(email=current_user.email).first()
         if user:
-            user.password = bcrypt.generate_password_hash(form.password.data)
+            hashed = bcrypt.generate_password_hash(form.password.data)
+            user.password = hashed.decode('utf-8') if isinstance(hashed, bytes) else hashed
             db.session.commit()
             flash('成功修改密码', 'success')
             return redirect(url_for('user.profile'))
@@ -175,7 +176,8 @@ def forgot_new(token):
         if form.validate_on_submit():
             user = User.query.filter_by(email=email).first()
             if user:
-                user.password = bcrypt.generate_password_hash(form.password.data)
+                hashed = bcrypt.generate_password_hash(form.password.data)
+                user.password = hashed.decode('utf-8') if isinstance(hashed, bytes) else hashed
                 user.password_reset_token = None
                 db.session.commit()
 

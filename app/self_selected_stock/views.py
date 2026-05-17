@@ -14,14 +14,6 @@ import time
 import json
 import os
 
-################
-#### config ####
-################
-
-import sys   #reload()之前必须要引入模块
-reload(sys)
-sys.setdefaultencoding('utf-8')
-
 self_selected_stock_blueprint = Blueprint('self_selected_stock', __name__,)
 
 ################
@@ -230,4 +222,3 @@ def get_net_profit(code, field):
         data.append(item)
 
     return jsonify({'rows': data})
-
