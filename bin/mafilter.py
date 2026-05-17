@@ -1,10 +1,14 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+筛选当日向上突破均线的股票。
 
-'''
-筛选满足均线条件的股票
-'''
+脚本读取 commondatadef.instrument_file_path 股票列表和 commondatadef.dataPath
+下的历史行情文件，分别计算 20 日和 60 日简单移动均线。若最新收盘价站上均线、
+前一日收盘价在均线下方且均线本身向上，则输出 mafilter_*.csv 并邮件发送。
+"""
+
+__author__ = 'Administrator'
 
 import commondatadef
 import pandas as pd

@@ -1,10 +1,13 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""按年份下载指数历史行情并合并为 CSV。
 
-'''
-下载指数的历史数据
-'''
+当前脚本固定下载中证 500 指数 000905，从 1991 到 2018 年逐年调用
+tushare.get_h_data(index=True)，每年请求后 sleep 300 秒，最终合并写入
+config.INDEX_FILE_PATH 下的 <index>.csv。
+"""
+
+__author__ = 'Administrator'
 
 import tushare as ts
 import pandas as pd

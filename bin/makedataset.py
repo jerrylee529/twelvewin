@@ -1,5 +1,14 @@
 # coding=utf8
 
+"""
+为单只股票生成预测模型训练数据。
+
+用法: script [code]
+脚本读取 commondatadef.data_dayPath 下的 <code>.csv，计算收盘价和成交量的
+5/10/20/60 日均线，并将 days 个交易日后的收盘价写入 labels 列。
+结果输出到 commondatadef.dataPath 下的 <code>.csv。
+"""
+
 __author__ = 'jerry'
 
 

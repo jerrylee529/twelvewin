@@ -1,10 +1,13 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""单次执行的日终分析任务编排器。
 
+job() 从 SERVICE_SETTINGS 环境变量读取服务配置，依次更新股票代码、下载日线历史数据、
+生成历史新高/新低、均线多头、突破均线、年线以上等技术分析结果，并运行 PEMAStrategy
+输出买入/卖出列表。
 """
-定时任务管理器
-"""
+
+__author__ = 'Administrator'
 
 from datetime import datetime
 from history_data_service import HistoryDataService

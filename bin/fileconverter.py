@@ -1,5 +1,12 @@
 # coding=utf8
 
+"""
+转换旧行情文件的列顺序。
+
+脚本遍历 c:/stock/data 目录下的文件，按无表头 CSV 读取后将第 4 列移动到第 2
+列位置，再覆盖写回原文件。用于修正旧下载数据中 high/low/close 等字段顺序不一致的问题。
+"""
+
 __author__ = 'Administrator'
 
 

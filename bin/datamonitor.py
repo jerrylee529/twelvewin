@@ -1,11 +1,14 @@
 # -*- coding:utf-8 -*-
 
-__author__ = 'jerry'
+"""
+实时监控股票价格并在超过阈值时发送告警邮件。
 
-'''
-1. 读取文件中定义的股票代码
-2. 当股票的价格变化比率超过设置的阈值时发送告警列表到制定邮箱
-'''
+脚本从 c:/stock/monitoring_stocks.csv 读取监控股票、基准价和阈值，
+每 60 秒通过 tushare 获取实时行情，计算当前价格相对基准价的涨跌幅。
+当涨跌幅超过配置阈值时，将告警列表发送到指定邮箱。
+"""
+
+__author__ = 'jerry'
 
 from threading import Timer
 import time

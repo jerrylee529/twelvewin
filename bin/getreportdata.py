@@ -1,4 +1,13 @@
 # -*- coding:utf-8 -*-
+
+"""
+根据业绩报表和实时行情筛选成长股候选。
+
+脚本获取指定季度业绩报表和当日全市场行情，合并后计算 pe、pb、peg，
+分别筛选高 ROE、低 PE、低 PB、低 PEG 的股票列表，输出 CSV 到
+commondatadef.resultPath，并将结果作为附件发送邮件。
+"""
+
 __author__ = 'jerry'
 
 import pandas as pd

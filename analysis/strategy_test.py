@@ -1,7 +1,11 @@
 # coding=utf8
-'''
-股票涨跌幅计算
-'''
+
+"""PE 与均线组合选股策略回测/信号生成。
+
+定义 Strategy 基类和 PEMAStrategy。PEMAStrategy 默认使用沪深 300 成分股，读取本地日线数据，
+当 PE 小于 20 且收盘价站上 MA20 时生成买入列表；若上次买入标的跌破 MA20，则生成卖出列表。
+每次运行将买卖列表写入 StrategyResultInfo 表。
+"""
 
 import pandas as pd
 import os

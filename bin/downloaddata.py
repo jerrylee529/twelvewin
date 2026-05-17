@@ -1,11 +1,14 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+增量下载股票后复权历史日线数据。
 
-'''
-1. 读取股票列表
-2. 读取上次更新的时间，从上次更新的时间开始下载股票列表中的每只股票的历史数据
-'''
+脚本读取 commondatadef.instrument_file_path 股票列表，为每只股票检查
+commondatadef.dataPath 下已有的历史 txt 文件，从最后交易日的下一天开始
+通过 tushare.get_h_data 下载 hfq 后复权数据，并追加写回原文件。
+"""
+
+__author__ = 'Administrator'
 
 import tushare as ts
 import pandas as pd

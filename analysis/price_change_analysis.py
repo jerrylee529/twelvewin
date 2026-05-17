@@ -1,7 +1,11 @@
 # coding=utf8
-'''
-股票涨跌幅计算
-'''
+
+"""计算个股区间涨跌幅和振幅报表。
+
+compute_all_instruments() 根据多个 PriceChangePeriod 统计每只股票在指定区间内的涨跌幅，
+输出 price_change_<date>.csv 和 price_change.csv。compute_all_instruments_amplitude()
+统计指定天数窗口内的振幅，输出 price_amplitude_<date>.csv 和 price_amplitude.csv。
+"""
 
 import pandas as pd
 import os

@@ -1,7 +1,9 @@
 # coding=utf8
 
-"""
-测试文件
+"""聚类算法实验脚本。
+
+该文件读取本地 e:/sz50.csv 数据，尝试用 AffinityPropagation/KMeans 对样本做聚类，
+并结合 e:/sz50_symbol.csv 输出聚类结果。属于临时实验代码，不参与主业务流程。
 """
 
 __author__ = 'Administrator'

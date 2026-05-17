@@ -1,7 +1,9 @@
 # coding=utf8
 
-"""
-获取行情数据的接口
+"""行情数据获取封装。
+
+get_history_data() 是 tushare.get_k_data 的薄封装，统一处理 code、周期、复权类型、
+指数标记、开始日期和结束日期；请求失败时打印异常并通过 text.send_text 发出失败通知。
 """
 
 __author__ = 'Administrator'

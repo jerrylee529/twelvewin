@@ -1,10 +1,13 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""下载季度业绩报表并写入数据库。
 
+FinancialDataService 通过 tushare.get_report_data 获取指定年份和季度的财报数据，
+将 EPS、ROE、每股现金流、净利润等字段转换后写入 Report 表。run() 当前示例流程
+下载 2018 年 1-4 季度数据。
 """
-获取历史数据的服务，以增量方式对历史数据文件进行添加，每天收盘后运行一次
-"""
+
+__author__ = 'Administrator'
 
 from config import config
 import tushare as ts

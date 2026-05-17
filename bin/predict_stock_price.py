@@ -1,5 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""
+使用线性回归演示单只股票下一日收盘价预测。
+
+脚本固定以 000001 为样本，下载指定结束日前约 300 天的历史行情，使用除 close
+以外的行情和技术指标作为特征，将下一日 close 作为标签，训练 sklearn
+LinearRegression 并打印预测值、真实值、系数、截距和评分。
+"""
 
 import pandas as pd
 import tushare as ts

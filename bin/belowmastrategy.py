@@ -1,14 +1,15 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+筛选显著低于指定均线的股票并发送邮件。
 
-'''
-1. 读取股票列表
-2. 读取股票列表中每只股票的历史数据，
-3. 计算移动平均线
-4. 将低于移动平均线条件的股票筛选出来保存到文件
-5. 将文件发送邮件到制定邮箱
-'''
+脚本读取 commondatadef.instrument_file_path 中的股票列表，再逐只读取
+commondatadef.dataPath 下的历史行情 txt 文件。按 ma=60 计算指数移动均线，
+筛选当日收盘价低于均线超过 change_percent=20% 的股票，结果写入
+commondatadef.resultPath 下的 belowma_*.csv，并作为附件发送到指定邮箱。
+"""
+
+__author__ = 'Administrator'
 
 import commondatadef
 import pandas as pd

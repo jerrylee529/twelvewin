@@ -1,7 +1,9 @@
 # coding=utf8
 
-"""
-股票代码相关函数
+"""股票基础信息入库和代码查询工具。
+
+get_instrument_list() 从 tushare.get_stock_basics 下载全市场股票基础资料并写入 Instrument 表。
+get_all_instrument_codes() 和 get_all_instrument_codes_before() 为历史数据下载任务提供股票代码列表。
 """
 
 __author__ = 'Administrator'

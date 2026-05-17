@@ -1,10 +1,13 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""增量下载股票日线历史数据服务。
 
+HistoryDataService 从数据库读取全部股票代码，检查 config['DAY_FILE_PATH'] 下已有
+<code>.csv 的最后日期，从下一交易日开始通过 quotation.get_history_data 下载前复权日线，
+并追加或新建 CSV 文件。
 """
-获取历史数据的服务，以增量方式对历史数据文件进行添加，每天收盘后运行一次
-"""
+
+__author__ = 'Administrator'
 
 import os
 from datetime import timedelta, datetime, date

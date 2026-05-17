@@ -1,10 +1,12 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""日终技术分析 CSV 生成服务。
 
+提供历史新高、历史新低、均线多头、突破指定均线、站上指定均线、区间涨跌幅和振幅分析函数。
+每个函数读取股票列表和本地日线 CSV，筛选符合条件的股票，并同时输出带日期和固定文件名的结果 CSV。
 """
-技术分析服务，每天收盘后运行一次
-"""
+
+__author__ = 'Administrator'
 
 import pandas as pd
 from datetime import timedelta, datetime, date

@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
+"""实时行情 Redis 更新器。
+
+脚本通过 tushare.get_today_all 获取全市场实时行情，把每只股票的行情字段和 update_time
+写入 Redis hash，hash key 为股票代码。update_on_timer() 在交易时段内循环更新。
+"""
 
 __author__ = 'Administrator'
-
-"""
-按时间段更新行情并写入到redis
-"""
 
 import redis
 import tushare as ts

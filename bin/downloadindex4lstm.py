@@ -1,11 +1,16 @@
 #!/usr/bin/python
 #coding:utf-8
 
-__author__ = 'Administrator'
+"""
+为单个指数生成 LSTM 训练用历史数据集。
 
-'''
-下载指数的历史数据用于lstm计算
-'''
+用法: downloaddata4lstm [code]
+脚本从 2010-01-01 开始下载指定指数的历史行情，计算收盘价和成交量的
+5/10/20/60 日均线，并将 3 个交易日后的收盘价写入 label 列，最终输出为
+<code>.csv。
+"""
+
+__author__ = 'Administrator'
 
 import tushare as ts
 import sys

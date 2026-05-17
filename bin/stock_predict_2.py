@@ -1,9 +1,14 @@
 ﻿# coding=utf-8
-'''
-Created on 2017年2月20日
 
-@author: Lu.yipiao
-'''
+"""
+早期 TensorFlow LSTM 股票价格训练和预测脚本。
+
+用法: script [code] [t|p]
+t 表示训练模型，p 表示基于已保存 checkpoint 预测测试集。脚本读取
+/home/ubuntu/data/day/<code>.csv，抽取前几列行情数据构造时间序列样本，
+模型文件保存在当前目录。该版本与 stock_predict.py 类似，但路径和特征列不同。
+"""
+
 import pandas as pd
 import numpy as np
 #import matplotlib.pyplot as plt

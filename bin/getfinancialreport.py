@@ -1,5 +1,14 @@
 
 # -*- coding:utf-8 -*-
+
+"""
+下载并导出多类财务报表。
+
+脚本按固定 YEAR/SEASON 通过 tushare 获取股票基础信息、业绩报表、盈利能力、
+营运能力等数据，分别导出 CSV 并调用 csv2html 生成 HTML。文件后半段还保留了
+成长能力、偿债能力、现金流量等合并报表逻辑，但当前流程在营运能力导出后 quit。
+"""
+
 __author__ = 'jerry'
 
 import pandas as pd
@@ -209,4 +218,3 @@ htmlfile = "/home/ubuntu/web/finance_report_%s.html" % (today.strftime("%Y%m%d")
 
 
 c2h.csv2html(outputfile, htmlfile, "股票列表", columns)
-

@@ -1,10 +1,13 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""股票聚类分析服务。
 
+脚本读取指数或个股日线数据，按涨跌幅序列或基本面指标使用 KMeans/AffinityPropagation
+聚类，并将聚类中心和簇内股票写入 StockCluster、StockClusterItem 数据表。
+提供上证 50、沪深 300、中证 500 和指定行业/全市场股票聚类入口。
 """
-对股票进行分类
-"""
+
+__author__ = 'Administrator'
 
 import pandas as pd
 from datetime import timedelta, datetime, date

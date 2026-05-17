@@ -1,5 +1,12 @@
-
 # -*- coding:utf-8 -*-
+
+"""生成估值和股息率排名 CSV。
+
+get_valuation_report() 基于股票基础数据和当日行情计算 ROE、PEG、估值和估值差。
+get_profit_report() 使用分红数据和实时行情生成股息率、ROE、市盈率、市净率、市值等排名，
+输出 stock_dividence、stock_roe、stock_pe、stock_pb、stock_value 等 CSV。
+"""
+
 __author__ = 'jerry'
 
 import pandas as pd

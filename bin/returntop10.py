@@ -1,4 +1,13 @@
 # coding=utf8
+
+"""
+整理策略回测结果中的当前持仓并输出收益排名。
+
+脚本读取 C:/Stock/product/strategyresult.srf，解析每只股票的交易明细，提取尚未
+卖出的持仓记录，按买入日期和收益率过滤排序，输出 returnTop10.txt 和按日期命名
+的结果文件。同时检查 buy_top5.srf、sell_top5.srf，并在文件非空时发送邮件。
+"""
+
 __author__ = 'Administrator'
 
 import pandas as pd

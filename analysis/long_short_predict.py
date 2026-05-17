@@ -1,5 +1,12 @@
 # coding=utf8
 
+"""使用 SVM 训练和预测股票次日涨跌方向。
+
+脚本读取日线 CSV，构造 MA5/MA10/MA20/MA250 等特征，将下一交易日涨跌映射为 1/0，
+使用 sklearn SVC 训练模型并保存到 RESULT_PATH。train_all() 会遍历股票基础数据并将
+各股票预测准确率写入 StockPrediction 表。
+"""
+
 import pandas as pd
 from config import config
 from sklearn import svm,preprocessing

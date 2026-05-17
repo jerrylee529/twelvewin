@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 """
-Created on Thu May 10 20:11:08 2018
+生成精选股票候选列表。
 
-@author: Administrator
+脚本通过 tushare.get_today_all 获取全市场实时行情，计算 roe 和有效收盘价，
+按 roe、换手率、市值和价格等条件过滤候选股票；再逐只计算 20 周均线并写入
+wma20 字段。结果输出到 /home/ubuntu/x.csv。
 """
 
 

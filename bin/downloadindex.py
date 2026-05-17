@@ -1,10 +1,14 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+下载主要指数的历史日线数据。
 
-'''
-下载指数的历史数据
-'''
+脚本固定下载 000001、399001、000300、399005、399006 等指数的历史数据，
+通过 tushare.get_h_data(index=True) 获取行情，按指数代码写入
+commondatadef.dataPath/index/ 下的 txt 文件。
+"""
+
+__author__ = 'Administrator'
 
 import tushare as ts
 import pandas as pd

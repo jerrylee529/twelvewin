@@ -1,10 +1,14 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+筛选收盘价高于指定均线一定幅度的股票。
 
-'''
-筛选突破某条均线的股票列表
-'''
+脚本读取股票列表和历史行情文件，按 ma=120 计算指数移动均线，筛选最新收盘价
+高于该均线超过 change_percent=5% 且数据日期为前一日的股票，输出 upma_*.csv，
+并将结果作为附件发送邮件。
+"""
+
+__author__ = 'Administrator'
 
 import commondatadef
 import pandas as pd

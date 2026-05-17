@@ -1,10 +1,12 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""基于 APScheduler 的日终分析任务调度器。
 
+job() 与 schedule_job.py 类似，负责股票代码更新、历史数据下载、技术分析 CSV 生成和
+PEMAStrategy 执行。直接运行时注册 BlockingScheduler，在周二到周六 00:00 执行 job。
 """
-定时任务管理器
-"""
+
+__author__ = 'Administrator'
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime

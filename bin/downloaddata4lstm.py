@@ -1,9 +1,14 @@
 #!/usr/bin/python
 #coding:utf-8
 
-'''
-下载历史数据用于tensorflow lstm算法计算
-'''
+"""
+为单只股票生成 TensorFlow LSTM 训练用历史数据集。
+
+用法: downloaddata4lstm [code]
+脚本根据股票上市日期下载指定股票的历史行情，按日期升序生成收盘价和成交量的
+5/10/20/60 日均线，并把下一交易日收盘价写入 label 列，最终输出到
+./dataset/<code>.csv。
+"""
 
 __author__ = 'Administrator'
 

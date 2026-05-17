@@ -1,5 +1,11 @@
 # -*- coding: utf-8 -*-
 
+"""analysis 批处理脚本使用的独立 SQLAlchemy 模型定义。
+
+本模块创建 engine 和 Session，并定义股票基础信息、财报、聚类、预测结果、雪球报表、
+策略结果等表模型。它与 app/models.py 有重复但不完全一致，是 analysis 脚本直接读写数据库的入口。
+"""
+
 __author__ = 'Administrator'
 
 import datetime

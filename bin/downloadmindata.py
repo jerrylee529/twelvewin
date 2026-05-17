@@ -1,10 +1,14 @@
 # coding=utf8
 
-__author__ = 'Administrator'
+"""
+下载所有股票的 5 分钟 K 线历史数据。
 
-'''
-下载分钟K线的历史数据
-'''
+脚本读取 commondatadef.configPath/instruments.txt；如果不存在，则先从
+tushare.get_industry_classified 获取股票列表并写入该文件。随后逐只下载从
+2005-01-01 到今天的 5 分钟行情，追加保存到 commondatadef.minPath 下的 txt 文件。
+"""
+
+__author__ = 'Administrator'
 
 import tushare as ts
 import pandas as pd

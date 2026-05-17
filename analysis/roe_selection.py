@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
-@author: Jerry Lee
-@license: (C) Copyright 2013-2019, Node Supply Chain Manager Corporation Limited.
-@file: roe_selection.py
-@time: 2020/2/9 13:51
-@desc: 
+
+"""基于多年 ROE 和雪球财务数据筛选股票。
+
+roe_to_db() 从 XueQiuReportInfo 中提取年度 ROE 并写入 roe_per_year 表。
+roe_selection() 查询连续多年高 ROE 股票，再从雪球接口补充估值、上市日期、营收和扣非净利润，
+计算增速、PE 和 PEG，最终输出 avg_roe.csv。
 """
 
 import json

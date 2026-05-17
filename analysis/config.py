@@ -1,5 +1,12 @@
 # coding=utf8
 
+"""analysis 目录批处理任务的配置加载模块。
+
+从 TW_ANALYSIS_CONFIG_FILE 指定的 INI 文件读取 TW_ANALYSIS_ENV 对应配置段，
+生成 config 字典，包含数据库连接、邮件配置、行情数据路径和结果输出路径。
+同时提供 my_headers，供雪球等 HTTP 抓取脚本随机选择 User-Agent。
+"""
+
 import os
 import configparser
 

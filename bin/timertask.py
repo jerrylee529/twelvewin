@@ -1,10 +1,14 @@
 # -*- coding:utf-8 -*-
 
-__author__ = 'jerry'
+"""
+定时触发估值和精选股报表生成任务。
 
-'''
-定时器实现
-'''
+脚本持续运行并每秒检查当前时间；在非周末的 20:00:00 执行 getvaluation.py 和
+get_value_4_business.py。gettimetowait 是早期按目标时间计算等待秒数的辅助函数，
+当前主循环未使用 Timer，而是直接轮询系统时间。
+"""
+
+__author__ = 'jerry'
 
 from threading import Timer
 import time

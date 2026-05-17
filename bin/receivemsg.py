@@ -1,5 +1,13 @@
 # coding=utf8
 
+"""
+批量下载行业分类股票的后复权历史行情。
+
+脚本通过 tushare.get_industry_classified 获取股票列表，逐只下载
+2009-01-01 到 2015-11-04 的 hfq 后复权历史数据，并保存为
+C:/Stock/Data/<code>.txt。文件名 receivemsg 与实际功能不匹配，实际用途是旧数据下载。
+"""
+
 __author__ = 'Administrator'
 
 import tushare as ts

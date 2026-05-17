@@ -1,9 +1,14 @@
 # coding=utf-8
-'''
-Created on 2017年2月20日
 
-@author: Jerry Lee
-'''
+"""
+使用 TensorFlow LSTM 训练或预测单只股票价格。
+
+用法: script [code] [t|p|n]
+t 表示训练模型，p 表示用测试集评估预测偏差，n 表示使用最近一个窗口预测下一步。
+脚本读取 ../dataset/<code>.csv，使用 14 个特征和 1 个标签构建时间序列样本，
+模型检查点保存到 ../<code>/stock2.model*。
+"""
+
 import pandas as pd
 import numpy as np
 # import matplotlib.pyplot as plt
@@ -222,5 +227,4 @@ def predNextOne():
 
 if train == 'n':
     predNextOne()
-
 

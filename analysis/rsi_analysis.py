@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
-"""
-@author: Jerry Lee
-@license: (C) Copyright 2013-2019, Node Supply Chain Manager Corporation Limited.
-@file: rsi_analysis.py
-@time: 2020/2/20 11:45
-@desc: 
+
+"""RSI 超买超卖监控和通知任务。
+
+脚本从雪球 K 线接口获取股票或基金行情，计算 RSI 指标；对 avg_roe.csv 中的股票和固定基金列表
+分别筛选 RSI 高于 80 或低于 20 的标的，并通过 MailInformer 发送通知。主入口使用
+BlockingScheduler 在工作日 10:30 和 14:30 定时执行。
 """
 
 import json

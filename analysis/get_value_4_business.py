@@ -1,5 +1,12 @@
-
 # -*- coding:utf-8 -*-
+
+"""生成精选股票 stock_business 报表。
+
+脚本获取当日全市场行情，按 ROE、换手率、流通市值、市价等条件筛选股票，
+再计算 10/30/60 周均线并要求价格靠近 10 周线且处于 30/60 周线之上。
+结果输出为 stock_business_<date>.csv 和 stock_business.csv。
+"""
+
 __author__ = 'jerry'
 
 import pandas as pd

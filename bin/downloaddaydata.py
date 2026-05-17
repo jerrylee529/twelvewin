@@ -1,5 +1,14 @@
 # coding=utf8
 
+"""
+增量下载所有股票日线数据到本地 day 目录。
+
+脚本通过 stock_utility.get_stock_list 获取股票基础列表并缓存到
+commondatadef.code_list_file。随后逐只检查 commondatadef.data_dayPath 下的
+<code>.csv，从现有文件最后日期的下一天开始下载 hfq 后复权数据并追加保存。
+文件中还保留了为后续预测数据添加均线和 label 的辅助函数。
+"""
+
 __author__ = 'jerry'
 
 

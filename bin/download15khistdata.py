@@ -1,11 +1,14 @@
 # coding=utf8
 
+"""
+下载股票列表和 15 分钟 K 线历史数据。
+
+脚本通过 tushare 获取全部股票基础信息，先保存到 C:/Stock/stocklist.csv，
+再为每只股票下载从 2013-01-01 开始的 15 分钟线历史数据，按股票代码写入
+C:/Stock/data/15K/。输出文件使用 GBK 编码，面向旧 Windows 本地数据目录。
+"""
+
 __author__ = 'jerry'
-
-
-'''
-下载15分钟线历史数据并保存到文件
-'''
 
 import tushare as ts
 import os,time,sys,re,datetime

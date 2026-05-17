@@ -1,10 +1,15 @@
 # coding=utf8
 
-__author__ = 'jerry'
+"""
+下载所有股票日线数据并生成 TensorFlow 预测数据集。
 
-'''
-下载历史数据用于tensorflow数据预测
-'''
+脚本通过 stock_utility 获取股票列表，逐只增量下载 hfq 后复权日线到
+commondatadef.data_dayPath；随后为每只股票计算收盘价和成交量的 5/10/20/60
+日均线，并将 3 个交易日后的收盘价写入 labels 列，输出到 commondatadef.dataPath。
+每只股票处理后 sleep 60 秒以降低接口调用频率。
+"""
+
+__author__ = 'jerry'
 
 import tushare as ts
 import pandas as pd
