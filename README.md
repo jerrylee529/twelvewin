@@ -5,5 +5,6 @@
 4. 行业分析，通过以上相同的聚类算法对行业个股进行基本面和技术面的聚类分析；
 
 另外还包含个股查询，如查看个股的基本面数据和K线数据。
-访问网站: www.twelvewin.com
+访问网站: twelvewin.win
 
+部署说明见 [DEPLOYMENT.md](DEPLOYMENT.md)，当前推荐以 Python 3.12 和 `requirements-local.txt` 作为 Web 应用部署基线。
