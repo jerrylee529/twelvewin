@@ -124,7 +124,25 @@ PORT=8088
 
 ### 6.2 生产配置方式
 
-如果要使用 `app.config.ProductionConfig`，需要创建或更新：
+如果要使用 `app.config.ProductionConfig`，推荐优先通过环境变量配置：
+
+```bash
+APP_SETTINGS=app.config.ProductionConfig
+DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/twelvewin_prod?sslmode=require
+REDIS_URL=redis://:@127.0.0.1:6379/0
+SECRET_KEY=replace-with-a-long-random-secret
+SECURITY_PASSWORD_SALT=replace-with-another-long-random-secret
+APP_MAIL_SERVER=smtp.example.com
+APP_MAIL_PORT=465
+APP_MAIL_USE_TLS=false
+APP_MAIL_USE_SSL=true
+APP_MAIL_USERNAME=your-mail-user
+APP_MAIL_PASSWORD=your-mail-password
+APP_MAIL_DEFAULT_SENDER=no-reply@example.com
+PORT=8088
+```
+
+为了兼容历史部署，也可以继续创建或更新：
 
 ```text
 app/config/production.cfg
@@ -153,7 +171,7 @@ STRIPE_SECRET_KEY=
 STRIPE_PUBLISHABLE_KEY=
 ```
 
-然后在 `.env` 中设置：
+如果同时配置了环境变量和 `production.cfg`，环境变量优先生效。最小 `.env` 可设置：
 
 ```bash
 APP_SETTINGS=app.config.ProductionConfig
@@ -163,8 +181,8 @@ PORT=8088
 
 注意：
 
-- `ProductionConfig` 当前主要读取 `app/config/production.cfg`，不是读取 `DATABASE_URL`。
-- `production.cfg` 包含敏感信息，不应提交到 GitHub。若当前仓库已经跟踪该文件，生产环境应确认其中没有真实密钥泄露。
+- `ProductionConfig` 会优先读取环境变量；`production.cfg` 只是兼容历史部署。
+- `production.cfg` 包含敏感信息，不应提交真实密钥到 GitHub。若当前仓库已经跟踪该文件，生产环境应确认其中没有真实密钥泄露。
 - 当前 Redis 连接解析只处理普通 `redis://` 的 host、port、password、db；如果要使用 `rediss://` TLS Redis，需要先扩展 `app/redis_op.py`。
 
 ## 7. 准备数据目录

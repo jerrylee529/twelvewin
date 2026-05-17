@@ -49,6 +49,41 @@ def _get_bool_env_var(varname, default=None):
         return bool(value)
 
 
+def _load_config_file(config_path):
+    if not os.path.isfile(config_path):
+        return None
+
+    config = configparser.ConfigParser()
+    with open(config_path) as configfile:
+        config.read_file(configfile)
+    return config
+
+
+def _get_config_option(config, section, option, default=None):
+    if config is None or not config.has_option(section, option):
+        return default
+
+    return config.get(section, option)
+
+
+def _get_config_int(config, section, option, default=None):
+    if config is None or not config.has_option(section, option):
+        return default
+
+    return config.getint(section, option)
+
+
+def _get_config_bool(config, section, option, default=None):
+    if config is None or not config.has_option(section, option):
+        return default
+
+    return config.getboolean(section, option)
+
+
+def _get_env_or_config(env_name, config, section, option, default=None):
+    return os.environ.get(env_name) or _get_config_option(config, section, option, default)
+
+
 class BaseConfig(object):
     """Base configuration."""
 
@@ -121,43 +156,35 @@ class ProductionConfig(BaseConfig):
     DEBUG = False
     DEBUG_TB_ENABLED = False
 
-    SECRET_KEY = None
-    SECURITY_PASSWORD_SALT = None
-
-    STRIPE_SECRET_KEY = None
-    STRIPE_PUBLISHABLE_KEY = None
-
-    SQLALCHEMY_DATABASE_URI = None
-
-    # production config takes precedence over env variables
-
-    # production config file at ./project/config/production.cfg
+    # production config file at ./app/config/production.cfg
     config_path = os.path.join(basedir, 'config', 'production.cfg')
+    config = _load_config_file(config_path)
 
-    # if config file exists, read it:
-    if os.path.isfile(config_path):
-        config = configparser.ConfigParser()
+    SECRET_KEY = _get_env_or_config('SECRET_KEY', config, 'keys', 'SECRET_KEY')
+    SECURITY_PASSWORD_SALT = _get_env_or_config(
+        'SECURITY_PASSWORD_SALT',
+        config,
+        'keys',
+        'SECURITY_PASSWORD_SALT',
+        SECRET_KEY,
+    )
 
-        with open(config_path) as configfile:
-            config.read_file(configfile)
+    # mail settings
+    MAIL_SERVER = _get_env_or_config('APP_MAIL_SERVER', config, 'mail', 'MAIL_SERVER', BaseConfig.MAIL_SERVER)
+    MAIL_PORT = int(os.environ.get('APP_MAIL_PORT') or _get_config_int(config, 'mail', 'MAIL_PORT', BaseConfig.MAIL_PORT))
+    MAIL_USE_TLS = _get_bool_env_var('APP_MAIL_USE_TLS', _get_config_bool(config, 'mail', 'MAIL_USE_TLS', BaseConfig.MAIL_USE_TLS))
+    MAIL_USE_SSL = _get_bool_env_var('APP_MAIL_USE_SSL', _get_config_bool(config, 'mail', 'MAIL_USE_SSL', BaseConfig.MAIL_USE_SSL))
 
-        SECRET_KEY = config.get('keys', 'SECRET_KEY')
-        SECURITY_PASSWORD_SALT = config.get('keys', 'SECRET_KEY')
+    # mail authentication and sender
+    MAIL_USERNAME = _get_env_or_config('APP_MAIL_USERNAME', config, 'mail', 'MAIL_USERNAME')
+    MAIL_PASSWORD = _get_env_or_config('APP_MAIL_PASSWORD', config, 'mail', 'MAIL_PASSWORD')
+    MAIL_DEFAULT_SENDER = _get_env_or_config('APP_MAIL_DEFAULT_SENDER', config, 'mail', 'MAIL_DEFAULT_SENDER', BaseConfig.MAIL_DEFAULT_SENDER)
 
-        # mail settings
-        MAIL_SERVER = config.get('mail', 'MAIL_SERVER')
-        MAIL_PORT = config.getint('mail', 'MAIL_PORT')
-        MAIL_USE_TLS = config.getboolean('mail', 'MAIL_USE_TLS')
-        MAIL_USE_SSL = config.getboolean('mail', 'MAIL_USE_SSL')
+    # database URI
+    SQLALCHEMY_DATABASE_URI = _normalize_database_url(
+        os.environ.get('DATABASE_URL') or _get_config_option(config, 'db', 'SQLALCHEMY_DATABASE_URI')
+    )
 
-        # mail authentication and sender
-        MAIL_USERNAME = config.get('mail', 'MAIL_USERNAME')
-        MAIL_PASSWORD = config.get('mail', 'MAIL_PASSWORD')
-        MAIL_DEFAULT_SENDER = config.get('mail', 'MAIL_DEFAULT_SENDER')
-
-        # database URI
-        SQLALCHEMY_DATABASE_URI = config.get('db', 'SQLALCHEMY_DATABASE_URI')
-
-        # stripe keys
-        STRIPE_SECRET_KEY = config.get('stripe', 'STRIPE_SECRET_KEY')
-        STRIPE_PUBLISHABLE_KEY = config.get('stripe', 'STRIPE_PUBLISHABLE_KEY')
+    # stripe keys
+    STRIPE_SECRET_KEY = _get_env_or_config('STRIPE_SECRET_KEY', config, 'stripe', 'STRIPE_SECRET_KEY')
+    STRIPE_PUBLISHABLE_KEY = _get_env_or_config('STRIPE_PUBLISHABLE_KEY', config, 'stripe', 'STRIPE_PUBLISHABLE_KEY')
