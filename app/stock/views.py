@@ -3,15 +3,12 @@
 
 from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
-import csv
-import os
-import time
-import json
 from app import db
 from app.models import SelfSelectedStock
 from app.decorators import check_confirmed
 from app import analyzer
 from app.util import model_to_json
+from app.services.csv_store import read_rows
 
 stock_blueprint = Blueprint('stock', __name__,)
 
@@ -43,23 +40,19 @@ def get_stock_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
+    max_rows = 20 if current_user.is_anonymous else None
+    result = read_rows(
+        current_app.config['RESULT_PATH'],
+        csv_filename,
+        add_id=True,
+        add_update_time=True,
+        max_rows=max_rows,
+    )
 
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
-    #print time.strftime("%Y-%m-%d", filemt)
+    if result.error:
+        current_app.logger.warning("Could not read stock ranking CSV %s: %s", result.path, result.error)
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
-
-    index = 1
-    for row in csv.DictReader(csvFile):
-        row['id'] = index
-        row['updateTime'] = time.strftime("%Y-%m-%d", filemt)
-        index += 1
-        data.append(row)
-
-        if current_user.is_anonymous and index > 20:
-            break
+    data = result.rows
 
     #return jsonify({'total': len(data), 'rows': data[int(offset):(int(offset) + int(limit))]})
     return jsonify({'total': len(data), 'rows': data})
@@ -104,15 +97,12 @@ def get_history_quotation(code):
     print("get_history_quotation: " + code)
     data = []
 
-    pic_path = current_app.config['DAY_FILE_PATH'] + '/' + code + '.csv'
+    result = read_rows(current_app.config['DAY_FILE_PATH'], code + '.csv')
 
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
-    #print time.strftime("%Y-%m-%d", filemt)
+    if result.error:
+        current_app.logger.warning("Could not read day quotation CSV %s: %s", result.path, result.error)
 
-    # 读取csv至字典
-    csv_file = open(pic_path, "r")
-
-    for row in csv.DictReader(csv_file):
+    for row in result.rows:
         item = []
         item.append(row['date'])
         try:
@@ -142,7 +132,7 @@ def get_history_quotation(code):
 
     #del data[:-100]
 
-    return jsonify({'rows': data, 'updateTime': time.strftime("%Y-%m-%d", filemt)})
+    return jsonify({'rows': data, 'updateTime': result.update_time})
 
 
 # 增加自选股

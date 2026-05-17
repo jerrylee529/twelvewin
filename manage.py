@@ -11,7 +11,7 @@ from app.models import User
 
 def run_tests():
     """Runs the unit tests without coverage."""
-    tests = unittest.TestLoader().discover('tests')
+    tests = unittest.TestLoader().discover(start_dir='tests', pattern='test*.py')
     result = unittest.TextTestRunner(verbosity=2).run(tests)
     return 0 if result.wasSuccessful() else 1
 

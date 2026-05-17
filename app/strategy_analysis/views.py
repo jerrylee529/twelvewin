@@ -3,7 +3,7 @@
 
 from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
-import csv
+from app.services.csv_store import read_rows
 
 strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)
 
@@ -35,16 +35,12 @@ def get_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
+    result = read_rows(current_app.config['RESULT_PATH'], csv_filename, add_id=True)
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
+    if result.error:
+        current_app.logger.warning("Could not read strategy analysis CSV %s: %s", result.path, result.error)
 
-    index = 1
-    for row in csv.DictReader(csvFile):
-        row['id'] = index
-        index += 1
-        data.append(row)
+    data = result.rows
 
     #return jsonify({'total': len(data), 'rows': data[int(offset):(int(offset) + int(limit))]})
     return jsonify({'total': len(data), 'rows': data})

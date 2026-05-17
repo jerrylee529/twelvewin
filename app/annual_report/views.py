@@ -3,14 +3,12 @@
 
 from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
-import csv
-import os
-import time
 import json
 from app import db
 from app.models import SelfSelectedStock
 from app.decorators import check_confirmed
 from app.util import model_to_json
+from app.services.csv_store import convert_fields, read_rows
 
 annual_report_blueprint = Blueprint('annual_report', __name__,)
 
@@ -31,23 +29,20 @@ def get_stock_report(year, amporchange, highorlow):
 
     data = []
 
-    pic_path = current_app.config['RESULT_PATH'] + '/' + "annual_technique_report_" + year + ".csv"
-
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
-    #print time.strftime("%Y-%m-%d", filemt)
-
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
-
     field_types = [('change_rate', float), ('amplitude', float)]
 
-    index = 1
-    for row in csv.DictReader(csvFile):
-        row['id'] = index
-        row['updateTime'] = time.strftime("%Y-%m-%d", filemt)
-        row.update((key, conversion(row[key])) for key, conversion in field_types)
-        index += 1
-        data.append(row)
+    result = read_rows(
+        current_app.config['RESULT_PATH'],
+        "annual_technique_report_" + year + ".csv",
+        add_id=True,
+        add_update_time=True,
+        row_transform=lambda row: convert_fields(row, field_types),
+    )
+
+    if result.error:
+        current_app.logger.warning("Could not read annual stock report CSV %s: %s", result.path, result.error)
+
+    data = result.rows
 
     if int(amporchange) == 0:
         field = 'change_rate'
@@ -70,23 +65,20 @@ def get_industry_report(year, amporchange, highorlow):
 
     data = []
 
-    pic_path = current_app.config['RESULT_PATH'] + '/' + "annual_industry_report_" + year + ".csv"
-
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
-    #print time.strftime("%Y-%m-%d", filemt)
-
     field_types = [('avg_change_rate', float), ('avg_amplitude', float)]
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
+    result = read_rows(
+        current_app.config['RESULT_PATH'],
+        "annual_industry_report_" + year + ".csv",
+        add_id=True,
+        add_update_time=True,
+        row_transform=lambda row: convert_fields(row, field_types),
+    )
 
-    index = 1
-    for row in csv.DictReader(csvFile):
-        row['id'] = index
-        row['updateTime'] = time.strftime("%Y-%m-%d", filemt)
-        index += 1
-        row.update((key, conversion(row[key])) for key, conversion in field_types)
-        data.append(row)
+    if result.error:
+        current_app.logger.warning("Could not read annual industry report CSV %s: %s", result.path, result.error)
+
+    data = result.rows
 
     if int(amporchange) == 0:
         field = 'avg_change_rate'

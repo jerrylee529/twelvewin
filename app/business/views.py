@@ -2,12 +2,12 @@
 
 
 from flask import jsonify, request, render_template, Blueprint
-import csv
 import json
 from app.models import StockLabels
 from app import db
 from flask_login import login_required
 from flask import current_app
+from app.services.csv_store import read_rows
 
 business_blueprint = Blueprint('business', __name__)
 
@@ -23,12 +23,12 @@ class LabelResult:
 
 # 处理精选排行
 def handle_business(labels):
-    pic_path = current_app.config['RESULT_PATH'] + '/stock_business.csv'
+    result = read_rows(current_app.config['RESULT_PATH'], 'stock_business.csv')
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
+    if result.error:
+        current_app.logger.warning("Could not read business CSV %s: %s", result.path, result.error)
 
-    stockdata = csv.DictReader(csvFile)
+    stockdata = result.rows
 
     labelset = labels.split()
 
@@ -64,12 +64,12 @@ def handle_business(labels):
 
 # 获取精选排行数据
 def create_business_data(labels):
-    pic_path = current_app.config['RESULT_PATH'] + '/stock_business.csv'
+    result = read_rows(current_app.config['RESULT_PATH'], 'stock_business.csv')
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
+    if result.error:
+        current_app.logger.warning("Could not read business CSV %s: %s", result.path, result.error)
 
-    stockdata = csv.DictReader(csvFile)
+    stockdata = result.rows
 
     labelset = labels.split()
 
@@ -123,4 +123,3 @@ def get_business_data():
     data = create_business_data(labels)
     # return jsonify({'total': len(data), 'rows': data[int(offset):(int(offset) + int(limit))]})
     return jsonify({'total': len(data), 'rows': data})
-

@@ -8,3 +8,5 @@
 访问网站: twelvewin.win
 
 部署说明见 [DEPLOYMENT.md](DEPLOYMENT.md)，当前推荐以 Python 3.12 和 `requirements-local.txt` 作为 Web 应用部署基线。
+
+架构说明见 [ARCHITECTURE.md](ARCHITECTURE.md)，优化路线图见 [ROADMAP.md](ROADMAP.md)。

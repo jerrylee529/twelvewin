@@ -3,12 +3,11 @@
 
 from flask import request, jsonify, Blueprint, render_template, flash, current_app
 from flask_login import current_user
-import csv
 import os
-import time
 import datetime
 from flask_login import login_required
 from app.decorators import check_confirmed
+from app.services.csv_store import read_rows
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -40,22 +39,19 @@ def get_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    pic_path = current_app.config['RESULT_PATH'] + '/' + csv_filename
+    max_rows = 10 if current_user.is_anonymous else None
+    result = read_rows(
+        current_app.config['RESULT_PATH'],
+        csv_filename,
+        add_id=True,
+        add_update_time=True,
+        max_rows=max_rows,
+    )
 
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
+    if result.error:
+        current_app.logger.warning("Could not read technical analysis CSV %s: %s", result.path, result.error)
 
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
-
-    index = 1
-    for row in csv.DictReader(csvFile):
-        row['id']= index
-        row['updateTime'] = time.strftime("%Y-%m-%d", filemt)
-        index += 1
-        data.append(row)
-
-        if current_user.is_anonymous and index > 10:
-            break
+    data = result.rows
 
     #return jsonify({'total': len(data), 'rows': data[int(offset):(int(offset) + int(limit))]})
     return jsonify({'total': len(data), 'rows': data})
@@ -117,20 +113,18 @@ def get_filter_data():
 
     data = []
 
-    pic_path = current_app.config['RESULT_PATH'] + '/price_change.csv'
+    result = read_rows(current_app.config['RESULT_PATH'], 'price_change.csv')
 
-    filemt = time.localtime(os.stat(pic_path).st_mtime)
-
-    # 读取csv至字典
-    csvFile = open(pic_path, "r")
+    if result.error:
+        current_app.logger.warning("Could not read price change CSV %s: %s", result.path, result.error)
 
     index = 1
-    for row in csv.DictReader(csvFile):
+    for row in result.rows:
         rate = float(row['rate'+str(period)])
         if (rate > -9999) and (rate >= float(low)) and (rate <= float(high)):
             row['id'] = index
             row['rate'] = rate
-            row['updateTime'] = time.strftime("%Y-%m-%d", filemt)
+            row['updateTime'] = result.update_time
             index += 1
             data.append(row)
 
