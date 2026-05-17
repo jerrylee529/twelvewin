@@ -7,7 +7,7 @@ from app.models import StockLabels
 from app import db
 from flask_login import login_required
 from flask import current_app
-from app.services.csv_store import read_rows
+from app.services.business_service import get_business_rows
 
 business_blueprint = Blueprint('business', __name__)
 
@@ -23,90 +23,41 @@ class LabelResult:
 
 # 处理精选排行
 def handle_business(labels):
-    result = read_rows(current_app.config['RESULT_PATH'], 'stock_business.csv')
+    result = get_business_rows(
+        current_app.config,
+        labels,
+        label_lookup=_get_stock_labels,
+        add_id=False,
+    )
 
     if result.error:
         current_app.logger.warning("Could not read business CSV %s: %s", result.path, result.error)
 
-    stockdata = result.rows
-
-    labelset = labels.split()
-
-    resultList = []
-
-    # 不需要过滤
-    if len(labelset) <= 0:
-        for item in stockdata:
-            stockLabels = db.session.query(StockLabels).filter_by(code=item['code']).first()
-
-            if stockLabels is not None:
-                item['labels'] = stockLabels.labels
-
-            resultList.append(item)
-
-    else:
-        for item in stockdata:
-            stockLabels = db.session.query(StockLabels).filter_by(code=item['code']).first()
-
-            if stockLabels is None:
-                continue
-
-            item['labels'] = stockLabels.labels
-
-            combineset = list(set(stockLabels.labels.split()).intersection(set(labelset)))
-            if combineset is not None and len(combineset) > 0:
-                resultList.append(item)
-
     template_filename = "business.html"
 
-    return render_template(template_filename, title='精选股票', stockdata=resultList)
+    return render_template(template_filename, title='精选股票', stockdata=result.rows)
+
+
+def _get_stock_labels(code):
+    stock_labels = db.session.query(StockLabels).filter_by(code=code).first()
+    if stock_labels is None:
+        return None
+    return stock_labels.labels
 
 
 # 获取精选排行数据
 def create_business_data(labels):
-    result = read_rows(current_app.config['RESULT_PATH'], 'stock_business.csv')
+    result = get_business_rows(
+        current_app.config,
+        labels,
+        label_lookup=_get_stock_labels,
+        add_id=True,
+    )
 
     if result.error:
         current_app.logger.warning("Could not read business CSV %s: %s", result.path, result.error)
 
-    stockdata = result.rows
-
-    labelset = labels.split()
-
-    resultList = []
-
-    index = 1
-
-    # 不需要过滤
-    if len(labelset) <= 0:
-        for item in stockdata:
-            stockLabels = db.session.query(StockLabels).filter_by(code=item['code']).first()
-
-            if stockLabels is not None:
-                item['labels'] = stockLabels.labels
-
-            item['id'] = index
-
-            index += 1
-
-            resultList.append(item)
-
-    else:
-        for item in stockdata:
-            stockLabels = db.session.query(StockLabels).filter_by(code=item['code']).first()
-
-            if stockLabels is None:
-                continue
-
-            item['labels'] = stockLabels.labels
-
-            combineset = list(set(stockLabels.labels.split()).intersection(set(labelset)))
-            if combineset is not None and len(combineset) > 0:
-                item['id'] = index
-                index += 1
-                resultList.append(item)
-
-    return resultList
+    return result.rows
 
 
 # 处理精选排行的ajax数据请求

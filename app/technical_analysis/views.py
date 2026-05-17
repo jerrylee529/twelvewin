@@ -7,7 +7,7 @@ import os
 import datetime
 from flask_login import login_required
 from app.decorators import check_confirmed
-from app.services.csv_store import read_rows
+from app.services.technical_analysis_service import get_price_change_rows, get_technical_rows
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -24,29 +24,7 @@ def get_data(path):
     limit = info.get('limit',10)  # 每页显示的条数
     offset = info.get('offset',0)  # 分片数，(页码-1)*limit，它表示一段数据的起点
 
-    data = []
-
-    if path == 'highest':
-        csv_filename = "highest_in_history.csv"
-    elif path == 'lowest':
-        csv_filename = "lowest_in_history.csv"
-    elif path == 'ma_long':
-        csv_filename = "ma_long.csv"
-    elif path == 'break_ma':
-        csv_filename = "break_ma.csv"
-    elif path == 'above_ma':
-        csv_filename = "above_ma.csv"
-    else:
-        return jsonify({'total': len(data), 'rows': data})
-
-    max_rows = 10 if current_user.is_anonymous else None
-    result = read_rows(
-        current_app.config['RESULT_PATH'],
-        csv_filename,
-        add_id=True,
-        add_update_time=True,
-        max_rows=max_rows,
-    )
+    result = get_technical_rows(current_app.config, path, is_anonymous=current_user.is_anonymous)
 
     if result.error:
         current_app.logger.warning("Could not read technical analysis CSV %s: %s", result.path, result.error)
@@ -95,37 +73,20 @@ def get_filter_data():
 
     print(info)
 
-    PERIODS = {u'近一周': 7, u'近一月': 30, u'近三月': 30*3, u'近半年': 30*6, u'近一年': 30*12}
-
     begin_date = request.values.get('begin_date', '2018-01-01')
     end_date = request.values.get('end_date', '2018-12-01')
 
-    days = "".join(request.values.get('days', u'近一周').split())
-    if days is None or len(days) <= 0:
-        days = u'近一周'
-
-    period = PERIODS.get(days, 7)
-
+    days = request.values.get('days', u'近一周')
     low = request.values.get('low', -30)
     high = request.values.get('high', 0)
 
     print("begin date: {}, end date: {}, days: {}, low: {}, high: {}".format(begin_date, end_date, days, low, high))
 
-    data = []
-
-    result = read_rows(current_app.config['RESULT_PATH'], 'price_change.csv')
+    result = get_price_change_rows(current_app.config, days=days, low=low, high=high)
 
     if result.error:
         current_app.logger.warning("Could not read price change CSV %s: %s", result.path, result.error)
 
-    index = 1
-    for row in result.rows:
-        rate = float(row['rate'+str(period)])
-        if (rate > -9999) and (rate >= float(low)) and (rate <= float(high)):
-            row['id'] = index
-            row['rate'] = rate
-            row['updateTime'] = result.update_time
-            index += 1
-            data.append(row)
+    data = result.rows
 
     return jsonify({'total': len(data), 'rows': data})
