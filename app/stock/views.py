@@ -8,7 +8,8 @@ from app.models import SelfSelectedStock
 from app.decorators import check_confirmed
 from app import analyzer
 from app.util import model_to_json
-from app.services.csv_store import read_rows
+from app.services.market_data_service import get_candlestick_data
+from app.services.ranking_service import get_stock_ranking
 
 stock_blueprint = Blueprint('stock', __name__,)
 
@@ -26,28 +27,17 @@ def get_stock_data(path):
     data = []
 
     if (path == 'pe'):
-        csv_filename = "stock_pe.csv"
         title = "市盈率排名"
     elif (path == 'pb'):
-        csv_filename = "stock_pb.csv"
         title = "市净率排名"
     elif (path == 'roe'):
-        csv_filename = "stock_roe.csv"
         title = "净资产收益率排名"
     elif (path == 'divi'):
-        csv_filename = "stock_dividence.csv"
         title = "股息率排名"
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    max_rows = 20 if current_user.is_anonymous else None
-    result = read_rows(
-        current_app.config['RESULT_PATH'],
-        csv_filename,
-        add_id=True,
-        add_update_time=True,
-        max_rows=max_rows,
-    )
+    result = get_stock_ranking(current_app.config, path, is_anonymous=current_user.is_anonymous)
 
     if result.error:
         current_app.logger.warning("Could not read stock ranking CSV %s: %s", result.path, result.error)
@@ -97,38 +87,12 @@ def get_history_quotation(code):
     print("get_history_quotation: " + code)
     data = []
 
-    result = read_rows(current_app.config['DAY_FILE_PATH'], code + '.csv')
+    result = get_candlestick_data(current_app.config, code, quote_provider=analyzer.get_quotation)
 
     if result.error:
         current_app.logger.warning("Could not read day quotation CSV %s: %s", result.path, result.error)
 
-    for row in result.rows:
-        item = []
-        item.append(row['date'])
-        try:
-            item.append(float(row['open']))
-            item.append(float(row['close']))
-            item.append(float(row['low']))
-            item.append(float(row['high']))
-        except ValueError:
-            continue
-        data.append(item)
-
-    quot = analyzer.get_quotation(code)
-
-    if quot:
-        d = quot['update_time'].split()[0]
-
-        # 如果当天的k先不存在，则取实时行情补上
-        if len(data) > 0 and data[len(data)-1][0] != d:
-            last_item = []
-            last_item.append(d)
-            last_item.append(float(quot['open']))
-            last_item.append(float(quot['trade']))
-            last_item.append(float(quot['low']))
-            last_item.append(float(quot['high']))
-
-            data.append(last_item)
+    data = result.rows
 
     #del data[:-100]
 

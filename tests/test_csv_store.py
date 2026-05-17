@@ -45,6 +45,13 @@ class CsvStoreTestCase(unittest.TestCase):
             with self.assertRaises(ValueError):
                 resolve_under_base(tmpdir, "../outside.csv")
 
+    def test_read_rows_rejects_path_traversal_as_empty_result(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = read_rows(tmpdir, "../outside.csv")
+
+            self.assertEqual([], result.rows)
+            self.assertIn("outside configured data directory", result.error)
+
     def test_convert_fields_skips_missing_and_empty_values(self):
         row = {"rate": "1.25", "empty": ""}
 

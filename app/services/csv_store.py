@@ -55,7 +55,10 @@ def read_rows(
     Missing files return an empty result instead of raising, which lets routes
     keep their response shape while surfacing data availability through logs.
     """
-    path = resolve_under_base(base_dir, filename)
+    try:
+        path = resolve_under_base(base_dir, filename)
+    except ValueError as exc:
+        return CsvReadResult(rows=[], path="", error=str(exc))
 
     if not os.path.exists(path):
         return CsvReadResult(rows=[], path=path, missing=True, error="file not found")
