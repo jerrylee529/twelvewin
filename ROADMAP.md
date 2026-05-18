@@ -141,11 +141,12 @@
 - 已加入 Flask-Migrate/Alembic 迁移脚手架。
 - Web app 已可选初始化 `Migrate(app, db)`；未安装迁移依赖时仍可启动。
 - `requirements-local.txt` 已加入迁移依赖范围。
-- 还没有生成生产可用的初始 revision，原因是需要先和实际数据库 schema 做 diff。
+- 已生成初始 baseline revision：`migrations/versions/33e7716425a6_baseline_schema.py`。
+- 为迁移命令增加了 `TWELVEWIN_DISABLE_ANALYZER=1` 开关，避免 Alembic 运行时触发 Analyzer 查询业务表。
 
 建议任务：
 
-- 基于真实 Neon/Postgres 数据库生成初始 migration baseline。
+- 首次应用到真实 Neon/Postgres 数据库前，先备份并确认 baseline 与线上表结构一致。
 - 将 `analysis/models.py` 逐步改为复用 `app.models` 或共享模型包。
 - 删除重复模型定义前，确认所有分析脚本仍可运行。
 - 为重要表补索引和唯一约束。

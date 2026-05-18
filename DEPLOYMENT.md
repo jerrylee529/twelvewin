@@ -272,22 +272,22 @@ password: admin
 
 ### 9.2 正式迁移流程
 
-项目已预置 Flask-Migrate/Alembic 脚手架。安装 `requirements-local.txt` 后可以使用：
+项目已预置 Flask-Migrate/Alembic 脚手架和初始 baseline revision。安装 `requirements-local.txt` 后可以使用：
 
 ```bash
 set -a
 . ./.env
 set +a
 export FLASK_APP=manage.py
-flask db migrate -m "describe schema change"
-flask db upgrade
+TWELVEWIN_DISABLE_ANALYZER=1 flask db migrate -m "describe schema change"
+TWELVEWIN_DISABLE_ANALYZER=1 flask db upgrade
 ```
 
 注意：
 
 - `create_db` 只适合全新数据库初始化，不负责生产 schema 演进。
 - 已有数据库应优先使用 `flask db upgrade`。
-- 第一次对已有生产库启用迁移前，先备份数据库，并确认 Alembic baseline 与线上表结构一致。
+- 第一次对已有生产库启用迁移前，先备份数据库，并确认 `migrations/versions/33e7716425a6_baseline_schema.py` 与线上表结构一致。
 - 如果目标数据库已有旧表且没有 migration 记录，不要直接自动生成并执行破坏性 migration。
 
 ## 10. 本机启动验证
@@ -410,7 +410,7 @@ set -a
 . ./.env
 set +a
 export FLASK_APP=manage.py
-flask db upgrade
+TWELVEWIN_DISABLE_ANALYZER=1 flask db upgrade
 sudo systemctl restart twelvewin
 sudo systemctl status twelvewin
 ```

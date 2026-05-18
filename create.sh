@@ -7,4 +7,4 @@ PYTHON="${PYTHON:-./.venv312/bin/python}"
 FLASK="${FLASK:-./.venv312/bin/flask}"
 
 "$PYTHON" manage.py create_db
-"$FLASK" db upgrade
+TWELVEWIN_DISABLE_ANALYZER=1 "$FLASK" db upgrade

@@ -128,13 +128,16 @@ class NullAnalyzer(object):
         return None
 
 
-try:
-    from app.analyzer import Analyzer
-    with app.app_context():
-        analyzer = Analyzer(app, db)
-except Exception as exc:
-    app.logger.warning("Analyzer disabled in local runtime: %r", exc)
+if os.environ.get('TWELVEWIN_DISABLE_ANALYZER') == '1':
     analyzer = NullAnalyzer()
+else:
+    try:
+        from app.analyzer import Analyzer
+        with app.app_context():
+            analyzer = Analyzer(app, db)
+    except Exception as exc:
+        app.logger.warning("Analyzer disabled in local runtime: %r", exc)
+        analyzer = NullAnalyzer()
 
 ####################
 #### blueprints ####
