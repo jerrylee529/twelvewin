@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
-python manage.py create_db
-python manage.py db init
-python manage.py db migrate
+set -euo pipefail
+
+export FLASK_APP="${FLASK_APP:-manage.py}"
+PYTHON="${PYTHON:-./.venv312/bin/python}"
+FLASK="${FLASK:-./.venv312/bin/flask}"
+
+"$PYTHON" manage.py create_db
+"$FLASK" db upgrade

@@ -1,0 +1,9 @@
+Alembic migration environment for twelvewin.
+
+Use Flask-Migrate with the Python 3.12 environment:
+
+    export FLASK_APP=manage.py
+    flask db migrate -m "describe schema change"
+    flask db upgrade
+
+The initial baseline revision captures the current SQLAlchemy metadata.

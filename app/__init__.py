@@ -17,6 +17,11 @@ from flask_bootstrap import Bootstrap
 from app.redis_op import RedisOP
 import logging
 
+try:
+    from flask_migrate import Migrate
+except ImportError:
+    Migrate = None
+
 
 
 ################
@@ -86,6 +91,7 @@ mail = Mail(app)
 toolbar = DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
+migrate = Migrate(app, db) if Migrate is not None else None
 
 class NullAnalyzer(object):
     def __init__(self):

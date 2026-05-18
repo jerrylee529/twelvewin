@@ -82,7 +82,7 @@ Web 入口：
 - Web 应用使用 Flask-SQLAlchemy。
 - `analysis/models.py` 另起一个独立 SQLAlchemy Base 和 Session。
 - 两套模型定义有重复，存在 schema 漂移风险。
-- 当前没有可靠的 Alembic 迁移流程；`manage.py create_db` 只适合初始化，不适合生产迁移。
+- 已加入 Flask-Migrate/Alembic 脚手架；`manage.py create_db` 只适合初始化，生产 schema 演进应使用 migration。
 
 ### 3.2 CSV 文件
 

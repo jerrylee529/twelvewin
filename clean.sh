@@ -13,6 +13,5 @@ function clean_env() {
 
 clean_env
 
-rm -rf migrations
 rm -rf tmp
 rm -f project/dev.sqlite

@@ -136,10 +136,16 @@
 
 目标：建立长期可维护的数据库 schema 管理。
 
+当前进展：
+
+- 已加入 Flask-Migrate/Alembic 迁移脚手架。
+- Web app 已可选初始化 `Migrate(app, db)`；未安装迁移依赖时仍可启动。
+- `requirements-local.txt` 已加入迁移依赖范围。
+- 还没有生成生产可用的初始 revision，原因是需要先和实际数据库 schema 做 diff。
+
 建议任务：
 
-- 引入 Flask-Migrate/Alembic 的现代版本。
-- 生成初始 migration baseline。
+- 基于真实 Neon/Postgres 数据库生成初始 migration baseline。
 - 将 `analysis/models.py` 逐步改为复用 `app.models` 或共享模型包。
 - 删除重复模型定义前，确认所有分析脚本仍可运行。
 - 为重要表补索引和唯一约束。

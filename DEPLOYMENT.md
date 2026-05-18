@@ -237,9 +237,13 @@ PONG
 REDIS_URL=redis://:PASSWORD@REDIS_HOST:6379/0
 ```
 
-## 9. 初始化数据库表
+## 9. 初始化或迁移数据库表
 
 确认 `.env` 或 `production.cfg` 已经指向目标 PostgreSQL 数据库后执行：
+
+### 9.1 新项目快速初始化
+
+如果是全新数据库，可以用当前 SQLAlchemy 模型直接建表：
 
 ```bash
 set -a
@@ -266,11 +270,25 @@ password: admin
 
 上线前应立即修改默认密码，或改造 `create_admin()` 让账号和密码来自环境变量。
 
-重要限制：
+### 9.2 正式迁移流程
 
-- 当前项目没有可靠的 Alembic 迁移流程。
-- `create_db` 只会根据当前 SQLAlchemy model 创建表，不负责迁移已有表结构。
-- 如果目标数据库已有旧表，先备份，再决定是否手动迁移或重建。
+项目已预置 Flask-Migrate/Alembic 脚手架。安装 `requirements-local.txt` 后可以使用：
+
+```bash
+set -a
+. ./.env
+set +a
+export FLASK_APP=manage.py
+flask db migrate -m "describe schema change"
+flask db upgrade
+```
+
+注意：
+
+- `create_db` 只适合全新数据库初始化，不负责生产 schema 演进。
+- 已有数据库应优先使用 `flask db upgrade`。
+- 第一次对已有生产库启用迁移前，先备份数据库，并确认 Alembic baseline 与线上表结构一致。
+- 如果目标数据库已有旧表且没有 migration 记录，不要直接自动生成并执行破坏性 migration。
 
 ## 10. 本机启动验证
 
@@ -391,7 +409,8 @@ git pull
 set -a
 . ./.env
 set +a
-./.venv312/bin/python manage.py create_db
+export FLASK_APP=manage.py
+flask db upgrade
 sudo systemctl restart twelvewin
 sudo systemctl status twelvewin
 ```
@@ -467,7 +486,7 @@ REDIS_URL=redis://:PASSWORD@HOST:6379/0
 - PostgreSQL/Neon 连接串使用 `postgresql+psycopg://`。
 - Redis 可连接。
 - `local_data/day_data`、`local_data/results`、`local_data/index_data` 已创建。
-- 已执行 `manage.py create_db`。
+- 全新数据库已执行 `manage.py create_db`，或已有数据库已执行 `flask db upgrade`。
 - 默认管理员密码已修改。
 - `curl -I http://127.0.0.1:8088/` 返回可接受结果。
 - 如果对公网开放，已配置 Nginx、HTTPS 和进程守护。
