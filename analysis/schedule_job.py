@@ -1,63 +1,31 @@
 # coding=utf8
 
-"""单次执行的日终分析任务编排器。
+"""日终分析任务编排器（兼容入口）。
 
-job() 从 SERVICE_SETTINGS 环境变量读取服务配置，依次更新股票代码、下载日线历史数据、
-生成历史新高/新低、均线多头、突破均线、年线以上等技术分析结果，并运行 PEMAStrategy
-输出买入/卖出列表。
+新代码请使用 ``python -m jobs.run daily_pipeline`` 或 ``manage.py run_job daily_pipeline``。
 """
 
-__author__ = 'Administrator'
-
 from datetime import datetime
-from history_data_service import HistoryDataService
-from technical_analysis_service import highest_in_history, ma_long_history, above_ma, break_ma, lowest_in_history
-from instruments import get_instrument_list
 import logging
 import os
 import sys
-sys.path.append("..")
-from utils.util import string_to_obj
-from strategy_test import PEMAStrategy
+
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
+
+logger = logging.getLogger(__name__)
 
 
-# 输出时间
 def job():
-    #print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    from jobs.daily_pipeline import run_daily_pipeline
 
-    service_config = string_to_obj(os.environ['SERVICE_SETTINGS'])
+    logger.info("starting daily pipeline at %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    return run_daily_pipeline()
 
-    get_instrument_list(service_config)
-
-    print "start downloading history data, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    history_data_service = HistoryDataService(instrument_filename=service_config.INSTRUMENT_FILENAME,
-                                              day_file_path=service_config.DAY_FILE_PATH)
-    history_data_service.run()
-
-    print "compute equities that price is highest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    highest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-                       result_file_path=service_config.RESULT_PATH)
-
-    print "compute equities that price is lowest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    lowest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH, result_file_path=service_config.RESULT_PATH)
-
-    print "compute equities that ma is long, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    ma_long_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-                    result_file_path=service_config.RESULT_PATH, ma1=5, ma2=10, ma3=20)
-
-    print "compute equities that break ma, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    break_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-             result_file_path=service_config.RESULT_PATH, ma1=20)
-
-    print "compute equities that above ma, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    above_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-             result_file_path=service_config.RESULT_PATH, ma1=250)
-
-    strategy = PEMAStrategy(service_config.DAY_FILE_PATH)
-
-    buy_list, sell_list = strategy.run()
-
-    print buy_list, sell_list
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     job()

@@ -15,8 +15,26 @@ import os
 import time
 from price_change_analysis import compute_all_instruments, PriceChangePeriod, compute_all_instruments_amplitude
 
+from csv_output import atomic_export_pair
+
 # 设置精度
 pd.set_option('precision', 2)
+
+SCREEN_RESULT_COLUMNS = ('code', 'name', 'close')
+
+
+def _write_screen_results(instruments, result_file_path, basename):
+    instruments = instruments.copy()
+    instruments['close'] = instruments['close'].astype('float64')
+    return atomic_export_pair(
+        instruments,
+        result_file_path,
+        basename,
+        date_suffix=date.today().strftime("%Y-%m-%d"),
+        required_columns=SCREEN_RESULT_COLUMNS,
+        index=False,
+        float_format='%.2f',
+    )
 
 
 # 技术分析基类
@@ -89,18 +107,7 @@ def highest_in_history(instrument_filename, day_file_path, result_file_path):
     instruments = instruments.dropna(axis=0, subset=['close'])
 
     if not instruments.empty:
-        today = date.today().strftime("%Y-%m-%d")
-
-        filename = "%s/highest_in_history_%s.csv" % (result_file_path, today)
-
-        # 这里close字段的类型是object，需要转换为float64
-        instruments['close'] = instruments['close'].astype('float64')
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
-
-        filename = "%s/highest_in_history.csv" % (result_file_path,)
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
+        _write_screen_results(instruments, result_file_path, 'highest_in_history')
     else:
         print("No qualified data")
 
@@ -145,18 +152,7 @@ def lowest_in_history(instrument_filename, day_file_path, result_file_path):
     instruments = instruments.dropna(axis=0, subset=['close'])
 
     if not instruments.empty:
-        today = date.today().strftime("%Y-%m-%d")
-
-        filename = "%s/lowest_in_history_%s.csv" % (result_file_path, today)
-
-        # 这里close字段的类型是object，需要转换为float64
-        instruments['close'] = instruments['close'].astype('float64')
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
-
-        filename = "%s/lowest_in_history.csv" % (result_file_path,)
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
+        _write_screen_results(instruments, result_file_path, 'lowest_in_history')
     else:
         print("No qualified data")
 
@@ -205,18 +201,7 @@ def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, m
     instruments = instruments.dropna(axis=0, subset=['close'])
 
     if not instruments.empty:
-        today = date.today().strftime("%Y-%m-%d")
-
-        filename = "%s/ma_long_%s.csv" % (result_file_path, today)
-
-        # 这里close字段的类型是object，需要转换为float64
-        instruments['close'] = instruments['close'].astype('float64')
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
-
-        filename = "%s/ma_long.csv" % (result_file_path,)
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
+        _write_screen_results(instruments, result_file_path, 'ma_long')
     else:
         print("No qualified data")
 
@@ -264,18 +249,7 @@ def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
     instruments = instruments.dropna(axis=0, subset=['close'])
 
     if not instruments.empty:
-        today = date.today().strftime("%Y-%m-%d")
-
-        filename = "%s/break_ma_%s.csv" % (result_file_path, today)
-
-        # 这里close字段的类型是object，需要转换为float64
-        instruments['close'] = instruments['close'].astype('float64')
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
-
-        filename = "%s/break_ma.csv" % (result_file_path,)
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
+        _write_screen_results(instruments, result_file_path, 'break_ma')
     else:
         print("No qualified data")
 
@@ -323,18 +297,7 @@ def above_ma(instrument_filename, day_file_path, result_file_path, ma1):
     instruments = instruments.dropna(axis=0, subset=['close'])
 
     if not instruments.empty:
-        today = date.today().strftime("%Y-%m-%d")
-
-        filename = "%s/above_ma_%s.csv" % (result_file_path, today)
-
-        # 这里close字段的类型是object，需要转换为float64
-        instruments['close'] = instruments['close'].astype('float64')
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
-
-        filename = "%s/above_ma.csv" % (result_file_path,)
-
-        instruments.to_csv(filename, index=False, float_format='%.2f')
+        _write_screen_results(instruments, result_file_path, 'above_ma')
     else:
         print("No qualified data")
 

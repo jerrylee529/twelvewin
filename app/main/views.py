@@ -10,7 +10,8 @@ from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from flask_login import login_required
 from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge, ExamQuestion, ExamResult
-from app import db, analyzer, log
+from app import app, db, analyzer, log
+from app.services.data_status_service import get_data_status
 
 main_blueprint = Blueprint('main', __name__,)
 
@@ -217,6 +218,11 @@ def update_exam_result():
     ret = {"result": result}
 
     return jsonify(ret)
+
+
+@main_blueprint.route('/main/data_status', methods=['GET'])
+def data_status():
+    return jsonify(get_data_status(app.config))
 
 
 @main_blueprint.route('/main/exam/query', methods=['GET', 'POST'])

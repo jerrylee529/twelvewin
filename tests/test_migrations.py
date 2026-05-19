@@ -14,6 +14,7 @@ class MigrationSetupTestCase(unittest.TestCase):
         self.assertTrue(os.path.exists("migrations/script.py.mako"))
         self.assertTrue(os.path.exists("migrations/versions"))
         self.assertTrue(os.path.exists("migrations/versions/33e7716425a6_baseline_schema.py"))
+        self.assertTrue(os.path.exists("migrations/versions/b8f4a2c91d0e_add_analysis_job_run.py"))
 
     def test_flask_migrate_extension_is_optional(self):
         self.assertTrue(migrate is None or migrate.__class__.__name__ == "Migrate")

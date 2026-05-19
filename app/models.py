@@ -503,3 +503,39 @@ class ExamResult(db.Model):
         self.score = score
         self.create_time = datetime.datetime.now()
         self.update_time = datetime.datetime.now()
+
+
+class AnalysisJobRun(db.Model):
+    """
+    离线分析任务运行记录。
+    """
+    __tablename__ = 'analysis_job_run'
+
+    STATUS_RUNNING = 'running'
+    STATUS_SUCCESS = 'success'
+    STATUS_FAILED = 'failed'
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_name = db.Column(db.String(128), index=True, nullable=False, comment='任务名称')
+    status = db.Column(db.String(32), index=True, nullable=False, comment='任务状态')
+    parameters = db.Column(db.Text, nullable=True, comment='任务参数，JSON 字符串')
+    output = db.Column(db.Text, nullable=True, comment='任务输出，JSON 字符串或文件路径')
+    error = db.Column(db.Text, nullable=True, comment='错误信息')
+    started_at = db.Column(db.DateTime, nullable=False, comment='开始时间')
+    finished_at = db.Column(db.DateTime, nullable=True, comment='结束时间')
+    duration_seconds = db.Column(db.Float, nullable=True, comment='运行耗时，秒')
+    create_time = db.Column(db.DateTime, nullable=False, comment='创建时间')
+    update_time = db.Column(db.DateTime, nullable=False, comment='更新时间')
+
+    def __init__(self, job_name, parameters=None):
+        now = datetime.datetime.now()
+        self.job_name = job_name
+        self.status = self.STATUS_RUNNING
+        self.parameters = parameters
+        self.output = None
+        self.error = None
+        self.started_at = now
+        self.finished_at = None
+        self.duration_seconds = None
+        self.create_time = now
+        self.update_time = now

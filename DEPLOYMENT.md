@@ -14,6 +14,17 @@
 
 当前文档不把 `analysis/` 离线批处理作为生产部署必需步骤。`analysis/` 中很多脚本仍有 Python 2 风格代码，并依赖 `pandas`、`numpy`、`tushare`、`scikit-learn`、`APScheduler` 等额外包；如需部署批处理任务，应先单独迁移和验证这些脚本。
 
+若已启用阶段 5 的 job 框架，可按以下方式运行日终任务并记录状态：
+
+```bash
+export TWELVEWIN_DISABLE_ANALYZER=1
+flask db upgrade   # 创建 analysis_job_run 表
+python manage.py run_job daily_pipeline
+# 或：python -m jobs.run daily_pipeline
+```
+
+Web 可通过 `GET /main/data_status` 查看主要 CSV 的 `update_time` 与最近一次 `daily_pipeline` 运行状态。
+
 ## 2. 服务器前置条件
 
 推荐环境：
@@ -486,7 +497,7 @@ REDIS_URL=redis://:PASSWORD@HOST:6379/0
 - PostgreSQL/Neon 连接串使用 `postgresql+psycopg://`。
 - Redis 可连接。
 - `local_data/day_data`、`local_data/results`、`local_data/index_data` 已创建。
-- 全新数据库已执行 `manage.py create_db`，或已有数据库已执行 `flask db upgrade`。
+- 全新数据库已执行 `manage.py create_db`，或已有数据库已执行 `flask db upgrade`（含 `analysis_job_run` 表）。
 - 默认管理员密码已修改。
 - `curl -I http://127.0.0.1:8088/` 返回可接受结果。
 - 如果对公网开放，已配置 Nginx、HTTPS 和进程守护。

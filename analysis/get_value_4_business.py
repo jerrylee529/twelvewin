@@ -9,12 +9,21 @@
 
 __author__ = 'jerry'
 
+import os
+import sys
+
 import pandas as pd
 import tushare as ts
 import datetime
 from config import config
 import numpy as np
 import time
+
+_ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _ANALYSIS_DIR not in sys.path:
+    sys.path.insert(0, _ANALYSIS_DIR)
+
+from csv_output import atomic_export_pair, get_result_path
 
 # 设置精度
 pd.set_option('precision', 2)
@@ -29,15 +38,18 @@ key = ["code"]
 
 today = datetime.date.today()
 
-# 导出html表格
+# 导出排名 CSV（原子写入）
 def export_report(dest, title):
-    outputfile_date = "%s/%s_%s.csv" % (config.RESULT_PATH, title, today.strftime("%Y%m%d"),)
-
-    dest.to_csv(outputfile_date, encoding='utf-8', index=False, float_format = '%.2f')
-
-    outputfile = "%s/%s.csv" % (config.RESULT_PATH, title,)
-
-    dest.to_csv(outputfile, encoding='utf-8', index=False, float_format = '%.2f')
+    result_path = get_result_path(config)
+    atomic_export_pair(
+        dest,
+        result_path,
+        title,
+        date_suffix=today.strftime("%Y%m%d"),
+        encoding='utf-8',
+        index=False,
+        float_format='%.2f',
+    )
 
 
 # 交换值

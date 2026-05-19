@@ -175,6 +175,17 @@
 
 目标：把 `analysis/` 和 `bin/` 从脚本集合整理为可运维 job。
 
+当前进展：
+
+- 已新增 `jobs/` 包（`base.py`、`daily_pipeline.py`、`io.py`、`run.py`）。
+- 已新增 `analysis_job_run` 表模型、Alembic revision `b8f4a2c91d0e` 与 `job_run_service`。
+- 技术分析结果 CSV 已改为 `.tmp` → 校验 → `rename` 原子写入。
+- Web 暴露 `GET /main/data_status` 查询 CSV 更新时间与最近 job 状态。
+- `analysis/schedule_job.py` 与 `manage.py run_job daily_pipeline` 转调统一 pipeline。
+- 实验性 `bin/` 脚本已移至 `legacy/bin/`。
+- `analysis/csv_output.py` 统一原子导出；排名/涨跌幅/业务筛选 CSV 已接入。
+- 全站页脚通过 `/main/data_status` 展示数据更新时间与日终任务状态。
+
 建议任务：
 
 - 建立 `jobs/` 或整理 `analysis/jobs/`。

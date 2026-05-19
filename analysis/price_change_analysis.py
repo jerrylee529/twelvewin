@@ -9,11 +9,17 @@ compute_all_instruments() 根据多个 PriceChangePeriod 统计每只股票在�
 
 import pandas as pd
 import os
-from config import config
 import sys
+from config import config
 import numpy as np
 import datetime
 from instruments import get_all_instrument_codes_before
+
+_ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
+if _ANALYSIS_DIR not in sys.path:
+    sys.path.insert(0, _ANALYSIS_DIR)
+
+from csv_output import atomic_export_pair, get_result_path
 
 
 # 设置精度
@@ -83,13 +89,14 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
             print(str(e))
             continue
 
-    result_filename_date = result_file_path + "/price_change_" + datetime.date.today().strftime('%Y-%m-%d') + ".csv"
-
-    result_filename = result_file_path + "/price_change.csv"
-
-    instruments.to_csv(result_filename_date, index=False, float_format='%.2f')
-
-    instruments.to_csv(result_filename, index=False, float_format='%.2f')
+    atomic_export_pair(
+        instruments,
+        result_file_path,
+        "price_change",
+        date_suffix=datetime.date.today().strftime('%Y-%m-%d'),
+        index=False,
+        float_format='%.2f',
+    )
 
     return instruments
 
@@ -123,13 +130,14 @@ def compute_all_instruments_amplitude(period):
             print(str(e))
             continue
 
-    result_filename_date = config['RESULT_FILE_PATH'] + "price_amplitude_" + datetime.date.today().strftime('%Y-%m-%d') + ".csv"
-
-    result_filename = config['RESULT_FILE_PATH'] + "price_amplitude.csv"
-
-    result.to_csv(result_filename_date, index=False, float_format='%.2f')
-
-    result.to_csv(result_filename, index=False, float_format='%.2f')
+    atomic_export_pair(
+        result,
+        get_result_path(config),
+        "price_amplitude",
+        date_suffix=datetime.date.today().strftime('%Y-%m-%d'),
+        index=False,
+        float_format='%.2f',
+    )
 
     return result
 

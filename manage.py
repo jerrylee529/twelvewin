@@ -2,6 +2,7 @@
 
 import argparse
 import datetime
+import os
 import sys
 import unittest
 
@@ -45,6 +46,18 @@ def runserver(host='127.0.0.1', port=5000):
     app.run(host=host, port=port, debug=False, use_debugger=False, use_reloader=False)
 
 
+def run_job(job_name):
+    """Run an offline analysis job."""
+    os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
+
+    if job_name == 'daily_pipeline':
+        from jobs.daily_pipeline import run_daily_pipeline
+        run_daily_pipeline()
+        return 0
+
+    raise SystemExit('unknown job: {}'.format(job_name))
+
+
 def build_parser():
     parser = argparse.ArgumentParser(description='twelvewin management script')
     subparsers = parser.add_subparsers(dest='command')
@@ -58,6 +71,9 @@ def build_parser():
     subparsers.add_parser('create_db')
     subparsers.add_parser('drop_db')
     subparsers.add_parser('create_admin')
+
+    run_job_parser = subparsers.add_parser('run_job')
+    run_job_parser.add_argument('job_name', choices=['daily_pipeline'])
 
     return parser
 
@@ -80,6 +96,8 @@ def main(argv=None):
     if args.command == 'create_admin':
         create_admin()
         return 0
+    if args.command == 'run_job':
+        return run_job(args.job_name)
 
     parser.print_help()
     return 0
