@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
-"""CLI entry point for offline jobs."""
+"""CLI entry point for offline jobs (delegates to compute)."""
 
-import argparse
 import logging
 import os
 import sys
@@ -22,36 +21,17 @@ def _configure_logging():
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Run twelvewin offline jobs")
-    parser.add_argument(
-        "job_name",
-        choices=["daily_pipeline", "ranking_pipeline", "eod_all"],
-        help="job to execute",
-    )
-    args = parser.parse_args(argv)
+    if argv is None and len(sys.argv) > 1:
+        argv = sys.argv[1:]
+    elif argv is None:
+        argv = []
 
     _configure_logging()
+    print("Note: prefer: python -m compute <job_name>", file=sys.stderr)
 
-    if args.job_name == "daily_pipeline":
-        from jobs.daily_pipeline import run_daily_pipeline
+    from compute.__main__ import main as compute_main
 
-        run_daily_pipeline()
-        return 0
-
-    if args.job_name == "ranking_pipeline":
-        from jobs.ranking_pipeline import run_ranking_pipeline
-
-        run_ranking_pipeline()
-        return 0
-
-    if args.job_name == "eod_all":
-        from jobs.eod_all import run_eod_all
-
-        run_eod_all()
-        return 0
-
-    parser.error("unknown job: {}".format(args.job_name))
-    return 1
+    return compute_main(argv)
 
 
 if __name__ == "__main__":

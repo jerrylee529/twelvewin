@@ -47,59 +47,55 @@ def runserver(host='127.0.0.1', port=5000):
 
 
 def import_results(target='all'):
-    """Import generated CSV artifacts into analysis result tables."""
+    """Import generated CSV artifacts into analysis result tables (compute-owned)."""
     os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
+    print('Note: offline import is owned by compute; prefer: python -m compute import_results')
 
-    with app.app_context():
-        from app.services.result_store_service import (
-            import_business_ranking_results,
-            import_price_change_results,
-            import_ranking_results,
-            import_technical_screen_results,
-            sync_all_results_to_db,
-        )
+    from compute.config import load_service_config_dict
+    from compute.result_store import (
+        import_business_ranking_results,
+        import_price_change_results,
+        import_ranking_results,
+        import_technical_screen_results,
+        sync_all_results_to_db,
+    )
 
-        if target == 'all':
-            summary = sync_all_results_to_db(app.config)
+    config = load_service_config_dict()
+    if not config.get('RESULT_PATH'):
+        with app.app_context():
+            config['RESULT_PATH'] = app.config.get('RESULT_PATH')
+
+    if target == 'all':
+        summary = sync_all_results_to_db(config)
+    else:
+        summary = {}
+        if target.startswith('ranking:'):
+            summary[target] = import_ranking_results(config, target.split(':', 1)[1])
+        elif target.startswith('technical:'):
+            summary[target] = import_technical_screen_results(
+                config, target.split(':', 1)[1]
+            )
+        elif target == 'business':
+            summary['business'] = import_business_ranking_results(config)
+        elif target == 'price_change':
+            summary['price_change'] = import_price_change_results(config)
         else:
-            summary = {}
-            if target.startswith('ranking:'):
-                summary[target] = import_ranking_results(app.config, target.split(':', 1)[1])
-            elif target.startswith('technical:'):
-                summary[target] = import_technical_screen_results(
-                    app.config, target.split(':', 1)[1]
-                )
-            elif target == 'business':
-                summary['business'] = import_business_ranking_results(app.config)
-            elif target == 'price_change':
-                summary['price_change'] = import_price_change_results(app.config)
-            else:
-                raise SystemExit('unknown import target: {}'.format(target))
+            raise SystemExit('unknown import target: {}'.format(target))
 
-        for key, value in summary.items():
-            print('{}: {}'.format(key, value))
+    for key, value in summary.items():
+        print('{}: {}'.format(key, value))
 
     return 0
 
 
 def run_job(job_name):
-    """Run an offline analysis job."""
+    """Run an offline analysis job (delegates to ``python -m compute``)."""
     os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
+    print('Note: prefer running offline jobs via: python -m compute {}'.format(job_name))
 
-    if job_name == 'daily_pipeline':
-        from jobs.daily_pipeline import run_daily_pipeline
-        run_daily_pipeline()
-        return 0
-    if job_name == 'ranking_pipeline':
-        from jobs.ranking_pipeline import run_ranking_pipeline
-        run_ranking_pipeline()
-        return 0
-    if job_name == 'eod_all':
-        from jobs.eod_all import run_eod_all
-        run_eod_all()
-        return 0
+    from compute.__main__ import main as compute_main
 
-    raise SystemExit('unknown job: {}'.format(job_name))
+    return compute_main([job_name])
 
 
 def build_parser():

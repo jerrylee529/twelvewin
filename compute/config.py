@@ -1,0 +1,56 @@
+# -*- coding: utf-8 -*-
+
+"""Job configuration for compute workers (env / INI only, no Flask app)."""
+
+import os
+from types import SimpleNamespace
+
+from werkzeug.utils import import_string
+
+from core.config import load_core_settings, load_settings_from_analysis_ini
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
+
+
+def config_get(config, key, default=None):
+    if isinstance(config, dict):
+        return config.get(key, default)
+    return getattr(config, key, default)
+
+
+def _namespace_from_dict(settings):
+    day_file_path = settings.get('DAY_FILE_PATH') or ''
+    result_path = settings.get('RESULT_PATH') or settings.get('RESULT_FILE_PATH') or ''
+    instrument_filename = os.path.join(day_file_path, 'instruments.csv')
+
+    return SimpleNamespace(
+        INSTRUMENT_FILENAME=instrument_filename,
+        DAY_FILE_PATH=day_file_path,
+        RESULT_PATH=result_path,
+        RESULT_FILE_PATH=result_path,
+        SQLALCHEMY_DATABASE_URI=settings.get('SQLALCHEMY_DATABASE_URI'),
+        READ_ANALYSIS_FROM_DB=settings.get('READ_ANALYSIS_FROM_DB', True),
+    )
+
+
+def load_service_config():
+    """Resolve job config from SERVICE_SETTINGS, analysis INI, or environment."""
+    settings_path = os.environ.get('SERVICE_SETTINGS')
+    if settings_path:
+        return import_string(settings_path)
+
+    ini_settings = load_settings_from_analysis_ini()
+    if ini_settings is not None:
+        return _namespace_from_dict(ini_settings)
+
+    return _namespace_from_dict(load_core_settings())
+
+
+def load_service_config_dict():
+    """Return plain dict for result import and DB sync."""
+    config = load_service_config()
+    return {
+        'DAY_FILE_PATH': config_get(config, 'DAY_FILE_PATH'),
+        'RESULT_PATH': config_get(config, 'RESULT_PATH') or config_get(config, 'RESULT_FILE_PATH'),
+        'READ_ANALYSIS_FROM_DB': config_get(config, 'READ_ANALYSIS_FROM_DB', True),
+    }

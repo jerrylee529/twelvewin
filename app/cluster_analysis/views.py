@@ -12,11 +12,6 @@ from app.models import StockCluster, StockClusterItem
 from app.decorators import check_confirmed
 from app.util import model_to_json
 
-try:
-    from analysis.cluster_data_service import instruments_cluster
-except Exception:
-    instruments_cluster = None
-
 cluster_analysis_blueprint = Blueprint('cluster', __name__,)
 
 
@@ -31,10 +26,7 @@ def get_data(path):
     if industry =='all':
         return jsonify({'total': 0, 'rows': []})
 
-    if path != 'sz50' and path != 'zz500' and path != 'hs300' and instruments_cluster is not None:
-        print("compute industry cluster")
-        instruments_cluster(industry)
-
+    # Cluster results are produced offline; this endpoint only reads precomputed DB rows.
     clusters = db.session.query(StockCluster).filter_by(section=industry).all()
 
     cluster_items = db.session.query(StockClusterItem).filter_by(section=industry).all()

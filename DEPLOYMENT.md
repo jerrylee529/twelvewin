@@ -17,13 +17,19 @@
 若已启用阶段 5 的 job 框架，可按以下方式运行日终任务并记录状态：
 
 ```bash
+set -a && . ./.env && set +a
 export TWELVEWIN_DISABLE_ANALYZER=1
 flask db upgrade   # 创建 analysis_job_run 表
-python manage.py run_job eod_all
+python -m compute eod_all
 # 或单独运行：
-# python manage.py run_job daily_pipeline
-# python manage.py run_job ranking_pipeline
-# 或：python -m jobs.run eod_all
+# python -m compute daily_pipeline
+# python -m compute ranking_pipeline
+# python -m compute import_results
+
+# 兼容（会打印弃用提示）：
+# python manage.py run_job eod_all
+# python -m jobs.run eod_all
+```
 
 生产 cron 推荐使用仓库根目录脚本（需先 `chmod +x bin/run_eod_jobs.sh`）：
 
@@ -52,12 +58,12 @@ flask db upgrade   # 含 analysis_runs、ranking_results、technical_screen_resu
 将已有 CSV 导入数据库（Web 默认 `READ_ANALYSIS_FROM_DB=true`，优先读库）：
 
 ```bash
-python manage.py import_results
-# 或单项：python manage.py import_results ranking:pe
+python -m compute import_results
+# 或：python manage.py import_results
+# 单项回填需使用 manage.py import_results ranking:pe
 ```
 
 仅跑 Web、不跑批处理时，也可在每次更新 CSV 后执行 `import_results`。
-```
 
 Web 可通过 `GET /main/data_status` 查看主要 CSV 的 `update_time` 与最近一次 `daily_pipeline` 运行状态。
 

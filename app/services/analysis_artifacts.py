@@ -1,21 +1,10 @@
 # -*- coding: utf-8 -*-
 
-"""Canonical mapping from UI keys to generated CSV artifact filenames."""
+"""Re-export canonical artifact contracts from core (see docs/contracts/)."""
 
-STOCK_RANKING_FILES = {
-    'pe': 'stock_pe.csv',
-    'pb': 'stock_pb.csv',
-    'roe': 'stock_roe.csv',
-    'divi': 'stock_dividence.csv',
-}
-
-TECHNICAL_ANALYSIS_FILES = {
-    'highest': 'highest_in_history.csv',
-    'lowest': 'lowest_in_history.csv',
-    'ma_long': 'ma_long.csv',
-    'break_ma': 'break_ma.csv',
-    'above_ma': 'above_ma.csv',
-}
-
-PRICE_CHANGE_FILE = 'price_change.csv'
-BUSINESS_RANKING_FILE = 'stock_business.csv'
+from core.artifacts import (  # noqa: F401
+    BUSINESS_RANKING_FILE,
+    PRICE_CHANGE_FILE,
+    STOCK_RANKING_FILES,
+    TECHNICAL_ANALYSIS_FILES,
+)

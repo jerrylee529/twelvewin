@@ -175,7 +175,28 @@ Redis 主要用于实时行情读取。
 
 详细部署流程见 `DEPLOYMENT.md`。
 
-## 6. 关键耦合点
+## 6. Compute / Web 分离（v2.1+）
+
+自 `v2.0.0` 之后的重构将离线计算与 Web 展示拆为三个逻辑层：
+
+| 包 | 职责 |
+|----|------|
+| `core/` | 共享配置（`DATABASE_URL`、路径）、DB session、artifact 契约、job 状态写入 |
+| `compute/` | 离线流水线、`python -m compute` CLI、CSV→Postgres 导入 |
+| `app/` | Flask HTTP、模板、鉴权、**只读**已发布结果（DB 优先，CSV 回退） |
+
+契约文档：`docs/contracts/`。
+
+离线任务入口（推荐）：
+
+```bash
+set -a && . ./.env && set +a
+python -m compute eod_all
+```
+
+`manage.py run_job` / `python -m jobs.run` 仍可用，但会委托到 `compute` 并打印弃用提示。
+
+## 7. 关键耦合点（遗留）
 
 ### 6.1 应用启动和数据加载耦合
 
@@ -208,7 +229,7 @@ Redis 主要用于实时行情读取。
 
 这让排错成本和数据一致性成本偏高。
 
-## 7. 当前技术债清单
+## 8. 当前技术债清单（遗留）
 
 高优先级：
 
@@ -232,7 +253,7 @@ Redis 主要用于实时行情读取。
 - 一些 `.bak`、`.old` 文件仍在源码目录。
 - 命名和代码风格不统一。
 
-## 8. 建议目标架构
+## 9. 建议目标架构
 
 短中期目标不是微服务化，而是把当前单体整理成更清晰的模块化单体。
 

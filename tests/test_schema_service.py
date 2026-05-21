@@ -10,6 +10,7 @@ import app as app_module
 from sqlalchemy import inspect, text
 
 from app.services.schema_service import ensure_analysis_schema, missing_analysis_tables
+from core.db import reset_engine
 
 
 class SchemaServiceTestCase(unittest.TestCase):
@@ -20,6 +21,8 @@ class SchemaServiceTestCase(unittest.TestCase):
         fd, self._db_path = tempfile.mkstemp(suffix='.sqlite')
         os.close(fd)
         self.app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + self._db_path
+        os.environ['DATABASE_URL'] = 'sqlite:///' + self._db_path
+        reset_engine()
         self._context = self.app.app_context()
         self._context.push()
         self.db.engine.dispose()
@@ -31,6 +34,7 @@ class SchemaServiceTestCase(unittest.TestCase):
         self.db.engine.dispose()
         self._context.pop()
         self.app.config['SQLALCHEMY_DATABASE_URI'] = self._prev_uri
+        reset_engine()
         if os.path.exists(self._db_path):
             os.remove(self._db_path)
 
@@ -43,7 +47,7 @@ class SchemaServiceTestCase(unittest.TestCase):
         self.db.session.commit()
         self.assertIn('analysis_job_run', missing_analysis_tables(self.db.engine))
 
-        applied = ensure_analysis_schema()
+        applied = ensure_analysis_schema(self.db.engine)
         self.assertTrue(applied)
         self.assertIn('analysis_job_run', inspect(self.db.engine).get_table_names())
 

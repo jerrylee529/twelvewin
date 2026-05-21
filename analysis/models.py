@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-"""analysis 批处理脚本使用的独立 SQLAlchemy 模型定义。
+"""Legacy SQLAlchemy models for analysis scripts.
 
-本模块创建 engine 和 Session，并定义股票基础信息、财报、聚类、预测结果、雪球报表、
-策略结果等表模型。它与 app/models.py 有重复但不完全一致，是 analysis 脚本直接读写数据库的入口。
+Prefer ``app.models`` with ``core.db.session_scope`` for new code. Engine URI is loaded
+from ``core.config`` (environment / INI) so batch jobs do not import the Flask app.
 """
 
 __author__ = 'Administrator'
@@ -14,11 +14,23 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from config import config
 
+import sys
+import os as _os
+
+_project_root = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), _os.pardir))
+if _project_root not in sys.path:
+    sys.path.insert(0, _project_root)
+
+from core.config import load_core_settings
+
+_db_uri = config.get('SQLALCHEMY_DATABASE_URI') or load_core_settings().get('SQLALCHEMY_DATABASE_URI')
+if not _db_uri:
+    raise RuntimeError('SQLALCHEMY_DATABASE_URI is not configured for analysis models')
+
 # 创建数据基类
 Base = declarative_base()
 
-# 创建mysql数据库引擎
-engine = create_engine(config['SQLALCHEMY_DATABASE_URI'], echo=False)
+engine = create_engine(_db_uri, echo=False)
 
 # 创建数据库会话类
 Session = sessionmaker(bind=engine)

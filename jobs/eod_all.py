@@ -18,9 +18,10 @@ EOD_ALL_JOB = "eod_all"
 
 
 def _step_sync_results_to_db(config) -> dict:
-    from app.services.result_store_service import sync_all_results_to_db
+    from compute.config import load_service_config_dict
+    from compute.result_store import sync_all_results_to_db
 
-    return sync_all_results_to_db(config)
+    return sync_all_results_to_db(load_service_config_dict())
 
 
 def build_eod_all_steps(config):
