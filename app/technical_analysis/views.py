@@ -7,6 +7,7 @@ import os
 import datetime
 from flask_login import login_required
 from app.decorators import check_confirmed
+from app.services.artifact_meta_service import get_artifact_update_time
 from app.services.technical_analysis_service import get_price_change_rows, get_technical_rows
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -57,11 +58,23 @@ def index(path):
         title = "年线以上"
     elif path == 'filter':
         title = "涨跌幅分析"
-        return render_template('technical_analysis/filter.html', title=title, path=path)
+        data_update_time = get_artifact_update_time(current_app.config, technical_key=path)
+        return render_template(
+            'technical_analysis/filter.html',
+            title=title,
+            path=path,
+            data_update_time=data_update_time,
+        )
     else:
         return render_template('errors/400.html')
 
-    return render_template('technical_analysis/rank.html', title=title, path=path)
+    data_update_time = get_artifact_update_time(current_app.config, technical_key=path)
+    return render_template(
+        'technical_analysis/rank.html',
+        title=title,
+        path=path,
+        data_update_time=data_update_time,
+    )
 
 
 @technical_analysis_blueprint.route('/tech/filter/data', methods=['POST', 'GET'])

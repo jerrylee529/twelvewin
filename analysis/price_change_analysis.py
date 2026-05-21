@@ -19,11 +19,10 @@ _ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
+from compat import set_display_precision
 from csv_output import atomic_export_pair, get_result_path
 
-
-# 设置精度
-pd.set_option('precision', 2)
+set_display_precision(2)
 
 
 class PriceChangePeriod(object):

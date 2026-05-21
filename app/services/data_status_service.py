@@ -11,9 +11,9 @@ from app.services.csv_store import format_mtime, resolve_under_base
 from app.services.job_run_service import get_latest_run, serialize_job_run
 
 logger = logging.getLogger(__name__)
-from app.services.ranking_service import STOCK_RANKING_FILES
+from app.services.analysis_artifacts import STOCK_RANKING_FILES
 
-TRACKED_JOBS = ("daily_pipeline",)
+TRACKED_JOBS = ("eod_all", "daily_pipeline", "ranking_pipeline")
 
 TRACKED_RESULT_FILES = {
     "rankings": dict(STOCK_RANKING_FILES),

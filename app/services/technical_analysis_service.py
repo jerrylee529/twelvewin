@@ -1,17 +1,14 @@
 # -*- coding: utf-8 -*-
 
-"""Technical analysis result service backed by generated CSV artifacts."""
+"""Technical analysis results: Postgres first, CSV fallback."""
 
+from app.services.analysis_artifacts import TECHNICAL_ANALYSIS_FILES
 from app.services.csv_store import CsvReadResult, read_rows
-
-
-TECHNICAL_ANALYSIS_FILES = {
-    'highest': 'highest_in_history.csv',
-    'lowest': 'lowest_in_history.csv',
-    'ma_long': 'ma_long.csv',
-    'break_ma': 'break_ma.csv',
-    'above_ma': 'above_ma.csv',
-}
+from app.services.result_store_service import (
+    get_price_change_rows_from_db,
+    get_technical_rows_from_db,
+    read_analysis_from_db_enabled,
+)
 
 PRICE_CHANGE_PERIODS = {
     u'近一周': 7,
@@ -28,6 +25,12 @@ def get_technical_rows(config, screen_key, *, is_anonymous=False) -> CsvReadResu
         return CsvReadResult(rows=[], path="", error="unknown technical analysis key")
 
     max_rows = 10 if is_anonymous else None
+
+    if read_analysis_from_db_enabled(config):
+        db_result = get_technical_rows_from_db(screen_key, max_rows=max_rows)
+        if db_result is not None and db_result.rows:
+            return db_result
+
     return read_rows(
         config['RESULT_PATH'],
         csv_filename,
@@ -42,7 +45,14 @@ def get_price_change_rows(config, *, days=u'近一周', low=-30, high=0) -> CsvR
     period = PRICE_CHANGE_PERIODS.get(days, 7)
     rate_field = 'rate' + str(period)
 
-    result = read_rows(config['RESULT_PATH'], 'price_change.csv')
+    if read_analysis_from_db_enabled(config):
+        db_result = get_price_change_rows_from_db()
+        if db_result is not None and db_result.rows:
+            result = db_result
+        else:
+            result = read_rows(config['RESULT_PATH'], 'price_change.csv')
+    else:
+        result = read_rows(config['RESULT_PATH'], 'price_change.csv')
     rows = []
 
     try:

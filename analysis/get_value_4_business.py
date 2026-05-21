@@ -13,7 +13,6 @@ import os
 import sys
 
 import pandas as pd
-import tushare as ts
 import datetime
 from config import config
 import numpy as np
@@ -23,22 +22,18 @@ _ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
+from compat import apply_close_price, set_display_precision
 from csv_output import atomic_export_pair, get_result_path
+from getvaluation import _prepare_quotes
+from providers.market_registry import fetch_today_quotes_dataframe
 
-# 设置精度
-pd.set_option('precision', 2)
-
-# 财务年度
-YEAR = 2017
-
-# 财务季度
-SEASON = 4 
+set_display_precision(2)
 
 key = ["code"]
 
 today = datetime.date.today()
 
-# 导出排名 CSV（原子写入）
+
 def export_report(dest, title):
     result_path = get_result_path(config)
     atomic_export_pair(
@@ -52,134 +47,128 @@ def export_report(dest, title):
     )
 
 
-# 交换值
-def swap_value(x, y):
-    return x if x!=0.00 else y
+def _tushare_request_delay():
+    try:
+        return float(os.environ.get('TW_TUSHARE_SLEEP_SEC', '0.25'))
+    except (TypeError, ValueError):
+        return 0.25
 
-
-# 获取股票的均线
-'''
-def get_stock_ma(code, ma1, ma2, ma3):
-    print "get data for " + code
-
-    now = datetime.datetime.now()
-
-    dt = now - datetime.timedelta(days=(max(ma1,ma2,ma3)*7+10))
-
-    df = ts.get_k_data(code=code, ktype='W', autype='qfq', start=dt.strftime('%Y-%m-%d'), end=now.strftime('%Y-%m-%d'))
-
-    if (df.empty):
-        return 0 
-
-    df.reset_index(inplace=True)
-
-    df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
-    df['ma'+str(ma2)] = df['close'].rolling(window=ma2).mean()
-    df['ma'+str(ma3)] = df['close'].rolling(window=ma3).mean()
-
-    price = []
-    if (df.shape[0] > 0):
-        ma1_value = df.iat[df.shape[0]-1, df.shape[1]-3]
-        ma2_value = df.iat[df.shape[0]-1, df.shape[1]-2]
-        ma3_value = df.iat[df.shape[0]-1, df.shape[1]-1]
-
-        price.append(ma1_value)
-        price.append(ma1_value if ma2_value is None else ma2_value)
-        price.append(ma1_value if ma3_value is None else ma3_value)
-
-    return price
-'''
 
 def get_stock_ma(code, ma1, ma2, ma3):
-    print "get data for " + code
+    """Weekly MA via Tushare Pro ``pro_bar`` (replaces AkShare ``stock_zh_a_hist``)."""
+    from quotation import get_history_data
+
+    print("get data for " + code)
 
     now = datetime.datetime.now()
+    lookback_days = max(ma1, ma2, ma3) * 7 + 14
+    dt = now - datetime.timedelta(days=lookback_days)
+    start = dt.strftime('%Y-%m-%d')
+    end = now.strftime('%Y-%m-%d')
 
-    dt = now - datetime.timedelta(days=(max(ma1,ma2,ma3)*7+10))
+    df = None
+    for attempt in range(3):
+        df = get_history_data(code, start, end, ktype='W', autype='qfq')
+        if df is not None and not df.empty:
+            break
+        time.sleep(1.5 * (attempt + 1))
 
-    df = ts.get_hist_data(code=code, ktype='W', start=dt.strftime('%Y-%m-%d'), end=now.strftime('%Y-%m-%d'))
-
-    if (df.empty):
+    if df is None or df.empty:
         return 0
 
-    df.sort_index(inplace=True)
+    if 'close' not in df.columns:
+        return 0
 
-    df.reset_index(inplace=True)
+    df = df.sort_values('date' if 'date' in df.columns else df.columns[0])
+    df.reset_index(drop=True, inplace=True)
 
-    df.drop(labels=['ma5', 'ma10', 'ma20'], axis=1, inplace=True)
-
-    df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
-    df['ma'+str(ma2)] = df['close'].rolling(window=ma2).mean()
-    df['ma'+str(ma3)] = df['close'].rolling(window=ma3).mean()
+    df['ma' + str(ma1)] = df['close'].rolling(window=ma1).mean()
+    df['ma' + str(ma2)] = df['close'].rolling(window=ma2).mean()
+    df['ma' + str(ma3)] = df['close'].rolling(window=ma3).mean()
 
     price = []
-    if (df.shape[0] > 0):
-        ma1_value = df.iat[df.shape[0]-1, df.shape[1]-3]
-        ma2_value = df.iat[df.shape[0]-1, df.shape[1]-2]
-        ma3_value = df.iat[df.shape[0]-1, df.shape[1]-1]
+    if df.shape[0] > 0:
+        ma1_value = df.iat[df.shape[0] - 1, df.columns.get_loc('ma' + str(ma1))]
+        ma2_value = df.iat[df.shape[0] - 1, df.columns.get_loc('ma' + str(ma2))]
+        ma3_value = df.iat[df.shape[0] - 1, df.columns.get_loc('ma' + str(ma3))]
 
         price.append(ma1_value)
-        price.append(ma1_value if ma2_value is None else ma2_value)
-        price.append(ma1_value if ma3_value is None else ma3_value)
+        price.append(ma1_value if pd.isna(ma2_value) else ma2_value)
+        price.append(ma1_value if pd.isna(ma3_value) else ma3_value)
 
     return price
-
 
 
 def get_profit_report():
     df_quots = pd.DataFrame()
 
-    for i in range(0,3):
+    for _attempt in range(0, 3):
         try:
-            #获取最新股价
-            df_quots = ts.get_today_all()
-
-            if df_quots is not None:
-                break  
-        except:
-            time.sleep(10*60) # 等待十分钟重试
+            df_quots = fetch_today_quotes_dataframe()
+            if df_quots is not None and not df_quots.empty:
+                break
+        except Exception:
+            time.sleep(10 * 60)
             continue
 
-    df_quots['roe'] = df_quots['pb']*100/df_quots['per']
-    df_quots['close'] = map(swap_value, df_quots['trade'], df_quots['settlement'])
+    if df_quots is None or df_quots.empty:
+        raise RuntimeError('unable to load spot quotes for business screen')
 
-    df_quots = df_quots[(df_quots['roe']>=5) & (df_quots['turnoverratio']>=2) & (df_quots['nmc']>=300000) & (df_quots['nmc']<=3000000) & (df_quots['close']<=50)]
+    df_quots = _prepare_quotes(df_quots.copy())
 
-    df_quots.reset_index(inplace=True)
-    df_quots = df_quots.drop(['index','changepercent','trade','open','high','low','settlement','volume','amount','mktcap'], axis=1)
+    if 'turnoverratio' not in df_quots.columns:
+        df_quots['turnoverratio'] = 0
+    if 'nmc' not in df_quots.columns:
+        df_quots['nmc'] = df_quots.get('mktcap', 0)
 
-    temp1 = np.zeros(df_quots.shape[0]) 
+    df_quots = df_quots[
+        (df_quots['roe'] >= 5)
+        & (df_quots['turnoverratio'] >= 2)
+        & (df_quots['nmc'] >= 300000)
+        & (df_quots['nmc'] <= 3000000)
+        & (df_quots['close'] <= 50)
+    ]
+
+    temp1 = np.zeros(df_quots.shape[0])
     temp2 = np.zeros(df_quots.shape[0])
     temp3 = np.zeros(df_quots.shape[0])
 
-    ma10 = 10    
+    ma10 = 10
     ma30 = 30
     ma60 = 60
 
     index = 0
+    delay = _tushare_request_delay()
     for code in df_quots['code']:
         price = get_stock_ma(code, ma1=ma10, ma2=ma30, ma3=ma60)
+        if delay > 0:
+            time.sleep(delay)
+        if not price:
+            index += 1
+            continue
 
-        temp1[index] = price[0]	
+        temp1[index] = price[0]
         temp2[index] = price[1]
         temp3[index] = price[2]
         index += 1
 
-    df_quots.insert(df_quots.shape[1], 'wma'+str(ma10), temp1)
-
-    df_quots.insert(df_quots.shape[1], 'wma'+str(ma30), temp2)
-
-    df_quots.insert(df_quots.shape[1], 'wma'+str(ma60), temp3)
+    df_quots.insert(df_quots.shape[1], 'wma' + str(ma10), temp1)
+    df_quots.insert(df_quots.shape[1], 'wma' + str(ma30), temp2)
+    df_quots.insert(df_quots.shape[1], 'wma' + str(ma60), temp3)
 
     df_quots = df_quots.dropna(how='any')
+    df_quots = df_quots[
+        (df_quots['close'] > df_quots['wma10'])
+        & (df_quots['close'] < df_quots['wma10'] * 1.1)
+    ]
+    df_quots = df_quots[
+        (df_quots['close'] > df_quots['wma30'])
+        & (df_quots['close'] > df_quots['wma60'])
+        & (df_quots['wma10'] >= df_quots['wma30'])
+    ]
 
-    df_quots = df_quots[(df_quots['close']>df_quots['wma10']) & (df_quots['close']<df_quots['wma10']*1.1)]
-  
-    df_quots = df_quots[(df_quots['close']>df_quots['wma30']) & (df_quots['close']>df_quots['wma60']) & (df_quots['wma10']>=df_quots['wma30'])]    
-
-    # 按现金股息率排行
     export_report(df_quots, title="stock_business")
 
 
-if __name__=='__main__':
+if __name__ == '__main__':
     get_profit_report()

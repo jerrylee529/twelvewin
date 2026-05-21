@@ -10,6 +10,7 @@ HistoryDataService 从数据库读取全部股票代码，检查 config['DAY_FIL
 __author__ = 'Administrator'
 
 import os
+import sys
 from datetime import timedelta, datetime, date
 
 import pandas as pd
@@ -18,24 +19,38 @@ from quotation import get_history_data
 from models import Instrument, Session
 from instruments import get_all_instrument_codes
 
-# 设置精度
-pd.set_option('precision', 2)
+_PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
+from compat import set_display_precision
+from jobs.io import atomic_append_dataframe_to_csv, atomic_dataframe_to_csv
+
+set_display_precision(2)
 
 
 #
 class HistoryDataService:
     def __init__(self, start_date='1990-12-1'):
         self.day_file_path = config['DAY_FILE_PATH']
+        if self.day_file_path and not self.day_file_path.endswith(os.sep):
+            self.day_file_path = self.day_file_path + os.sep
         self.start_date = start_date
+
+    def _day_csv_path(self, code):
+        return os.path.join(self.day_file_path, "{}.csv".format(code))
 
     def run(self):
 
         codes = get_all_instrument_codes()
+        if not codes:
+            print("No instrument codes in database, skip history download")
+            return
 
         today = date.today()
 
         for code in codes:
-            data_filename = "%s%s.csv" % (self.day_file_path, code)  # 日线数据文件名
+            data_filename = self._day_csv_path(code)
 
             print("starting download %s, file path: %s" % (code, data_filename))
 
@@ -69,13 +84,22 @@ class HistoryDataService:
                 continue
 
             if df_download is not None:
-                #
                 df_download.sort_index(inplace=True)
+                csv_kwargs = dict(index=False, float_format='%.2f')
 
                 if os.path.exists(data_filename):
-                    df_download.to_csv(data_filename, mode='a', header=None, index=False, float_format='%.2f')
+                    atomic_append_dataframe_to_csv(
+                        data_filename,
+                        df_download,
+                        header=False,
+                        **csv_kwargs,
+                    )
                 else:
-                    df_download.to_csv(data_filename, index=False, float_format='%.2f')
+                    atomic_dataframe_to_csv(
+                        df_download,
+                        data_filename,
+                        **csv_kwargs,
+                    )
 
 
 if __name__ == '__main__':

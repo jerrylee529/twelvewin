@@ -185,27 +185,16 @@
 - 实验性 `bin/` 脚本已移至 `legacy/bin/`。
 - `analysis/csv_output.py` 统一原子导出；排名/涨跌幅/业务筛选 CSV 已接入。
 - 全站页脚通过 `/main/data_status` 展示数据更新时间与日终任务状态。
+- `ranking_pipeline` job 生成市盈率/股息率/ROE 等排名与精选股票 CSV。
+- 排名页、技术筛选页页头展示对应 CSV 更新时间；日线增量下载改为原子追加/新建。
+- `eod_all` 合并日终与排名步骤；`bin/run_eod_jobs.sh` 供 cron 调用。
+- `requirements-analysis.txt` 记录批处理依赖；`getvaluation` / 精选脚本 Python 3 兼容（`analysis/compat.py`）。
 
-建议任务：
+建议任务（剩余）：
 
-- 建立 `jobs/` 或整理 `analysis/jobs/`。
-- 定义统一 job 接口：
-  - 输入配置。
-  - 输出状态。
-  - 错误处理。
-  - 日志。
-- 增加 job run 表，记录每次运行：
-  - job name
-  - started_at
-  - finished_at
-  - status
-  - output files
-  - error message
-- CSV 写入改为原子写：
-  - 写入 `.tmp`
-  - 校验字段
-  - rename 到正式文件
-- 将仍需使用的 `bin/` 脚本迁移，废弃实验脚本或移动到 `legacy/`。
+- 将 `schedule_manager.py` 等 APScheduler 入口改为调用 `jobs.run eod_all`。
+- 继续迁移仍依赖旧 tushare API 的脚本（需结合数据源替换评估）。
+- 按需把更多 `bin/` 脚本迁入 job 或 `legacy/`。
 
 验收标准：
 
@@ -220,6 +209,14 @@
 ## 阶段 6：数据存储升级
 
 目标：逐步减少 CSV 作为线上查询主数据源的比例。
+
+当前进展：
+
+- 已新增表：`analysis_runs`、`ranking_results`、`technical_screen_results`（Alembic `c7e2a9f41b30`）。
+- `app/services/result_store_service.py`：CSV → Postgres 导入；按 `category` + `result_key` + `as_of_date` 保留多批次。
+- Web 排名/技术/精选/涨跌幅：`READ_ANALYSIS_FROM_DB` 默认 true，DB 无数据时回退 CSV。
+- `eod_all` 末步 `sync_results_to_db`；`manage.py import_results` 支持全量或单项回填。
+- 数据源替换计划见 [`docs/DATA_SOURCE.md`](docs/DATA_SOURCE.md)（tushare → AkShare/BaoStock，未改代码）。
 
 短期方案：
 

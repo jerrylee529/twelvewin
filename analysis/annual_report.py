@@ -20,7 +20,8 @@ import time
 from config import config
 
 # 设置精度
-pd.set_option('precision', 2)
+from compat import set_display_precision
+set_display_precision(2)
 
 
 def format_float(value):

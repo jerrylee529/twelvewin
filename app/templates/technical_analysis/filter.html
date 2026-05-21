@@ -1,6 +1,9 @@
 {% extends "base.html" %}
 {% block title %}{{ title }}{% endblock %}
 {% block page_content %}
+{% if data_update_time %}
+<p class="text-muted"><small>数据更新时间：{{ data_update_time }}</small></p>
+{% endif %}
 <form class="form-inline" role="form">
   <div class="form-group">
     <label for="low">涨跌幅区间(%)</label>

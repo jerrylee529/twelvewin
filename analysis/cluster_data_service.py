@@ -22,7 +22,8 @@ from models import StockCluster, StockClusterItem, Session
 from sklearn.cluster import KMeans, AffinityPropagation
 
 # 设置精度
-pd.set_option('precision', 2)
+from compat import set_display_precision
+set_display_precision(2)
 
 import sys
 reload(sys)

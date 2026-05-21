@@ -4,9 +4,10 @@
 
 ## 当前推荐入口
 
-- 日终分析：`python -m jobs.run daily_pipeline`
-- 或通过 Web 项目管理脚本：`python manage.py run_job daily_pipeline`
-- 兼容旧 cron 入口：`python analysis/schedule_job.py`（内部转调 `jobs.daily_pipeline`）
+- 日终全量（推荐）：`./bin/run_eod_jobs.sh` 或 `python manage.py run_job eod_all`
+- 仅技术筛选/下载：`python manage.py run_job daily_pipeline`
+- 仅排名 CSV：`python manage.py run_job ranking_pipeline`
+- 兼容旧入口：`analysis/start_job.sh`、`analysis/schedule_job.py`
 
 ## 仍保留在 `bin/` 的常用脚本
 

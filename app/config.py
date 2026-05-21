@@ -100,6 +100,7 @@ class BaseConfig(object):
     DAY_FILE_PATH = os.environ.get('DAY_FILE_PATH', os.path.join(local_data_dir, 'day_data'))
     RESULT_PATH = os.environ.get('RESULT_PATH', os.path.join(local_data_dir, 'results'))
     INDEX_FILE_PATH = os.environ.get('INDEX_FILE_PATH', os.path.join(local_data_dir, 'index_data'))
+    READ_ANALYSIS_FROM_DB = _get_bool_env_var('READ_ANALYSIS_FROM_DB', True)
 
     # mail settings
     # defaults are:

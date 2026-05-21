@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 
 
 def job():
-    from jobs.daily_pipeline import run_daily_pipeline
+    from jobs.eod_all import run_eod_all
 
-    logger.info("starting daily pipeline at %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-    return run_daily_pipeline()
+    logger.info("starting eod_all pipeline at %s", datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    return run_eod_all()
 
 
 if __name__ == '__main__':

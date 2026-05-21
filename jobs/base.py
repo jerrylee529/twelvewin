@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from app import app
 from app.services.job_run_service import mark_failure, mark_success, start_job
+from app.services.schema_service import ensure_analysis_schema
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,7 @@ class JobRunner:
         parameters: Optional[dict] = None,
     ) -> dict:
         with app.app_context():
+            ensure_analysis_schema()
             job_run = start_job(self.job_name, parameters=parameters)
             step_outputs: Dict[str, Any] = {}
 

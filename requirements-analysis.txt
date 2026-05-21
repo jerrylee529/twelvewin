@@ -1,0 +1,9 @@
+# Offline analysis / batch jobs (not required for Web-only deploy).
+# Install alongside requirements-local.txt when running jobs/ or analysis/.
+
+pandas>=2.0
+numpy>=1.24
+akshare>=1.14
+yfinance>=0.2.40
+tushare>=1.2
+APScheduler>=3.10

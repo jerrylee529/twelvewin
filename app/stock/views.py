@@ -9,6 +9,7 @@ from app.decorators import check_confirmed
 from app import analyzer
 from app.util import model_to_json
 from app.services.market_data_service import get_candlestick_data
+from app.services.artifact_meta_service import get_artifact_update_time
 from app.services.ranking_service import get_stock_ranking
 
 stock_blueprint = Blueprint('stock', __name__,)
@@ -70,7 +71,20 @@ def list_stock(path):
     else:
         return render_template('errors/404.html')
 
-    return render_template(template_filename, title=title, path=path)
+    if path == 'business':
+        data_update_time = get_artifact_update_time(
+            current_app.config,
+            filename='stock_business.csv',
+        )
+    else:
+        data_update_time = get_artifact_update_time(current_app.config, ranking_key=path)
+
+    return render_template(
+        template_filename,
+        title=title,
+        path=path,
+        data_update_time=data_update_time,
+    )
 
 
 # 处理k线图

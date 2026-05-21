@@ -15,10 +15,10 @@ import os
 import time
 from price_change_analysis import compute_all_instruments, PriceChangePeriod, compute_all_instruments_amplitude
 
+from compat import set_display_precision
 from csv_output import atomic_export_pair
 
-# 设置精度
-pd.set_option('precision', 2)
+set_display_precision(2)
 
 SCREEN_RESULT_COLUMNS = ('code', 'name', 'close')
 
@@ -51,9 +51,9 @@ class HighestInHistory(Analysis):
     def analyze(self, index, instruments, df):
         idx_max = df['close'].idxmax()  # 最大值的索引
 
-        print("index: %d, date: %s, max date: %s" % (idx_max, df.ix[idx_max]['date'], df['date'].max(),))
+        print("index: %d, date: %s, max date: %s" % (idx_max, df.loc[idx_max]['date'], df['date'].max(),))
 
-        t1 = time.strptime(df.ix[idx_max]['date'], "%Y-%m-%d")
+        t1 = time.strptime(df.loc[idx_max]['date'], "%Y-%m-%d")
         t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
 
         if t1 == t2:
@@ -91,9 +91,9 @@ def highest_in_history(instrument_filename, day_file_path, result_file_path):
                 df = pd.read_csv(data_filename, index_col=False)
                 index = df['close'].idxmax()  # 最大值的索引
 
-                print("index: %d, date: %s, max date: %s" % (index, df.ix[index]['date'], df['date'].max(),))
+                print("index: %d, date: %s, max date: %s" % (index, df.loc[index]['date'], df['date'].max(),))
 
-                t1 = time.strptime(df.ix[index]['date'], "%Y-%m-%d")
+                t1 = time.strptime(df.loc[index]['date'], "%Y-%m-%d")
                 t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
 
                 if t1 == t2:
@@ -135,9 +135,9 @@ def lowest_in_history(instrument_filename, day_file_path, result_file_path):
                 df = pd.read_csv(data_filename, index_col=False)
                 index = df['close'].idxmin()  # 最小值的索引
 
-                print("index: %d, date: %s, min date: %s" % (index, df.ix[index]['date'], df['date'].max()))
+                print("index: %d, date: %s, min date: %s" % (index, df.loc[index]['date'], df['date'].max()))
 
-                t1 = time.strptime(df.ix[index]['date'], "%Y-%m-%d")
+                t1 = time.strptime(df.loc[index]['date'], "%Y-%m-%d")
                 t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
 
                 # 如果最小值出现的日期和数据最大日期相同，则为历史新低

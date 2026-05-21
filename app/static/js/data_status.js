@@ -25,12 +25,16 @@
     function renderStatus(data) {
         var rankings = (data.files && data.files.rankings) || {};
         var technical = (data.files && data.files.technical) || {};
-        var job = data.jobs && data.jobs.daily_pipeline;
+        var eodJob = data.jobs && data.jobs.eod_all;
+        var dailyJob = data.jobs && data.jobs.daily_pipeline;
+        var rankingJob = data.jobs && data.jobs.ranking_pipeline;
 
         var parts = [
             "市盈率排名: " + fileUpdateText(rankings.pe),
             "历史新高: " + fileUpdateText(technical.highest_in_history),
-            "日终任务: " + jobStatusText(job)
+            "日终汇总: " + jobStatusText(eodJob),
+            "日终任务: " + jobStatusText(dailyJob),
+            "排名任务: " + jobStatusText(rankingJob)
         ];
 
         return parts.join(" · ");

@@ -10,62 +10,23 @@ __author__ = 'Administrator'
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from datetime import datetime
-from history_data_service import HistoryDataService
-from technical_analysis_service import highest_in_history, lowest_in_history, ma_long_history, above_ma, break_ma
 import logging
 import os
 import sys
-sys.path.append("..")
-
-import getvaluation as gv
-import get_value_4_business as gv4b
-from instruments import get_instrument_list
-from utils.util import string_to_obj
-from strategy_test import PEMAStrategy
 
 
-# 输出时间
 def job():
-    #print(datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    """Run the unified end-of-day pipeline (see jobs.eod_all)."""
+    _project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    if _project_root not in sys.path:
+        sys.path.insert(0, _project_root)
 
-    service_config = string_to_obj(os.environ['SERVICE_SETTINGS'])
+    os.environ.setdefault("TWELVEWIN_DISABLE_ANALYZER", "1")
 
-    get_instrument_list(service_config)
+    from jobs.eod_all import run_eod_all
 
-    print "start downloading history data, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    history_data_service = HistoryDataService(instrument_filename=service_config.INSTRUMENT_FILENAME,
-                                              day_file_path=service_config.DAY_FILE_PATH)
-    history_data_service.run()
-
-    print "compute equities that price is highest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    highest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-                       result_file_path=service_config.RESULT_PATH)
-
-    print "compute equities that price is lowest in history, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    lowest_in_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-                      result_file_path=service_config.RESULT_PATH)
-
-    print "compute equities that ma is long, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    ma_long_history(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-                    result_file_path=service_config.RESULT_PATH, ma1=5, ma2=10, ma3=20)
-
-    print "compute equities that break ma, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    break_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-             result_file_path=service_config.RESULT_PATH, ma1=20)
-
-    print "compute equities that above ma, %s" % (datetime.now().strftime("%Y-%m-%d %H:%M:%S"),)
-    above_ma(instrument_filename=service_config.INSTRUMENT_FILENAME, day_file_path=service_config.DAY_FILE_PATH,
-             result_file_path=service_config.RESULT_PATH, ma1=250)
-
-    strategy = PEMAStrategy(service_config.DAY_FILE_PATH)
-
-    buy_list, sell_list = strategy.run()
-
-    print buy_list, sell_list
-
-    #gv.get_profit_report()
-
-    #gv4b.get_profit_report()
+    print("starting eod_all at %s" % datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+    return run_eod_all()
 
 if __name__ == '__main__':
 

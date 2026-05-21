@@ -505,6 +505,94 @@ class ExamResult(db.Model):
         self.update_time = datetime.datetime.now()
 
 
+class AnalysisRun(db.Model):
+    """
+    一批分析结果元数据（排名或技术筛选），支持按日期保留多批次历史。
+    """
+    __tablename__ = 'analysis_runs'
+
+    CATEGORY_RANKING = 'ranking'
+    CATEGORY_TECHNICAL = 'technical'
+    CATEGORY_PRICE_CHANGE = 'price_change'
+
+    id = db.Column(db.Integer, primary_key=True)
+    category = db.Column(db.String(32), index=True, nullable=False, comment='结果类别')
+    result_key = db.Column(db.String(64), index=True, nullable=False, comment='结果键，如 pe、highest')
+    as_of_date = db.Column(db.Date, index=True, nullable=False, comment='数据截至日期')
+    row_count = db.Column(db.Integer, nullable=False, default=0, comment='行数')
+    source_file = db.Column(db.String(512), nullable=True, comment='来源 CSV 文件名')
+    job_run_id = db.Column(db.Integer, db.ForeignKey('analysis_job_run.id'), nullable=True)
+    create_time = db.Column(db.DateTime, nullable=False, comment='入库时间')
+
+    __table_args__ = (
+        db.Index('ix_analysis_runs_category_key_date', 'category', 'result_key', 'as_of_date'),
+    )
+
+    def __init__(
+        self,
+        category,
+        result_key,
+        as_of_date,
+        *,
+        row_count=0,
+        source_file=None,
+        job_run_id=None,
+    ):
+        self.category = category
+        self.result_key = result_key
+        self.as_of_date = as_of_date
+        self.row_count = row_count
+        self.source_file = source_file
+        self.job_run_id = job_run_id
+        self.create_time = datetime.datetime.now()
+
+
+class RankingResult(db.Model):
+    """基本面排名结果行。"""
+    __tablename__ = 'ranking_results'
+
+    id = db.Column(db.Integer, primary_key=True)
+    run_id = db.Column(db.Integer, db.ForeignKey('analysis_runs.id'), index=True, nullable=False)
+    rank_order = db.Column(db.Integer, nullable=False, comment='排名序号，从 1 开始')
+    code = db.Column(db.String(16), index=True, nullable=False)
+    name = db.Column(db.String(64), nullable=True)
+    data = db.Column(db.Text, nullable=True, comment='完整行 JSON')
+
+    __table_args__ = (
+        db.Index('ix_ranking_results_run_order', 'run_id', 'rank_order'),
+    )
+
+    def __init__(self, run_id, rank_order, code, name=None, data=None):
+        self.run_id = run_id
+        self.rank_order = rank_order
+        self.code = code
+        self.name = name
+        self.data = data
+
+
+class TechnicalScreenResult(db.Model):
+    """技术面筛选结果行。"""
+    __tablename__ = 'technical_screen_results'
+
+    id = db.Column(db.Integer, primary_key=True)
+    run_id = db.Column(db.Integer, db.ForeignKey('analysis_runs.id'), index=True, nullable=False)
+    rank_order = db.Column(db.Integer, nullable=False, comment='排序序号，从 1 开始')
+    code = db.Column(db.String(16), index=True, nullable=False)
+    name = db.Column(db.String(64), nullable=True)
+    data = db.Column(db.Text, nullable=True, comment='完整行 JSON')
+
+    __table_args__ = (
+        db.Index('ix_technical_screen_results_run_order', 'run_id', 'rank_order'),
+    )
+
+    def __init__(self, run_id, rank_order, code, name=None, data=None):
+        self.run_id = run_id
+        self.rank_order = rank_order
+        self.code = code
+        self.name = name
+        self.data = data
+
+
 class AnalysisJobRun(db.Model):
     """
     离线分析任务运行记录。

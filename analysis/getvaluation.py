@@ -5,6 +5,8 @@
 get_valuation_report() 基于股票基础数据和当日行情计算 ROE、PEG、估值和估值差。
 get_profit_report() 使用分红数据和实时行情生成股息率、ROE、市盈率、市净率、市值等排名，
 输出 stock_dividence、stock_roe、stock_pe、stock_pb、stock_value 等 CSV。
+
+行情与分红数据经 ``providers.market_registry`` 拉取（默认 AkShare，可回退 tushare）。
 """
 
 __author__ = 'jerry'
@@ -13,7 +15,6 @@ import os
 import sys
 
 import pandas as pd
-import tushare as ts
 import datetime
 from config import config
 
@@ -21,22 +22,27 @@ _ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
+from compat import apply_close_price, set_display_precision
 from csv_output import atomic_export_pair, get_result_path
+from providers.market_registry import (
+    fetch_dividend_dataframe,
+    fetch_stock_basics_dataframe,
+    fetch_today_quotes_dataframe,
+)
 
-# 设置精度
-pd.set_option('precision', 2)
+set_display_precision(2)
 
 # 财务年度
 YEAR = 2017
 
 # 财务季度
-SEASON = 4 
+SEASON = 4
 
 key = ["code"]
 
 today = datetime.date.today()
 
-# 导出排名 CSV（原子写入）
+
 def export_report(dest, title):
     result_path = get_result_path(config)
     atomic_export_pair(
@@ -50,160 +56,139 @@ def export_report(dest, title):
     )
 
 
-# 交换值
-def swap_value(x, y):
-    return x if x!=0.00 else y
+def _prepare_quotes(df_quots):
+    """Normalize quote frame to legacy tushare column names."""
+    if 'name' not in df_quots.columns and '名称' in df_quots.columns:
+        df_quots = df_quots.rename(columns={'名称': 'name'})
+
+    if 'per' not in df_quots.columns and 'pe' in df_quots.columns:
+        df_quots['per'] = df_quots['pe']
+
+    if 'trade' not in df_quots.columns and 'close' in df_quots.columns:
+        df_quots['trade'] = df_quots['close']
+
+    if 'settlement' not in df_quots.columns:
+        df_quots['settlement'] = df_quots.get('trade', 0)
+
+    per = pd.to_numeric(df_quots.get('per'), errors='coerce')
+    pb = pd.to_numeric(df_quots.get('pb'), errors='coerce')
+    df_quots['roe'] = pb * 100 / per.replace(0, pd.NA)
+    apply_close_price(df_quots)
+    df_quots.reset_index(inplace=True)
+
+    drop_cols = [
+        'index', 'name', 'changepercent', 'trade', 'open', 'high', 'low',
+        'settlement', 'volume', 'amount', 'mktcap_raw', 'nmc_raw', 'esp', 'bvps', 'shares',
+    ]
+    existing = [col for col in drop_cols if col in df_quots.columns]
+    return df_quots.drop(existing, axis=1)
 
 
 def get_valuation_report():
-    # 获取股票列表
-    df_basic = ts.get_stock_basics()
+    df_basic = fetch_stock_basics_dataframe()
+    if df_basic is None or df_basic.empty:
+        raise RuntimeError('unable to load stock basics for valuation report')
 
-    df_basic['roe'] = df_basic['esp']*100/df_basic['bvps']
+    df_basic['roe'] = df_basic['esp'] * 100 / df_basic['bvps']
+    if 'profit' in df_basic.columns:
+        df_basic['peg'] = df_basic['pe'] / df_basic['profit']
 
-    df_basic['peg'] = df_basic['pe']/df_basic['profit']
-    #df_basic['value_increase'] = df_basic['esp']*(8.5+2*df_basic['profit']/100)
+    if 'index' in df_basic.columns:
+        df_basic.reset_index(inplace=True)
 
-    df_basic.reset_index(inplace=True)
-    df_basic = df_basic.drop(['area', 'outstanding', 'totalAssets', 'liquidAssets', 'fixedAssets', 'reserved', 'reservedPerShare', 'undp', 'perundp', 'rev', 'profit', 'gpr', 'npr', 'holders'], axis=1)
+    drop_cols = [
+        'area', 'outstanding', 'totalAssets', 'liquidAssets', 'fixedAssets',
+        'reserved', 'reservedPerShare', 'undp', 'perundp', 'rev', 'profit',
+        'gpr', 'npr', 'holders',
+    ]
+    existing = [col for col in drop_cols if col in df_basic.columns]
+    df_basic = df_basic.drop(existing, axis=1)
 
-    '''
-    code,代码
-    name,名称
-    industry,所属行业
-    area,地区
-    pe,市盈率
-    outstanding,流通股本(亿)
-    totals,总股本(亿)
-    totalAssets,总资产(万)
-    liquidAssets,流动资产
-    fixedAssets,固定资产
-    reserved,公积金
-    reservedPerShare,每股公积金
-    esp,每股收益
-    bvps,每股净资
-    pb,市净率
-    timeToMarket,上市日期
-    undp,未分利润
-    perundp, 每股未分配
-    rev,收入同比(%)
-    profit,利润同比(%)
-    gpr,毛利率(%)
-    npr,净利润率(%)
-    holders,股东人数
-    '''
+    df_quots = fetch_today_quotes_dataframe()
+    if df_quots is None or df_quots.empty:
+        raise RuntimeError('unable to load spot quotes for valuation report')
 
-    #获取最新股价
-    df_quots = ts.get_today_all()  
-
-    '''
-    code：代码
-    name:名称
-    changepercent:涨跌幅
-    trade:现价
-    open:开盘价
-    high:最高价
-    low:最低价
-    settlement:昨日收盘价
-    volume:成交量
-    turnoverratio:换手率
-    amount:成交量
-    per:市盈率
-    pb:市净率
-    mktcap:总市值
-    nmc:流通市值
-    '''
-
-    df_quots['close'] = map(swap_value, df_quots['trade'], df_quots['settlement'])
-
-    df_quots.reset_index(inplace=True)
-    df_quots = df_quots.drop(['index','name','changepercent','trade','open','high','low','settlement','volume','turnoverratio','amount','per','pb','nmc'], axis=1)
-
+    df_quots = _prepare_quotes(df_quots.copy())
     df = pd.merge(df_basic, df_quots, how='left', on=key)
-
-    df['value'] = df['esp']/0.08
-
-    df['rate'] = (df['value']-df['close'])*100/df['close']
-
-    #df['rate_inc'] = (df['value_increase']-df['close'])*100/df['close']
-
+    df['value'] = df['esp'] / 0.08
+    df['rate'] = (df['value'] - df['close']) * 100 / df['close']
     df = df.sort_values(["rate"], ascending=False)
-
     df.drop_duplicates(inplace=True)
-
-    columns = {}
-    columns['name'] = ['代码', '名称', '所属行业', '市盈率', '总股本(亿)', '每股收益', '每股净资产', '市净率', '上市日期', '净资产收益率', 'PEG',  '总市值', '现价', '估值', '估值差(%)']
-    columns['index'] = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14]
-
-    export_report(df, columns=columns, title="stockvaluation")
+    export_report(df, title="stockvaluation")
 
 
-# 获取股票的均线
 def get_stock_ma(code, ma):
-    df = ts.get_k_data(code=code, ktype='W', autype='qfq')
+    import akshare as ak
 
-    df['ma'+str(ma)] = df['close'].rolling(window=ma).mean()
+    end = datetime.date.today()
+    start = end - datetime.timedelta(days=ma * 7 + 30)
+    frame = ak.stock_zh_a_hist(
+        symbol=code,
+        period='weekly',
+        adjust='qfq',
+        start_date=start.strftime('%Y%m%d'),
+        end_date=end.strftime('%Y%m%d'),
+    )
+    if frame is None or frame.empty:
+        return None
 
-    return df
+    frame = frame.rename(columns={'收盘': 'close'})
+    frame['ma' + str(ma)] = frame['close'].rolling(window=ma).mean()
+    return frame
 
 
 def get_profit_report():
-    df = ts.profit_data(top=4000)
+    df = fetch_dividend_dataframe()
+    if df is None or df.empty:
+        raise RuntimeError(
+            'unable to load dividend data (East Money / AkShare fhps). '
+            'Try: export TW_DIVIDEND_REPORT_DATE=20241231 '
+            'or TW_MARKET_DATA_PROVIDER=yahoo'
+        )
 
     df = df.sort_values('divi', ascending=False)
 
-    #获取最新股价
-    df_quots = ts.get_today_all()
+    df_quots = fetch_today_quotes_dataframe()
+    if df_quots is None or df_quots.empty:
+        raise RuntimeError('unable to load spot quotes for profit report')
 
-    df_quots['roe'] = df_quots['pb']*100/df_quots['per']
-    #df_basic['peg'] = df_basic['pe']/df_basic['profit']
-    df_quots['close'] = map(swap_value, df_quots['trade'], df_quots['settlement'])
+    if 'per' not in df_quots.columns:
+        raise RuntimeError('spot quotes missing PE (per); check AkShare connectivity')
 
-
-    df_quots.reset_index(inplace=True)
-    df_quots = df_quots.drop(['index','name','changepercent','trade','open','high','low','settlement','volume','turnoverratio','amount','nmc'], axis=1)
+    df_quots = _prepare_quotes(df_quots.copy())
 
     df = pd.merge(df, df_quots, how='left', on=key)
 
-    df['rate'] = df['divi']/10*100/df['close']	
+    for col in ('close', 'per', 'pb', 'roe', 'divi'):
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
 
-    df['valueprice'] = df['roe']*(df['close']/df['pb'])/15
+    # Drop rows that would cause div-by-zero (pb/per/close); legacy tushare rarely had pb==0.
+    df = df[(df['close'] > 0) & (df['per'] > 0) & (df['pb'] > 0)]
+    if df.empty:
+        raise RuntimeError('no rows left after filtering invalid close/per/pb')
 
+    df['rate'] = df['divi'] / 10 * 100 / df['close']
+    df['valueprice'] = df['roe'] * (df['close'] / df['pb']) / 15
     df = df.sort_values('rate', ascending=False)
-
-    #df['value'] = df['esp']/0.08
-
-    #df['rate'] = (df['value']-df['close'])*100/df['close']
-
-    df = df[df['per']>0]
-
     df = df.sort_values('report_date', ascending=False)
-
     df = df.drop_duplicates(['name'])
 
-
-    # 按现金股息率排行
     df = df.sort_values('rate', ascending=False)
     export_report(df, title="stock_dividence")
 
-    # 按roe排行
     df = df.sort_values('roe', ascending=False)
     export_report(df, title="stock_roe")
 
-    # 按市盈率
     df = df.sort_values('per', ascending=True)
     export_report(df, title="stock_pe")
 
-    # 按市净率
     df = df.sort_values('pb', ascending=True)
-    export_report(df, title="stock_pb") 
+    export_report(df, title="stock_pb")
 
-    # 不排序
     df = df.sort_values('mktcap', ascending=True)
     export_report(df, title="stock_value")
 
-    # 按peg排行
-    #export_report(df, columns=columns, title="stock_pb")
 
 if __name__ == '__main__':
     get_profit_report()

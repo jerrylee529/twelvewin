@@ -25,15 +25,22 @@ def _step_update_instruments(config) -> dict:
     _ensure_analysis_path()
     from instruments import get_instrument_list
 
-    get_instrument_list()
-    return {"status": "ok"}
+    frame = get_instrument_list()
+    if frame is None:
+        return {"status": "skipped", "reason": "no instrument list available"}
+    return {
+        "status": "ok",
+        "provider": frame.attrs.get("provider"),
+        "rows": len(frame),
+    }
 
 
 def _step_download_history(config) -> dict:
     _ensure_analysis_path()
     from history_data_service import HistoryDataService
 
-    HistoryDataService().run()
+    service = HistoryDataService()
+    service.run()
     return {"status": "ok"}
 
 

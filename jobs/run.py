@@ -25,7 +25,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Run twelvewin offline jobs")
     parser.add_argument(
         "job_name",
-        choices=["daily_pipeline"],
+        choices=["daily_pipeline", "ranking_pipeline", "eod_all"],
         help="job to execute",
     )
     args = parser.parse_args(argv)
@@ -36,6 +36,18 @@ def main(argv=None):
         from jobs.daily_pipeline import run_daily_pipeline
 
         run_daily_pipeline()
+        return 0
+
+    if args.job_name == "ranking_pipeline":
+        from jobs.ranking_pipeline import run_ranking_pipeline
+
+        run_ranking_pipeline()
+        return 0
+
+    if args.job_name == "eod_all":
+        from jobs.eod_all import run_eod_all
+
+        run_eod_all()
         return 0
 
     parser.error("unknown job: {}".format(args.job_name))

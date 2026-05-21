@@ -3,6 +3,10 @@
 """Business stock ranking service."""
 
 from app.services.csv_store import CsvReadResult, read_rows
+from app.services.result_store_service import (
+    get_ranking_rows_from_db,
+    read_analysis_from_db_enabled,
+)
 
 
 def _labels_match(stock_labels, requested_labels):
@@ -17,7 +21,14 @@ def _labels_match(stock_labels, requested_labels):
 
 def get_business_rows(config, labels="", *, label_lookup=None, add_id=True) -> CsvReadResult:
     """Read stock_business.csv and merge optional DB-backed labels."""
-    result = read_rows(config['RESULT_PATH'], 'stock_business.csv')
+    if read_analysis_from_db_enabled(config):
+        db_result = get_ranking_rows_from_db('business')
+        if db_result is not None and db_result.rows:
+            result = db_result
+        else:
+            result = read_rows(config['RESULT_PATH'], 'stock_business.csv')
+    else:
+        result = read_rows(config['RESULT_PATH'], 'stock_business.csv')
     requested_labels = set(labels.split())
     rows = []
 

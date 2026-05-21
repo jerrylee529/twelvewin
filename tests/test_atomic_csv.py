@@ -5,7 +5,17 @@ import os
 import tempfile
 import unittest
 
-from jobs.io import atomic_dataframe_to_csv, atomic_write_file, validate_csv_columns
+try:
+    import pandas as pd
+except ImportError:
+    pd = None
+
+from jobs.io import (
+    atomic_append_dataframe_to_csv,
+    atomic_dataframe_to_csv,
+    atomic_write_file,
+    validate_csv_columns,
+)
 
 
 class AtomicCsvTestCase(unittest.TestCase):
@@ -67,6 +77,27 @@ class AtomicCsvTestCase(unittest.TestCase):
             )
 
             validate_csv_columns(final_path, ["code", "name", "close"])
+
+
+    @unittest.skipUnless(pd is not None, "pandas not installed")
+    def test_atomic_append_dataframe_preserves_existing_rows(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "000001.csv")
+            pd.DataFrame([{"code": "000001", "close": 10.0}]).to_csv(path, index=False)
+            new_rows = pd.DataFrame([{"code": "000001", "close": 10.5}])
+
+            atomic_append_dataframe_to_csv(path, new_rows, index=False)
+
+            merged = pd.read_csv(path)
+            self.assertEqual(2, len(merged))
+
+    @unittest.skipUnless(pd is not None, "pandas not installed")
+    def test_atomic_append_creates_file_when_missing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "000002.csv")
+            new_rows = pd.DataFrame([{"code": "000002", "close": 10.0}])
+            atomic_append_dataframe_to_csv(path, new_rows, index=False)
+            self.assertTrue(os.path.exists(path))
 
 
 if __name__ == "__main__":

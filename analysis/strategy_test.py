@@ -18,7 +18,8 @@ from models import StrategyResultInfo, Session
 from sqlalchemy import desc
 
 # 设置精度
-pd.set_option('precision', 2)
+from compat import set_display_precision
+set_display_precision(2)
 
 
 # 选股策略

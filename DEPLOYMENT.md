@@ -19,8 +19,44 @@
 ```bash
 export TWELVEWIN_DISABLE_ANALYZER=1
 flask db upgrade   # 创建 analysis_job_run 表
-python manage.py run_job daily_pipeline
-# 或：python -m jobs.run daily_pipeline
+python manage.py run_job eod_all
+# 或单独运行：
+# python manage.py run_job daily_pipeline
+# python manage.py run_job ranking_pipeline
+# 或：python -m jobs.run eod_all
+
+生产 cron 推荐使用仓库根目录脚本（需先 `chmod +x bin/run_eod_jobs.sh`）：
+
+```bash
+./bin/run_eod_jobs.sh
+```
+
+分析依赖（akshare、pandas 等）见 `requirements-analysis.txt`，Web 部署可不安装。
+
+无 tushare 时可用本地代码列表：
+
+```bash
+export TW_DATA_PROVIDER=local   # 仅读 instruments.csv 或 day_data/*.csv
+# 或
+export TW_DATA_PROVIDER=akshare # 需 pip install akshare
+```
+
+### 阶段 6：分析结果入库（Postgres/SQLite）
+
+迁移新表：
+
+```bash
+flask db upgrade   # 含 analysis_runs、ranking_results、technical_screen_results
+```
+
+将已有 CSV 导入数据库（Web 默认 `READ_ANALYSIS_FROM_DB=true`，优先读库）：
+
+```bash
+python manage.py import_results
+# 或单项：python manage.py import_results ranking:pe
+```
+
+仅跑 Web、不跑批处理时，也可在每次更新 CSV 后执行 `import_results`。
 ```
 
 Web 可通过 `GET /main/data_status` 查看主要 CSV 的 `update_time` 与最近一次 `daily_pipeline` 运行状态。

@@ -56,3 +56,26 @@ def atomic_dataframe_to_csv(
         dataframe.to_csv(tmp_path, **to_csv_kwargs)
 
     return atomic_write_file(final_path, _write, required_columns=required_columns)
+
+
+def atomic_append_dataframe_to_csv(
+    existing_path: str,
+    new_dataframe,
+    *,
+    required_columns: Optional[Iterable[str]] = None,
+    **to_csv_kwargs,
+) -> str:
+    """Merge new rows into an existing CSV and atomically replace the file."""
+    import pandas as pd
+
+    existing_path = os.path.abspath(existing_path)
+
+    def _write(tmp_path: str) -> None:
+        if os.path.exists(existing_path):
+            existing = pd.read_csv(existing_path)
+            combined = pd.concat([existing, new_dataframe], ignore_index=True)
+        else:
+            combined = new_dataframe
+        combined.to_csv(tmp_path, **to_csv_kwargs)
+
+    return atomic_write_file(existing_path, _write, required_columns=required_columns)
