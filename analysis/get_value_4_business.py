@@ -23,7 +23,7 @@ if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
 from compat import apply_close_price, set_display_precision
-from csv_output import atomic_export_pair, get_result_path
+from result_export import export_ranking_report
 from getvaluation import _prepare_quotes
 from providers.market_registry import fetch_today_quotes_dataframe
 
@@ -35,16 +35,7 @@ today = datetime.date.today()
 
 
 def export_report(dest, title):
-    result_path = get_result_path(config)
-    atomic_export_pair(
-        dest,
-        result_path,
-        title,
-        date_suffix=today.strftime("%Y%m%d"),
-        encoding='utf-8',
-        index=False,
-        float_format='%.2f',
-    )
+    return export_ranking_report(dest, title, config=config)
 
 
 def _tushare_request_delay():

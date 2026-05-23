@@ -162,8 +162,8 @@ Redis 主要用于实时行情读取。
 
 - `app/config.py`：Web 配置。
 - `.env.example`：本地环境变量示例。
-- `analysis/config.py`：离线分析配置，读取 `TW_ANALYSIS_CONFIG_FILE` 和 `TW_ANALYSIS_ENV`。
-- `app/config/production.cfg`：历史生产配置方式。
+- 根目录 `.env`：Web、compute、analysis 统一配置（`python-dotenv`，见 `core/env.py`）。
+- `app/config.py`：Flask 配置类，值来自 `.env` 加载后的环境变量。
 
 当前推荐部署基线：
 

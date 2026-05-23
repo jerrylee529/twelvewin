@@ -73,14 +73,26 @@ def _step_technical_screens(config) -> dict:
 
     return {
         "status": "ok",
-        "outputs": [
-            "highest_in_history.csv",
-            "lowest_in_history.csv",
-            "ma_long.csv",
-            "break_ma.csv",
-            "above_ma.csv",
+        "published": [
+            "technical:highest",
+            "technical:lowest",
+            "technical:ma_long",
+            "technical:break_ma",
+            "technical:above_ma",
         ],
     }
+
+
+def _step_price_change(config) -> dict:
+    _ensure_analysis_path()
+    from technical_analysis_service import price_change_computer
+
+    instrument_filename = config_get(config, "INSTRUMENT_FILENAME")
+    day_file_path = config_get(config, "DAY_FILE_PATH")
+    result_file_path = config_get(config, "RESULT_PATH") or config_get(config, "RESULT_FILE_PATH")
+
+    price_change_computer(instrument_filename, day_file_path, result_file_path)
+    return {"status": "ok", "published": ["price_change"]}
 
 
 def build_daily_pipeline_steps(config):
@@ -88,6 +100,7 @@ def build_daily_pipeline_steps(config):
         ("update_instruments", lambda: _step_update_instruments(config)),
         ("download_history", lambda: _step_download_history(config)),
         ("technical_screens", lambda: _step_technical_screens(config)),
+        ("price_change", lambda: _step_price_change(config)),
     ]
 
 

@@ -7,6 +7,7 @@ STOCK_RANKING_FILES = {
     'pb': 'stock_pb.csv',
     'roe': 'stock_roe.csv',
     'divi': 'stock_dividence.csv',
+    'value': 'stock_value.csv',
 }
 
 TECHNICAL_ANALYSIS_FILES = {
@@ -19,3 +20,14 @@ TECHNICAL_ANALYSIS_FILES = {
 
 PRICE_CHANGE_FILE = 'price_change.csv'
 BUSINESS_RANKING_FILE = 'stock_business.csv'
+
+ANNUAL_STOCK_REPORT_FILE = 'annual_technique_report_{year}.csv'
+ANNUAL_INDUSTRY_REPORT_FILE = 'annual_industry_report_{year}.csv'
+
+
+def annual_stock_report_filename(year):
+    return ANNUAL_STOCK_REPORT_FILE.format(year=year)
+
+
+def annual_industry_report_filename(year):
+    return ANNUAL_INDUSTRY_REPORT_FILE.format(year=year)

@@ -2,11 +2,9 @@
 
 """Business stock ranking service."""
 
-from app.services.csv_store import CsvReadResult, read_rows
-from app.services.result_store_service import (
-    get_ranking_rows_from_db,
-    read_analysis_from_db_enabled,
-)
+from app.services.analysis_access import resolve_published_rows
+from app.services.csv_store import CsvReadResult
+from app.services.result_store_service import get_ranking_rows_from_db
 
 
 def _labels_match(stock_labels, requested_labels):
@@ -20,15 +18,14 @@ def _labels_match(stock_labels, requested_labels):
 
 
 def get_business_rows(config, labels="", *, label_lookup=None, add_id=True) -> CsvReadResult:
-    """Read stock_business.csv and merge optional DB-backed labels."""
-    if read_analysis_from_db_enabled(config):
-        db_result = get_ranking_rows_from_db('business')
-        if db_result is not None and db_result.rows:
-            result = db_result
-        else:
-            result = read_rows(config['RESULT_PATH'], 'stock_business.csv')
-    else:
-        result = read_rows(config['RESULT_PATH'], 'stock_business.csv')
+    """Read business ranking from DB; CSV only when CSV_DEV_FALLBACK is enabled."""
+    result = resolve_published_rows(
+        config,
+        db_fetch=lambda: get_ranking_rows_from_db('business'),
+        csv_filename='stock_business.csv',
+        csv_kwargs={'add_id': False, 'add_update_time': True},
+    )
+
     requested_labels = set(labels.split())
     rows = []
 

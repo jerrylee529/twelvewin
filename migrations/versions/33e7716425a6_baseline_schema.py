@@ -31,30 +31,6 @@ def upgrade():
     sa.Column('update_time', sa.Date(), nullable=True),
     sa.PrimaryKeyConstraint('code')
     )
-    op.create_table('exam_question',
-    sa.Column('id', sa.Integer(), nullable=False),
-    sa.Column('title', sa.String(length=128), nullable=False, comment='试题描述'),
-    sa.Column('type', sa.Integer(), nullable=False, comment='试题类型, 0: 单选题, 1: 多选题, 2: 是非题'),
-    sa.Column('score', sa.Integer(), nullable=False, comment='试题分数'),
-    sa.Column('right_answer', sa.String(length=16), nullable=False, comment='正确答案'),
-    sa.Column('option_a', sa.String(length=32), nullable=False, comment='选项A'),
-    sa.Column('option_b', sa.String(length=32), nullable=False, comment='选项B'),
-    sa.Column('option_c', sa.String(length=32), nullable=True, comment='选项C'),
-    sa.Column('option_d', sa.String(length=32), nullable=True, comment='选项D'),
-    sa.Column('option_e', sa.String(length=32), nullable=True, comment='选项E'),
-    sa.Column('option_f', sa.String(length=32), nullable=True, comment='选项F'),
-    sa.Column('create_time', sa.DateTime(), nullable=False, comment='创建时间'),
-    sa.Column('update_time', sa.DateTime(), nullable=False, comment='更新时间'),
-    sa.PrimaryKeyConstraint('id')
-    )
-    op.create_index(op.f('ix_exam_question_title'), 'exam_question', ['title'], unique=False)
-    op.create_table('exam_result',
-    sa.Column('user_nickname', sa.String(length=128), nullable=False, comment='试题描述'),
-    sa.Column('score', sa.Integer(), nullable=False, comment='考试得分'),
-    sa.Column('create_time', sa.DateTime(), nullable=False, comment='创建时间'),
-    sa.Column('update_time', sa.DateTime(), nullable=False, comment='更新时间'),
-    sa.PrimaryKeyConstraint('user_nickname')
-    )
     op.create_table('instrument',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('code', sa.String(length=8), nullable=False),
@@ -318,8 +294,5 @@ def downgrade():
     op.drop_index(op.f('ix_investment_knowledge_category'), table_name='investment_knowledge')
     op.drop_table('investment_knowledge')
     op.drop_table('instrument')
-    op.drop_table('exam_result')
-    op.drop_index(op.f('ix_exam_question_title'), table_name='exam_question')
-    op.drop_table('exam_question')
     op.drop_table('business_stock')
     # ### end Alembic commands ###

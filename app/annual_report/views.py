@@ -8,7 +8,7 @@ from app import db
 from app.models import SelfSelectedStock
 from app.decorators import check_confirmed
 from app.util import model_to_json
-from app.services.csv_store import convert_fields, read_rows
+from app.services.annual_report_service import get_annual_industry_rows, get_annual_stock_rows
 
 annual_report_blueprint = Blueprint('annual_report', __name__,)
 
@@ -29,18 +29,14 @@ def get_stock_report(year, amporchange, highorlow):
 
     data = []
 
-    field_types = [('change_rate', float), ('amplitude', float)]
-
-    result = read_rows(
-        current_app.config['RESULT_PATH'],
-        "annual_technique_report_" + year + ".csv",
-        add_id=True,
-        add_update_time=True,
-        row_transform=lambda row: convert_fields(row, field_types),
-    )
+    result = get_annual_stock_rows(current_app.config, year)
 
     if result.error:
-        current_app.logger.warning("Could not read annual stock report CSV %s: %s", result.path, result.error)
+        current_app.logger.warning(
+            "Could not read annual stock report for %s: %s",
+            year,
+            result.error,
+        )
 
     data = result.rows
 
@@ -65,18 +61,14 @@ def get_industry_report(year, amporchange, highorlow):
 
     data = []
 
-    field_types = [('avg_change_rate', float), ('avg_amplitude', float)]
-
-    result = read_rows(
-        current_app.config['RESULT_PATH'],
-        "annual_industry_report_" + year + ".csv",
-        add_id=True,
-        add_update_time=True,
-        row_transform=lambda row: convert_fields(row, field_types),
-    )
+    result = get_annual_industry_rows(current_app.config, year)
 
     if result.error:
-        current_app.logger.warning("Could not read annual industry report CSV %s: %s", result.path, result.error)
+        current_app.logger.warning(
+            "Could not read annual industry report for %s: %s",
+            year,
+            result.error,
+        )
 
     data = result.rows
 

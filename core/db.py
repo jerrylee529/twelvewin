@@ -18,7 +18,7 @@ def get_database_uri():
     uri = settings.get('SQLALCHEMY_DATABASE_URI')
     if not uri:
         raise RuntimeError(
-            'DATABASE_URL is not set. Source .env or set TW_ANALYSIS_CONFIG_FILE.'
+            'DATABASE_URL is not set. Add it to the project .env file (see .env.example).'
         )
     return uri
 

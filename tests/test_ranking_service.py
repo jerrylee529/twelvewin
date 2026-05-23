@@ -17,7 +17,14 @@ class RankingServiceTestCase(unittest.TestCase):
                 writer.writeheader()
                 writer.writerow({"code": "600000", "name": "浦发银行"})
 
-            result = get_stock_ranking({"RESULT_PATH": tmpdir}, "pe")
+            result = get_stock_ranking(
+                {
+                    "RESULT_PATH": tmpdir,
+                    "CSV_DEV_FALLBACK": True,
+                    "READ_ANALYSIS_FROM_DB": True,
+                },
+                "pe",
+            )
 
             self.assertIsNone(result.error)
             self.assertEqual(1, len(result.rows))

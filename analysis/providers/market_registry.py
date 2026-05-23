@@ -22,16 +22,19 @@ _FETCHERS = {
         'dividend': akshare_market.fetch_dividend_dataframe,
         'quotes': akshare_market.fetch_today_quotes_dataframe,
         'basics': akshare_market.fetch_stock_basics_dataframe,
+        'financial_indicators': lambda **kwargs: None,
     },
     'yahoo': {
         'dividend': yahoo_market.fetch_dividend_dataframe,
         'quotes': yahoo_market.fetch_today_quotes_dataframe,
         'basics': yahoo_market.fetch_stock_basics_dataframe,
+        'financial_indicators': lambda **kwargs: None,
     },
     'tushare': {
         'dividend': tushare_market.fetch_dividend_dataframe,
         'quotes': tushare_market.fetch_today_quotes_dataframe,
         'basics': tushare_market.fetch_stock_basics_dataframe,
+        'financial_indicators': tushare_market.fetch_financial_indicators_dataframe,
     },
 }
 
@@ -77,3 +80,7 @@ def fetch_today_quotes_dataframe(provider=None, *, enrich=True):
 
 def fetch_stock_basics_dataframe(provider=None):
     return _fetch('basics', provider=provider)
+
+
+def fetch_financial_indicators_dataframe(provider=None, codes=None):
+    return _fetch('financial_indicators', provider=provider, codes=codes)

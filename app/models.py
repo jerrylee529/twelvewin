@@ -248,6 +248,26 @@ class StockPrediction(db.Model):
         self.update_time = datetime.datetime.now()
 
 
+class StrategyResultInfo(db.Model):
+    """Offline strategy run output (buy/sell lists)."""
+    __tablename__ = 'strategy_result_info'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), index=True, nullable=False)
+    buy_list = db.Column(db.Text, nullable=True)
+    sell_list = db.Column(db.Text, nullable=True)
+    create_time = db.Column(db.DateTime, nullable=False)
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, name, buy_list, sell_list):
+        self.name = name
+        self.buy_list = buy_list
+        self.sell_list = sell_list
+        now = datetime.datetime.now()
+        self.create_time = now
+        self.update_time = now
+
+
 class StockReportBasic():
     def to_dict(self):
         return {c.name: getattr(self, c.name, None) for c in self.__table__.columns}
@@ -458,53 +478,6 @@ class InvestmentKnowledge(db.Model):
         self.priority = priority
 
 
-class ExamQuestion(db.Model):
-    """
-    考试题数据结构
-    """
-    __tablename__ = 'exam_question'
-
-    id = db.Column(db.Integer, primary_key=True)
-    title = db.Column(db.String(128), index=True, nullable=False, comment='试题描述')
-    type = db.Column(db.Integer, nullable=False, comment='试题类型, 0: 单选题, 1: 多选题, 2: 是非题')
-    score = db.Column(db.Integer, nullable=False, comment='试题分数')
-    right_answer = db.Column(db.String(16), nullable=False, comment='正确答案')
-    option_a = db.Column(db.String(32), nullable=False, comment='选项A')
-    option_b = db.Column(db.String(32), nullable=False, comment='选项B')
-    option_c = db.Column(db.String(32), nullable=True, comment='选项C')
-    option_d = db.Column(db.String(32), nullable=True, comment='选项D')
-    option_e = db.Column(db.String(32), nullable=True, comment='选项E')
-    option_f = db.Column(db.String(32), nullable=True, comment='选项F')
-    create_time = db.Column(db.DateTime, nullable=False, comment='创建时间')
-    update_time = db.Column(db.DateTime, nullable=False, comment='更新时间')
-
-    def __init__(self, title, type, score, right_answer):
-        self.title = title
-        self.type = type
-        self.create_time = datetime.datetime.now()
-        self.update_time = datetime.datetime.now()
-        self.score = score
-        self.right_answer = right_answer
-
-
-class ExamResult(db.Model):
-    """
-    考试结果
-    """
-    __tablename__ = 'exam_result'
-
-    user_nickname = db.Column(db.String(128), primary_key=True, nullable=False, comment='试题描述')
-    score = db.Column(db.Integer, nullable=False, comment='考试得分')
-    create_time = db.Column(db.DateTime, nullable=False, comment='创建时间')
-    update_time = db.Column(db.DateTime, nullable=False, comment='更新时间')
-
-    def __init__(self, user_nickname, score):
-        self.user_nickname = user_nickname
-        self.score = score
-        self.create_time = datetime.datetime.now()
-        self.update_time = datetime.datetime.now()
-
-
 class AnalysisRun(db.Model):
     """
     一批分析结果元数据（排名或技术筛选），支持按日期保留多批次历史。
@@ -514,6 +487,8 @@ class AnalysisRun(db.Model):
     CATEGORY_RANKING = 'ranking'
     CATEGORY_TECHNICAL = 'technical'
     CATEGORY_PRICE_CHANGE = 'price_change'
+    CATEGORY_ANNUAL_STOCK = 'annual_stock'
+    CATEGORY_ANNUAL_INDUSTRY = 'annual_industry'
 
     id = db.Column(db.Integer, primary_key=True)
     category = db.Column(db.String(32), index=True, nullable=False, comment='结果类别')
@@ -591,6 +566,113 @@ class TechnicalScreenResult(db.Model):
         self.code = code
         self.name = name
         self.data = data
+
+
+class DailyBar(db.Model):
+    """Daily OHLCV bar for a single instrument (replaces per-code day CSV for web)."""
+    __tablename__ = 'daily_bars'
+
+    code = db.Column(db.String(16), primary_key=True, nullable=False)
+    trade_date = db.Column(db.Date, primary_key=True, nullable=False)
+    open = db.Column(db.Float, nullable=True)
+    high = db.Column(db.Float, nullable=True)
+    low = db.Column(db.Float, nullable=True)
+    close = db.Column(db.Float, nullable=True)
+    volume = db.Column(db.Float, nullable=True)
+    amount = db.Column(db.Float, nullable=True)
+
+    def __init__(
+        self,
+        code,
+        trade_date,
+        *,
+        open=None,
+        high=None,
+        low=None,
+        close=None,
+        volume=None,
+        amount=None,
+    ):
+        self.code = code
+        self.trade_date = trade_date
+        self.open = open
+        self.high = high
+        self.low = low
+        self.close = close
+        self.volume = volume
+        self.amount = amount
+
+
+class FundamentalSnapshot(db.Model):
+    """Daily normalized fundamentals used by the stock screener."""
+    __tablename__ = 'fundamental_snapshots'
+
+    trade_date = db.Column(db.Date, primary_key=True, nullable=False)
+    code = db.Column(db.String(16), primary_key=True, nullable=False)
+    name = db.Column(db.String(64), nullable=True)
+    industry = db.Column(db.String(64), index=True, nullable=True)
+    is_st = db.Column(db.Boolean, nullable=False, default=False)
+    close = db.Column(db.Float, nullable=True)
+    pe_ttm = db.Column(db.Float, nullable=True)
+    pb_lf = db.Column(db.Float, nullable=True)
+    roe = db.Column(db.Float, nullable=True)
+    roe_y1 = db.Column(db.Float, nullable=True)
+    roe_y2 = db.Column(db.Float, nullable=True)
+    roe_y3 = db.Column(db.Float, nullable=True)
+    dividend_yield = db.Column(db.Float, nullable=True)
+    market_cap = db.Column(db.Float, nullable=True)
+    float_market_cap = db.Column(db.Float, nullable=True)
+    revenue_growth = db.Column(db.Float, nullable=True)
+    profit_growth = db.Column(db.Float, nullable=True)
+    pe_discount_to_industry = db.Column(db.Float, nullable=True)
+    pb_discount_to_industry = db.Column(db.Float, nullable=True)
+    source = db.Column(db.String(32), nullable=True)
+    create_time = db.Column(db.DateTime, nullable=False)
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    __table_args__ = (
+        db.Index('ix_fundamental_snapshots_date_industry', 'trade_date', 'industry'),
+        db.Index('ix_fundamental_snapshots_date_pe', 'trade_date', 'pe_ttm'),
+        db.Index('ix_fundamental_snapshots_date_pb', 'trade_date', 'pb_lf'),
+        db.Index('ix_fundamental_snapshots_date_roe', 'trade_date', 'roe'),
+        db.Index('ix_fundamental_snapshots_date_dividend', 'trade_date', 'dividend_yield'),
+        db.Index('ix_fundamental_snapshots_date_float_mv', 'trade_date', 'float_market_cap'),
+    )
+
+    def __init__(self, trade_date, code, **kwargs):
+        now = datetime.datetime.now()
+        self.trade_date = trade_date
+        self.code = code
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.create_time = kwargs.get('create_time') or now
+        self.update_time = kwargs.get('update_time') or now
+
+
+class IndustryFundamentalBenchmark(db.Model):
+    """Daily industry medians used to rank relative valuation."""
+    __tablename__ = 'industry_fundamental_benchmarks'
+
+    trade_date = db.Column(db.Date, primary_key=True, nullable=False)
+    industry = db.Column(db.String(64), primary_key=True, nullable=False)
+    stock_count = db.Column(db.Integer, nullable=False, default=0)
+    median_pe_ttm = db.Column(db.Float, nullable=True)
+    median_pb_lf = db.Column(db.Float, nullable=True)
+    median_roe = db.Column(db.Float, nullable=True)
+    median_dividend_yield = db.Column(db.Float, nullable=True)
+    median_market_cap = db.Column(db.Float, nullable=True)
+    median_float_market_cap = db.Column(db.Float, nullable=True)
+    create_time = db.Column(db.DateTime, nullable=False)
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, trade_date, industry, **kwargs):
+        now = datetime.datetime.now()
+        self.trade_date = trade_date
+        self.industry = industry
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+        self.create_time = kwargs.get('create_time') or now
+        self.update_time = kwargs.get('update_time') or now
 
 
 class AnalysisJobRun(db.Model):

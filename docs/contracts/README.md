@@ -10,13 +10,14 @@ break without a version bump.
 |--------|--------|--------|---------------|
 | Stock master (`instrument`) | compute (`instruments.py`) | web (`Analyzer`, views) | Postgres `instrument` |
 | Ranking screens (PE/PB/ROE/dividend/value) | compute (`ranking_pipeline`) | web (`ranking_service`) | Postgres `analysis_runs` + `ranking_results`; CSV backup |
+| Fundamental screener | compute (`ranking_pipeline`) | API / Next web | Postgres `fundamental_snapshots` + `industry_fundamental_benchmarks` |
 | Business screen | compute (`get_value_4_business`) | web (`business_service`) | Same as ranking, `result_key=business` |
 | Technical screens | compute (`daily_pipeline`) | web (`technical_analysis_service`) | Postgres `technical_screen_results` |
 | Price change | compute | web | `category=price_change` |
 | Job status | compute (`compute` / `jobs` runner) | web (`data_status_service`) | Postgres `analysis_job_run` |
 | User data (watchlist, labels) | web | web | Postgres |
 | Intraday quotes | compute / legacy updater | web (`Analyzer.get_quotation`) | Redis hash by code |
-| Daily bars | compute (`history_data_service`) | web (`market_data_service`) | Files under `DAY_FILE_PATH` (transitional) |
+| Daily bars | compute (`history_data_service` → `daily_bars`) | web (`daily_bar_service`) | Postgres `daily_bars` (optional CSV via `TW_WRITE_DAY_CSV`) |
 
 ## Versioning
 

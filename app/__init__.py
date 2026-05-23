@@ -30,36 +30,39 @@ except ImportError:
 
 def _check_config_variables_are_set(config):
     assert config['MAIL_USERNAME'] is not None,\
-           'MAIL_USERNAME is not set, set the env variable APP_MAIL_USERNAME '\
-           'or MAIL_USERNAME in the production config file.'
+           'MAIL_USERNAME is not set; set APP_MAIL_USERNAME in .env.'
     assert config['MAIL_PASSWORD'] is not None,\
-           'MAIL_PASSWORD is not set, set the env variable APP_MAIL_PASSWORD '\
-           'or MAIL_PASSWORD in the production config file.'
+           'MAIL_PASSWORD is not set; set APP_MAIL_PASSWORD in .env.'
 
     assert config['SECRET_KEY'] is not None,\
-           'SECRET_KEY is not set, set it in the production config file.'
+           'SECRET_KEY is not set; set it in .env.'
     assert config['SECURITY_PASSWORD_SALT'] is not None,\
-           'SECURITY_PASSWORD_SALT is not set, '\
-           'set it in the production config file.'
+           'SECURITY_PASSWORD_SALT is not set; set it in .env.'
 
     assert config['SQLALCHEMY_DATABASE_URI'] is not None,\
-           'SQLALCHEMY_DATABASE_URI is not set, '\
-           'set it in the production config file.'
+           'SQLALCHEMY_DATABASE_URI is not set; set DATABASE_URL in .env.'
 
-    if os.environ.get('APP_SETTINGS') == 'app.config.ProductionConfig':
+    from core.env import get_app_env
+
+    if get_app_env() == 'production':
         assert config['STRIPE_SECRET_KEY'] is not None,\
-               'STRIPE_SECRET_KEY is not set, '\
-               'set it in the production config file.'
+               'STRIPE_SECRET_KEY is not set; set it in .env.'
         assert config['STRIPE_PUBLISHABLE_KEY'] is not None,\
-               'STRIPE_PUBLISHABLE_KEY is not set, '\
-               'set it in the production config file.'
+               'STRIPE_PUBLISHABLE_KEY is not set; set it in .env.'
 
 
 app = Flask(__name__)
 
 
-settings_object = os.environ.get('APP_SETTINGS', 'app.config.LocalConfig')
-print(settings_object)
+from core.env import load_dotenv_files, resolve_app_settings
+
+load_dotenv_files()
+
+settings_object = resolve_app_settings()
+print('APP_ENV={} APP_SETTINGS={}'.format(
+    os.environ.get('APP_ENV', 'local'),
+    settings_object,
+))
 
 app.config.from_object(settings_object)
 #_check_config_variables_are_set(app.config)

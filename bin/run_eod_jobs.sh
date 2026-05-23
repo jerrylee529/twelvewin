@@ -1,5 +1,5 @@
 #!/bin/bash
-# Run all end-of-day analysis jobs (compute layer, no Flask HTTP).
+# Run all end-of-day analysis jobs (compute layer; config from .env via python-dotenv).
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,18 +15,12 @@ elif [ -f ".venv/bin/activate" ]; then
   source ".venv/bin/activate"
 fi
 
+# Optional: shell-level export before Python starts (python-dotenv also loads .env).
 if [ -f .env ]; then
   set -a
   # shellcheck disable=SC1091
   . ./.env
   set +a
-fi
-
-if [ -n "${SERVICE_SETTINGS:-}" ]; then
-  :
-elif [ -f "${TW_ANALYSIS_CONFIG_FILE:-$ROOT_DIR/analysis/config.ini}" ]; then
-  export TW_ANALYSIS_CONFIG_FILE="${TW_ANALYSIS_CONFIG_FILE:-$ROOT_DIR/analysis/config.ini}"
-  export TW_ANALYSIS_ENV="${TW_ANALYSIS_ENV:-local}"
 fi
 
 exec python -m compute eod_all

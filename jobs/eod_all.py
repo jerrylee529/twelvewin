@@ -11,22 +11,37 @@ if _ROOT not in sys.path:
 
 from jobs.base import JobRunner
 from jobs.config import config_get, load_service_config
+from jobs.annual_pipeline import build_annual_pipeline_steps
+from jobs.cluster_pipeline import build_cluster_pipeline_steps
 from jobs.daily_pipeline import build_daily_pipeline_steps
 from jobs.ranking_pipeline import build_ranking_pipeline_steps
 
 EOD_ALL_JOB = "eod_all"
 
 
+def _csv_sync_enabled():
+    return os.environ.get('TW_SYNC_CSV_TO_DB', '').lower() in ('1', 'true', 'yes', 'on')
+
+
 def _step_sync_results_to_db(config) -> dict:
+    """Optional CSV→DB backfill when TW_WRITE_RESULT_CSV produced mirror files."""
     from compute.config import load_service_config_dict
     from compute.result_store import sync_all_results_to_db
 
     return sync_all_results_to_db(load_service_config_dict())
 
 
+def _annual_report_enabled():
+    return os.environ.get('TW_RUN_ANNUAL_REPORT', '').lower() in ('1', 'true', 'yes', 'on')
+
+
 def build_eod_all_steps(config):
     steps = build_daily_pipeline_steps(config) + build_ranking_pipeline_steps(config)
-    steps.append(("sync_results_to_db", lambda: _step_sync_results_to_db(config)))
+    steps += build_cluster_pipeline_steps(config)
+    if _annual_report_enabled():
+        steps += build_annual_pipeline_steps(config)
+    if _csv_sync_enabled():
+        steps.append(("sync_results_to_db", lambda: _step_sync_results_to_db(config)))
     return steps
 
 

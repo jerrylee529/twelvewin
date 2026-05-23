@@ -1,57 +1,66 @@
 # -*- coding: utf-8 -*-
 
-"""Expose generated artifact freshness and job run status for the web UI."""
+"""Expose published artifact freshness and job run status for the web UI."""
 
 import logging
-import os
 
 from sqlalchemy.exc import SQLAlchemyError
 
-from app.services.csv_store import format_mtime, resolve_under_base
+from app.models import AnalysisRun
+from app.services.analysis_artifacts import STOCK_RANKING_FILES, TECHNICAL_ANALYSIS_FILES
 from app.services.job_run_service import get_latest_run, serialize_job_run
+from app.services.result_store_service import get_latest_analysis_run
 
 logger = logging.getLogger(__name__)
-from app.services.analysis_artifacts import STOCK_RANKING_FILES
 
 TRACKED_JOBS = ("eod_all", "daily_pipeline", "ranking_pipeline")
 
-TRACKED_RESULT_FILES = {
-    "rankings": dict(STOCK_RANKING_FILES),
+TRACKED_DB_ARTIFACTS = {
+    "rankings": {
+        key: (AnalysisRun.CATEGORY_RANKING, key)
+        for key in STOCK_RANKING_FILES
+    },
     "technical": {
-        "highest_in_history": "highest_in_history.csv",
-        "lowest_in_history": "lowest_in_history.csv",
-        "ma_long": "ma_long.csv",
-        "break_ma": "break_ma.csv",
-        "above_ma": "above_ma.csv",
+        key: (AnalysisRun.CATEGORY_TECHNICAL, key)
+        for key in TECHNICAL_ANALYSIS_FILES
     },
     "business": {
-        "business": "stock_business.csv",
+        "business": (AnalysisRun.CATEGORY_RANKING, "business"),
+    },
+    "price_change": {
+        "price_change": (AnalysisRun.CATEGORY_PRICE_CHANGE, "price_change"),
     },
 }
 
 
-def _file_status(result_path, filename):
-    try:
-        path = resolve_under_base(result_path, filename)
-    except ValueError as exc:
-        return {"filename": filename, "exists": False, "error": str(exc)}
+def _db_artifact_status(category, result_key):
+    run = get_latest_analysis_run(category, result_key)
+    if run is None or run.row_count == 0:
+        return {
+            "result_key": result_key,
+            "category": category,
+            "exists": False,
+            "update_time": None,
+            "row_count": 0,
+        }
 
     return {
-        "filename": filename,
-        "path": path,
-        "exists": os.path.exists(path),
-        "update_time": format_mtime(path),
+        "result_key": result_key,
+        "category": category,
+        "exists": True,
+        "update_time": run.as_of_date.strftime("%Y-%m-%d"),
+        "row_count": run.row_count,
+        "source_file": run.source_file,
     }
 
 
 def get_data_status(config):
-    result_path = config.get("RESULT_PATH")
-    files = {}
+    artifacts = {}
 
-    for group_name, mapping in TRACKED_RESULT_FILES.items():
-        files[group_name] = {
-            key: _file_status(result_path, filename)
-            for key, filename in mapping.items()
+    for group_name, mapping in TRACKED_DB_ARTIFACTS.items():
+        artifacts[group_name] = {
+            key: _db_artifact_status(category, result_key)
+            for key, (category, result_key) in mapping.items()
         }
 
     jobs = {}
@@ -63,7 +72,6 @@ def get_data_status(config):
             jobs[job_name] = None
 
     return {
-        "result_path": result_path,
-        "files": files,
+        "artifacts": artifacts,
         "jobs": jobs,
     }

@@ -4,6 +4,7 @@
 
 import datetime
 import os
+import time
 
 
 class TushareProError(RuntimeError):
@@ -118,7 +119,7 @@ def fetch_daily_basic_snapshot(trade_date=None, pro=None):
 
     basics = pro.daily_basic(
         trade_date=trade_date,
-        fields='ts_code,close,pre_close,pe,pe_ttm,pb,total_mv,circ_mv,turnover_rate',
+        fields='ts_code,close,pre_close,pe,pe_ttm,pb,total_mv,circ_mv,turnover_rate,dv_ttm',
     )
     if basics is None or basics.empty:
         return None, trade_date
@@ -141,7 +142,147 @@ def fetch_daily_basic_snapshot(trade_date=None, pro=None):
         'mktcap': pd.to_numeric(basics.get('total_mv'), errors='coerce'),
         'nmc': pd.to_numeric(basics.get('circ_mv'), errors='coerce'),
         'turnoverratio': pd.to_numeric(basics.get('turnover_rate'), errors='coerce'),
+        'dividend_yield': pd.to_numeric(basics.get('dv_ttm'), errors='coerce'),
     })
     frame = frame.dropna(subset=['code'])
     frame.attrs['trade_date'] = trade_date
     return frame.reset_index(drop=True), trade_date
+
+
+def _env_int(name, default):
+    try:
+        return int(os.environ.get(name, str(default)) or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_float(name, default):
+    try:
+        return float(os.environ.get(name, str(default)) or default)
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_bool(name, default=False):
+    value = os.environ.get(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ('1', 'true', 'yes', 'on')
+
+
+def _financial_indicator_periods(years):
+    today = datetime.date.today()
+    latest_year = today.year - 1 if today.month >= 5 else today.year - 2
+    return [
+        (offset + 1, '{:04d}1231'.format(latest_year - offset))
+        for offset in range(years)
+    ]
+
+
+def _fetch_financial_indicator_for_period(pro, period):
+    return pro.fina_indicator(
+        period=period,
+        fields='ts_code,end_date,roe,or_yoy,netprofit_yoy',
+    )
+
+
+def _fetch_financial_indicator_for_codes(pro, periods, codes):
+    import pandas as pd
+
+    frames = []
+    sleep_seconds = max(0.0, _env_float('TW_TUSHARE_FINANCIAL_SLEEP_SEC', 0.12))
+    max_codes = _env_int('TW_TUSHARE_FINANCIAL_MAX_CODES', 0)
+    if max_codes > 0:
+        codes = codes[:max_codes]
+
+    for code in codes:
+        ts_code = code_to_ts_code(code)
+        if not ts_code:
+            continue
+        for offset, period in periods:
+            try:
+                frame = pro.fina_indicator(
+                    ts_code=ts_code,
+                    period=period,
+                    fields='ts_code,end_date,roe,or_yoy,netprofit_yoy',
+                )
+            except Exception as exc:
+                print('tushare fina_indicator {} {} failed: {}'.format(ts_code, period, repr(exc)))
+                continue
+            if frame is not None and not frame.empty:
+                frame = frame.copy()
+                frame['year_offset'] = offset
+                frames.append(frame)
+            if sleep_seconds > 0:
+                time.sleep(sleep_seconds)
+
+    if not frames:
+        return None
+    return pd.concat(frames, ignore_index=True)
+
+
+def fetch_financial_indicator_snapshot(years=3, pro=None, codes=None):
+    """Fetch latest annual financial indicators used by the screener."""
+    import pandas as pd
+
+    pro = pro or get_pro_client()
+    periods = _financial_indicator_periods(years)
+    frames = []
+
+    for offset, period in periods:
+        try:
+            frame = _fetch_financial_indicator_for_period(pro, period)
+        except Exception as exc:
+            if 'ts_code' not in str(exc):
+                raise
+            frames = []
+            break
+        if frame is None or frame.empty:
+            continue
+        frame = frame.copy()
+        frame['code'] = frame['ts_code'].map(ts_code_to_code)
+        frame['year_offset'] = offset
+        frames.append(frame)
+
+    by_code_enabled = (
+        _env_bool('TW_TUSHARE_FINANCIAL_BY_CODE')
+        or _env_int('TW_TUSHARE_FINANCIAL_MAX_CODES', 0) > 0
+    )
+    if not frames and codes and by_code_enabled:
+        data = _fetch_financial_indicator_for_codes(pro, periods, codes)
+        if data is not None and not data.empty:
+            data = data.copy()
+            data['code'] = data['ts_code'].map(ts_code_to_code)
+            frames = [data]
+    elif not frames and codes:
+        print(
+            'tushare fina_indicator bulk query requires ts_code; '
+            'set TW_TUSHARE_FINANCIAL_BY_CODE=true to enable per-code enrichment'
+        )
+
+    if not frames:
+        return None
+
+    data = pd.concat(frames, ignore_index=True)
+    result = pd.DataFrame({'code': sorted(data['code'].dropna().unique())})
+
+    for offset in range(1, years + 1):
+        part = data[data['year_offset'] == offset].drop_duplicates(subset=['code'])
+        part = part[['code', 'roe']].rename(columns={'roe': 'roe_y{}'.format(offset)})
+        result = result.merge(part, on='code', how='left')
+
+    latest = data[data['year_offset'] == 1].drop_duplicates(subset=['code'])
+    latest = latest[['code', 'or_yoy', 'netprofit_yoy']].rename(
+        columns={
+            'or_yoy': 'revenue_growth',
+            'netprofit_yoy': 'profit_growth',
+        }
+    )
+    result = result.merge(latest, on='code', how='left')
+
+    for column in ('roe_y1', 'roe_y2', 'roe_y3', 'revenue_growth', 'profit_growth'):
+        if column in result.columns:
+            result[column] = pd.to_numeric(result[column], errors='coerce')
+
+    result.attrs['provider'] = 'tushare'
+    return result.reset_index(drop=True)

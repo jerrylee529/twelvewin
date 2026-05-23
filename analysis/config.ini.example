@@ -1,18 +1,1 @@
-# Copy to analysis/config.ini and adjust paths.
-# Used when TW_ANALYSIS_CONFIG_FILE is not set and SERVICE_SETTINGS is not set.
-
-[local]
-DEBUG = true
-SECRET_KEY = change-me
-MAIL_SERVER = smtp.example.com
-MAIL_PORT = 465
-MAIL_USE_TLS = false
-MAIL_USE_SSL = true
-MAIL_USERNAME =
-MAIL_PASSWORD =
-MAIL_DEFAULT_SENDER = noreply@example.com
-SQLALCHEMY_DATABASE_URI = sqlite:///../local_data/twelvewin.sqlite
-STRIPE_SECRET_KEY =
-STRIPE_PUBLISHABLE_KEY =
-DAY_FILE_PATH = ../local_data/day_data/
-RESULT_FILE_PATH = ../local_data/results/
+# DEPRECATED — use the repository root .env file (see .env.example).

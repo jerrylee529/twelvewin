@@ -8,6 +8,12 @@ Create Date: 2026-05-19 10:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
+from migrations.util import (
+    create_index_if_missing,
+    create_table_if_missing,
+    drop_index_if_exists,
+    drop_table_if_exists,
+)
 
 revision = 'b8f4a2c91d0e'
 down_revision = '33e7716425a6'
@@ -16,7 +22,7 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table(
+    create_table_if_missing(
         'analysis_job_run',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('job_name', sa.String(length=128), nullable=False, comment='任务名称'),
@@ -31,11 +37,21 @@ def upgrade():
         sa.Column('update_time', sa.DateTime(), nullable=False, comment='更新时间'),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index(op.f('ix_analysis_job_run_job_name'), 'analysis_job_run', ['job_name'], unique=False)
-    op.create_index(op.f('ix_analysis_job_run_status'), 'analysis_job_run', ['status'], unique=False)
+    create_index_if_missing(
+        op.f('ix_analysis_job_run_job_name'),
+        'analysis_job_run',
+        ['job_name'],
+        unique=False,
+    )
+    create_index_if_missing(
+        op.f('ix_analysis_job_run_status'),
+        'analysis_job_run',
+        ['status'],
+        unique=False,
+    )
 
 
 def downgrade():
-    op.drop_index(op.f('ix_analysis_job_run_status'), table_name='analysis_job_run')
-    op.drop_index(op.f('ix_analysis_job_run_job_name'), table_name='analysis_job_run')
-    op.drop_table('analysis_job_run')
+    drop_index_if_exists(op.f('ix_analysis_job_run_status'), 'analysis_job_run')
+    drop_index_if_exists(op.f('ix_analysis_job_run_job_name'), 'analysis_job_run')
+    drop_table_if_exists('analysis_job_run')

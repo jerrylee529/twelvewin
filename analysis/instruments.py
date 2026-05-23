@@ -56,19 +56,40 @@ def _instruments_csv_path():
     return os.path.join(_day_file_path(), 'instruments.csv')
 
 
-def _load_from_database_dataframe():
+def _load_from_database_dataframe(*, include_industry=False):
     session = Session()
     try:
-        rows = session.query(Instrument.code, Instrument.name).all()
+        if include_industry:
+            rows = session.query(Instrument.code, Instrument.name, Instrument.industry).all()
+        else:
+            rows = session.query(Instrument.code, Instrument.name).all()
     finally:
         session.close()
 
     if not rows:
         return None
 
-    frame = dataframe_from_code_name_pairs(rows)
+    if include_industry:
+        frame = pd.DataFrame(
+            [
+                {
+                    'code': str(code),
+                    'name': name or str(code),
+                    'industry': industry or '',
+                }
+                for code, name, industry in rows
+            ]
+        )
+    else:
+        frame = dataframe_from_code_name_pairs(rows)
+
     frame.attrs['provider'] = 'database'
     return frame
+
+
+def load_instruments_dataframe(*, include_industry=False):
+    """Instrument list from database for offline analysis."""
+    return _load_from_database_dataframe(include_industry=include_industry)
 
 
 def _load_from_local_fallback():
@@ -135,7 +156,14 @@ def persist_instrument_dataframe(frame):
     return added
 
 
+def _write_day_csv_enabled():
+    return os.environ.get('TW_WRITE_DAY_CSV', '').lower() in ('1', 'true', 'yes', 'on')
+
+
 def export_instruments_csv(frame, csv_path=None):
+    if not _write_day_csv_enabled():
+        return None
+
     csv_path = csv_path or _instruments_csv_path()
     directory = os.path.dirname(os.path.abspath(csv_path))
     os.makedirs(directory, exist_ok=True)
@@ -173,19 +201,23 @@ def get_instrument_list(provider=None):
             provider_name,
             len(frame),
             added,
-            csv_path,
+            csv_path or '(db only)',
         )
     )
     return frame
 
 
 def get_all_instrument_codes():
-    """优先数据库；为空时回退本地 instruments.csv 或 day_data 下的 CSV 文件名。"""
-    session = Session()
+    """优先数据库；为空或表不存在时回退本地 instruments.csv 或 day_data 下的 CSV 文件名。"""
+    codes = []
     try:
-        codes = [item[0] for item in session.query(Instrument.code).all()]
-    finally:
-        session.close()
+        session = Session()
+        try:
+            codes = [item[0] for item in session.query(Instrument.code).all()]
+        finally:
+            session.close()
+    except Exception as exc:
+        print('instrument query failed, using local fallback: {}'.format(exc))
 
     if codes:
         return codes

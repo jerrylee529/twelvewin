@@ -3,6 +3,7 @@
 """Ensure phase-6 and job-tracking tables exist (compute-side, no Flask request)."""
 
 import logging
+import os
 
 from sqlalchemy import inspect
 
@@ -15,6 +16,9 @@ REQUIRED_ANALYSIS_TABLES = (
     'analysis_runs',
     'ranking_results',
     'technical_screen_results',
+    'daily_bars',
+    'fundamental_snapshots',
+    'industry_fundamental_benchmarks',
 )
 
 
@@ -25,27 +29,24 @@ def missing_analysis_tables(engine=None):
 
 
 def ensure_analysis_schema(engine=None):
-    """Create missing analysis tables from Flask-SQLAlchemy metadata."""
+    """Ensure analysis tables exist; prefer Alembic upgrade over ad-hoc create_all."""
     engine = engine or get_engine()
     missing = missing_analysis_tables(engine)
     if not missing:
         return False
 
     logger.warning(
-        'Database missing analysis tables (%s); creating from model metadata.',
+        'Database missing analysis tables (%s); running flask db upgrade.',
         ', '.join(missing),
     )
 
-    import app.models  # noqa: F401 — register all models
-    from app import db
+    try:
+        from flask_migrate import upgrade as migrate_upgrade
 
-    tables = [
-        db.metadata.tables[name]
-        for name in missing
-        if name in db.metadata.tables
-    ]
-    if tables:
-        db.metadata.create_all(engine, tables=tables)
+        os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
+        migrate_upgrade()
+    except Exception as exc:
+        logger.warning('flask db upgrade failed: %s', exc)
 
     still_missing = missing_analysis_tables(engine)
     if still_missing:

@@ -1,10 +1,9 @@
 #!/bin/bash
 set -euo pipefail
 
-export APP_SETTINGS="${APP_SETTINGS:-app.config.LocalConfig}"
-
 if [ -f .env ]; then
   set -a
+  # shellcheck source=/dev/null
   . ./.env
   set +a
 fi

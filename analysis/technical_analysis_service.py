@@ -16,24 +16,33 @@ import time
 from price_change_analysis import compute_all_instruments, PriceChangePeriod, compute_all_instruments_amplitude
 
 from compat import set_display_precision
-from csv_output import atomic_export_pair
+from day_data import day_data_available, load_day_dataframe, load_instruments_dataframe
+from result_export import export_screen_report
 
 set_display_precision(2)
 
 SCREEN_RESULT_COLUMNS = ('code', 'name', 'close')
 
 
+def _load_instruments():
+    instruments = load_instruments_dataframe()
+    if instruments is None or instruments.empty:
+        print("Could not find any instruments, exit")
+        return None
+    instruments = instruments.copy()
+    instruments['code'] = instruments['code'].astype(str)
+    if 'name' not in instruments.columns:
+        instruments['name'] = instruments['code']
+    return instruments
+
+
 def _write_screen_results(instruments, result_file_path, basename):
     instruments = instruments.copy()
     instruments['close'] = instruments['close'].astype('float64')
-    return atomic_export_pair(
+    return export_screen_report(
         instruments,
-        result_file_path,
         basename,
-        date_suffix=date.today().strftime("%Y-%m-%d"),
         required_columns=SCREEN_RESULT_COLUMNS,
-        index=False,
-        float_format='%.2f',
     )
 
 
@@ -70,25 +79,21 @@ class LongMA(Analysis):
 
 # 历史最高
 def highest_in_history(instrument_filename, day_file_path, result_file_path):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
+    instruments = _load_instruments()
     if instruments is None:
-        print("Could not find any instruments, exit")
         return
 
     instruments['close'] = None
 
     code_index = -1
     for code in instruments['code']:
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
-
         code_index += 1
 
-        print("calculate %s, file path: %s" % (code, data_filename))
+        print("calculate %s" % code)
 
-        if os.path.exists(data_filename):
+        if day_data_available(code):
             try:
-                df = pd.read_csv(data_filename, index_col=False)
+                df = load_day_dataframe(code)
                 index = df['close'].idxmax()  # 最大值的索引
 
                 print("index: %d, date: %s, max date: %s" % (index, df.loc[index]['date'], df['date'].max(),))
@@ -114,25 +119,21 @@ def highest_in_history(instrument_filename, day_file_path, result_file_path):
 
 # 历史新低
 def lowest_in_history(instrument_filename, day_file_path, result_file_path):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
+    instruments = _load_instruments()
     if instruments is None:
-        print("Could not find any instruments, exit")
         return
 
     instruments['close'] = None
 
     code_index = -1
     for code in instruments['code']:
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
-
         code_index += 1
 
-        print("calculate %s, file path: %s" % (code, data_filename))
+        print("calculate %s" % code)
 
-        if os.path.exists(data_filename):
+        if day_data_available(code):
             try:
-                df = pd.read_csv(data_filename, index_col=False)
+                df = load_day_dataframe(code)
                 index = df['close'].idxmin()  # 最小值的索引
 
                 print("index: %d, date: %s, min date: %s" % (index, df.loc[index]['date'], df['date'].max()))
@@ -158,25 +159,21 @@ def lowest_in_history(instrument_filename, day_file_path, result_file_path):
 
 # 均线多头
 def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, ma2, ma3):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
+    instruments = _load_instruments()
     if instruments is None:
-        print("Could not find any instruments, exit")
         return
 
     instruments['close'] = None
 
     code_index = -1
     for code in instruments['code']:
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
-
         code_index += 1
 
-        print("calculate %s, file path: %s" % (code, data_filename))
+        print("calculate %s" % code)
 
-        if os.path.exists(data_filename):
+        if day_data_available(code):
             try:
-                df = pd.read_csv(data_filename, index_col=False)
+                df = load_day_dataframe(code)
 
                 df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
                 df['ma'+str(ma2)] = df['close'].rolling(window=ma2).mean()
@@ -208,25 +205,21 @@ def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, m
 
 # 突破均线
 def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
+    instruments = _load_instruments()
     if instruments is None:
-        print("Could not find any instruments, exit")
         return
 
     instruments['close'] = None
 
     code_index = -1
     for code in instruments['code']:
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
-
         code_index += 1
 
-        print("calculate %s, file path: %s" % (code, data_filename))
+        print("calculate %s" % code)
 
-        if os.path.exists(data_filename):
+        if day_data_available(code):
             try:
-                df = pd.read_csv(data_filename, index_col=False)
+                df = load_day_dataframe(code)
 
                 df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
 
@@ -256,25 +249,21 @@ def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
 
 # 年线之上的股票
 def above_ma(instrument_filename, day_file_path, result_file_path, ma1):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
-
+    instruments = _load_instruments()
     if instruments is None:
-        print("Could not find any instruments, exit")
         return
 
     instruments['close'] = None
 
     code_index = -1
     for code in instruments['code']:
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
-
         code_index += 1
 
-        print("calculate %s, file path: %s" % (code, data_filename))
+        print("calculate %s" % code)
 
-        if os.path.exists(data_filename):
+        if day_data_available(code):
             try:
-                df = pd.read_csv(data_filename, index_col=False)
+                df = load_day_dataframe(code)
 
                 df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
 

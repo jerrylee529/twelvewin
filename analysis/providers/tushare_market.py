@@ -8,6 +8,7 @@ import os
 from providers.tushare_pro import (
     TushareProError,
     fetch_daily_basic_snapshot,
+    fetch_financial_indicator_snapshot,
     get_pro_client,
     latest_open_trade_date,
     normalize_trade_date,
@@ -164,3 +165,15 @@ def fetch_stock_basics_dataframe():
     frame.attrs['provider'] = 'tushare'
     frame.attrs['trade_date'] = trade_date
     return frame.reset_index(drop=True)
+
+
+def fetch_financial_indicators_dataframe(codes=None):
+    """Annual ROE and growth metrics from Tushare ``fina_indicator``."""
+    try:
+        return fetch_financial_indicator_snapshot(codes=codes)
+    except TushareProError as exc:
+        print('tushare pro financial indicators skipped: {}'.format(exc))
+        return None
+    except Exception as exc:
+        print('tushare pro financial indicators failed: {}'.format(repr(exc)))
+        return None

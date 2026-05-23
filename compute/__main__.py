@@ -11,6 +11,9 @@ PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir
 if PROJECT_ROOT not in sys.path:
     sys.path.insert(0, PROJECT_ROOT)
 
+from core.env import load_dotenv_files
+
+load_dotenv_files()
 os.environ.setdefault('TWELVEWIN_DISABLE_ANALYZER', '1')
 
 
@@ -25,7 +28,15 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Run twelvewin offline compute jobs')
     parser.add_argument(
         'job_name',
-        choices=['daily_pipeline', 'ranking_pipeline', 'eod_all', 'import_results'],
+        choices=[
+            'daily_pipeline',
+            'ranking_pipeline',
+            'cluster_pipeline',
+            'eod_all',
+            'import_results',
+            'import_day_bars',
+            'annual_pipeline',
+        ],
         help='pipeline to execute',
     )
     args = parser.parse_args(argv)
@@ -43,6 +54,12 @@ def main(argv=None):
         run_ranking_pipeline()
         return 0
 
+    if args.job_name == 'cluster_pipeline':
+        from jobs.cluster_pipeline import run_cluster_pipeline
+
+        run_cluster_pipeline()
+        return 0
+
     if args.job_name == 'eod_all':
         from jobs.eod_all import run_eod_all
 
@@ -56,6 +73,24 @@ def main(argv=None):
         summary = sync_all_results_to_db(load_service_config_dict())
         for key, value in summary.items():
             print('{}: {}'.format(key, value))
+        return 0
+
+    if args.job_name == 'annual_pipeline':
+        from jobs.annual_pipeline import run_annual_pipeline
+
+        run_annual_pipeline()
+        return 0
+
+    if args.job_name == 'import_day_bars':
+        from compute.config import load_service_config_dict
+        from compute.daily_bar_store import import_day_bars_from_csv
+
+        max_codes = int(os.environ.get('TW_IMPORT_DAY_BARS_MAX_CODES', '0') or '0')
+        summary = import_day_bars_from_csv(
+            load_service_config_dict(),
+            max_codes=max_codes,
+        )
+        print(summary)
         return 0
 
     parser.error('unknown job: {}'.format(args.job_name))

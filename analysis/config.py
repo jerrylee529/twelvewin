@@ -1,6 +1,6 @@
 # coding=utf8
 
-"""analysis batch config: INI file or environment (no Flask app import)."""
+"""analysis batch config: loaded from repository ``.env`` via ``core.config``."""
 
 import os
 import sys
@@ -11,22 +11,11 @@ _project_root = os.path.dirname(_analysis_dir)
 if _project_root not in sys.path:
     sys.path.insert(0, _project_root)
 
-from core.config import load_core_settings, load_settings_from_analysis_ini
+from core.env import load_dotenv_files
+from core.config import load_core_settings
 
-_default_config_file = os.path.join(_analysis_dir, 'config.ini')
-
-env = os.getenv('TW_ANALYSIS_ENV', 'debug')
-config_file_path = os.getenv('TW_ANALYSIS_CONFIG_FILE', _default_config_file)
-
-if not os.path.isabs(config_file_path):
-    config_file_path = os.path.abspath(config_file_path)
-
-print('env: {}, config file: {}'.format(env, config_file_path))
-
-config = load_settings_from_analysis_ini(config_file_path, env)
-if config is None:
-    print('analysis config: INI unavailable, using environment (DATABASE_URL, DAY_FILE_PATH, ...)')
-    config = load_core_settings()
+load_dotenv_files()
+config = load_core_settings()
 
 my_headers = [
     "Mozilla/5.0 (Windows NT 6.3; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/39.0.2171.95 Safari/537.36",
@@ -44,4 +33,3 @@ my_headers = [
     "Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:10.0) Gecko/20100101 Firefox/10.0 "
 ]
 
-print(config)

@@ -3,7 +3,6 @@
 """Lookup update times for generated CSV artifacts shown in the UI."""
 
 from app.models import AnalysisRun
-from app.services.csv_store import format_mtime, resolve_under_base
 from app.services.analysis_artifacts import STOCK_RANKING_FILES, TECHNICAL_ANALYSIS_FILES
 from app.services.result_store_service import get_latest_analysis_run
 
@@ -35,24 +34,4 @@ def get_artifact_update_time(config, *, ranking_key=None, technical_key=None, fi
         if db_time:
             return db_time
 
-    result_path = config.get("RESULT_PATH")
-    if not result_path:
-        return None
-
-    if filename is None:
-        if ranking_key is not None:
-            filename = STOCK_RANKING_FILES.get(ranking_key)
-        elif technical_key == "filter":
-            filename = FILTER_SCREEN_FILE
-        elif technical_key is not None:
-            filename = TECHNICAL_ANALYSIS_FILES.get(technical_key)
-
-    if not filename:
-        return None
-
-    try:
-        path = resolve_under_base(result_path, filename)
-    except ValueError:
-        return None
-
-    return format_mtime(path)
+    return None

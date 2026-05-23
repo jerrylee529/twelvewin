@@ -1,25 +1,23 @@
 # -*- coding: utf-8 -*-
 
-"""Market data service for chart endpoints."""
+"""Market data service for chart endpoints (database only)."""
 
-from app.services.csv_store import CsvReadResult, read_rows
+from app.services.csv_store import CsvReadResult
+from app.services.daily_bar_service import get_daily_bars_from_db
 
 
 def get_candlestick_data(config, code, quote_provider=None) -> CsvReadResult:
-    """Read day-history CSV rows and append realtime quotation when available."""
-    result = read_rows(config['DAY_FILE_PATH'], code + '.csv')
-    data = []
+    """Read day-history bars from Postgres and append realtime quotation when available."""
+    result = get_daily_bars_from_db(code)
+    if result is None:
+        result = CsvReadResult(
+            rows=[],
+            path='',
+            missing=True,
+            error='database unavailable',
+        )
 
-    for row in result.rows:
-        item = [row.get('date')]
-        try:
-            item.append(float(row['open']))
-            item.append(float(row['close']))
-            item.append(float(row['low']))
-            item.append(float(row['high']))
-        except (KeyError, TypeError, ValueError):
-            continue
-        data.append(item)
+    data = list(result.rows)
 
     if quote_provider is not None:
         quot = quote_provider(code)
@@ -34,11 +32,19 @@ def get_candlestick_data(config, code, quote_provider=None) -> CsvReadResult:
                     float(quot['low']),
                     float(quot['high']),
                 ])
+            elif len(data) == 0:
+                data.append([
+                    quote_date,
+                    float(quot['open']),
+                    float(quot['trade']),
+                    float(quot['low']),
+                    float(quot['high']),
+                ])
 
     return CsvReadResult(
         rows=data,
         path=result.path,
         update_time=result.update_time,
-        missing=result.missing,
-        error=result.error,
+        missing=result.missing and not data,
+        error=result.error if not data else None,
     )

@@ -3,8 +3,8 @@
 """使用 SVM 训练和预测股票次日涨跌方向。
 
 脚本读取日线 CSV，构造 MA5/MA10/MA20/MA250 等特征，将下一交易日涨跌映射为 1/0，
-使用 sklearn SVC 训练模型并保存到 RESULT_PATH。train_all() 会遍历股票基础数据并将
-各股票预测准确率写入 StockPrediction 表。
+使用 sklearn SVC 训练模型并保存到指定 model 路径。predict/train 接受日线 CSV 与 model
+的完整路径；train_all() 会遍历股票基础数据并将各股票预测准确率写入 StockPrediction 表。
 """
 
 import pandas as pd
@@ -17,9 +17,8 @@ import sys
 import tushare as ts
 from models import StockPrediction, Session
 
-def predict(code, day_file_path, result_file_path):
-    file_path = day_file_path + '/' + code + '.csv'
-    df = pd.read_csv(file_path)
+def predict(day_csv_path, model_path):
+    df = pd.read_csv(day_csv_path)
     df.set_index('date', inplace=True)
     df.drop(['code'], axis=1, inplace=True)
     
@@ -55,11 +54,9 @@ def predict(code, day_file_path, result_file_path):
     # 开始循环预测，每次向前预测一个值
     correct = 0
 
-    model_filename = result_file_path + '/' + code + '.model'
-
     # 如果存在模型文件则加载改模型文件，不存在则创建一个
-    if os.path.exists(model_filename):
-        classifier = joblib.load(model_filename)
+    if os.path.exists(model_path):
+        classifier = joblib.load(model_path)
     else:
         classifier = svm.SVC(C=1.0, kernel='rbf')
 
@@ -70,7 +67,7 @@ def predict(code, day_file_path, result_file_path):
     classifier.fit(data_train, value_train)
     value_predict = classifier.predict(data_predict)
 
-    joblib.dump(classifier, model_filename)
+    joblib.dump(classifier, model_path)
 
     print df.index[L-1], value_predict
 
@@ -146,9 +143,8 @@ def predict(code, day_file_path, result_file_path):
 '''
 
 # 训练模型
-def train(code, day_file_path, result_file_path):
-    file_path = day_file_path + '/' + code + '.csv'
-    df = pd.read_csv(file_path)
+def train(day_csv_path, model_path):
+    df = pd.read_csv(day_csv_path)
 
     if df.empty:
         return 0.0
@@ -187,11 +183,9 @@ def train(code, day_file_path, result_file_path):
 
     classifier = None
 
-    model_filename = result_file_path + '/' + code + '.model'
-
     # 如果存在模型文件则加载改模型文件，不存在则创建一个
-    if os.path.exists(model_filename):
-        classifier = joblib.load(model_filename)
+    if os.path.exists(model_path):
+        classifier = joblib.load(model_path)
     else:
         classifier = svm.SVC(C=1.0, kernel='rbf')
 
@@ -210,10 +204,11 @@ def train(code, day_file_path, result_file_path):
 
     rate = correct*100/len(value_predict)
 
+    code = os.path.splitext(os.path.basename(day_csv_path))[0]
     print "code: %s, correct: %f" % (code, rate,)
 
     # 输出模型文件
-    joblib.dump(classifier, model_filename)
+    joblib.dump(classifier, model_path)
 
     return rate
 
@@ -238,7 +233,9 @@ def train_all(instrument_filename, day_file_path, result_file_path):
 
     for index, row in instruments.iterrows():
         try:
-            rate = train(index, day_file_path=day_file_path, result_file_path=result_file_path)
+            day_csv_path = os.path.join(day_file_path, index + '.csv')
+            model_path = os.path.join(result_file_path, index + '.model')
+            rate = train(day_csv_path, model_path)
 
             item = StockPrediction(index, name=row['name'], accu_rate=rate)
 
@@ -264,9 +261,12 @@ if __name__ == '__main__':
     #代码
     code = sys.argv[1]
 
+    day_csv_path = os.path.join(config.DAY_FILE_PATH, code + '.csv')
+    model_path = os.path.join(config.RESULT_PATH, code + '.model')
+
     if flag == 't':
-        train(code, config.DAY_FILE_PATH, config.RESULT_PATH)
+        train(day_csv_path, model_path)
     elif flag == 'p':
-        predict(code, config.DAY_FILE_PATH, config.RESULT_PATH)
+        predict(day_csv_path, model_path)
     else:
         train_all(config.INSTRUMENT_FILENAME, config.DAY_FILE_PATH, config.RESULT_PATH)

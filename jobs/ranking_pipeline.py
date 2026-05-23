@@ -22,6 +22,15 @@ RANKING_OUTPUT_FILES = (
 )
 
 
+def _step_fundamental_snapshots(config) -> dict:
+    _ensure_analysis_path()
+    from fundamental_snapshot import build_fundamental_snapshot_frames
+    from compute.fundamental_store import publish_fundamental_snapshot_frames
+
+    snapshot, benchmarks = build_fundamental_snapshot_frames()
+    return publish_fundamental_snapshot_frames(snapshot, benchmarks)
+
+
 def _ensure_analysis_path():
     import os
 
@@ -55,6 +64,7 @@ def _step_business_screen(config) -> dict:
 
 def build_ranking_pipeline_steps(config):
     return [
+        ("fundamental_snapshots", lambda: _step_fundamental_snapshots(config)),
         ("valuation_rankings", lambda: _step_valuation_rankings(config)),
         ("business_screen", lambda: _step_business_screen(config)),
     ]

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-"""Technical analysis results: Postgres first, CSV fallback."""
+"""Technical analysis results: Postgres only (CSV fallback in local DEBUG)."""
 
 from app.services.analysis_artifacts import TECHNICAL_ANALYSIS_FILES
+from app.services.analysis_access import resolve_published_rows
 from app.services.csv_store import CsvReadResult, read_rows
 from app.services.result_store_service import (
     get_price_change_rows_from_db,
     get_technical_rows_from_db,
-    read_analysis_from_db_enabled,
 )
 
 PRICE_CHANGE_PERIODS = {
@@ -26,17 +26,15 @@ def get_technical_rows(config, screen_key, *, is_anonymous=False) -> CsvReadResu
 
     max_rows = 10 if is_anonymous else None
 
-    if read_analysis_from_db_enabled(config):
-        db_result = get_technical_rows_from_db(screen_key, max_rows=max_rows)
-        if db_result is not None and db_result.rows:
-            return db_result
-
-    return read_rows(
-        config['RESULT_PATH'],
-        csv_filename,
-        add_id=True,
-        add_update_time=True,
-        max_rows=max_rows,
+    return resolve_published_rows(
+        config,
+        db_fetch=lambda: get_technical_rows_from_db(screen_key, max_rows=max_rows),
+        csv_filename=csv_filename,
+        csv_kwargs={
+            'add_id': True,
+            'add_update_time': True,
+            'max_rows': max_rows,
+        },
     )
 
 
@@ -45,14 +43,13 @@ def get_price_change_rows(config, *, days=u'近一周', low=-30, high=0) -> CsvR
     period = PRICE_CHANGE_PERIODS.get(days, 7)
     rate_field = 'rate' + str(period)
 
-    if read_analysis_from_db_enabled(config):
-        db_result = get_price_change_rows_from_db()
-        if db_result is not None and db_result.rows:
-            result = db_result
-        else:
-            result = read_rows(config['RESULT_PATH'], 'price_change.csv')
-    else:
-        result = read_rows(config['RESULT_PATH'], 'price_change.csv')
+    result = resolve_published_rows(
+        config,
+        db_fetch=get_price_change_rows_from_db,
+        csv_filename='price_change.csv',
+        csv_kwargs={'add_id': False, 'add_update_time': False},
+    )
+
     rows = []
 
     try:

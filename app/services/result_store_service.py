@@ -20,10 +20,9 @@ from core.artifacts import (
 
 
 def read_analysis_from_db_enabled(config):
-    value = config.get('READ_ANALYSIS_FROM_DB', True)
-    if isinstance(value, str):
-        return value.lower() not in ('0', 'false', 'no', 'off')
-    return bool(value)
+    from app.services.analysis_access import read_analysis_from_db_enabled as _enabled
+
+    return _enabled(config)
 
 
 def _parse_as_of_date(update_time):
@@ -149,6 +148,47 @@ def get_technical_rows_from_db(screen_key, *, max_rows=None):
         rows=rows,
         path=run.source_file or '',
         update_time=update_time,
+    )
+
+
+def _get_published_rows_from_db(category, result_key, *, max_rows=None):
+    if not has_app_context():
+        return None
+    run = get_latest_analysis_run(category, result_key)
+    if run is None or run.row_count == 0:
+        return None
+
+    query = RankingResult.query.filter_by(run_id=run.id).order_by(RankingResult.rank_order)
+    if max_rows is not None:
+        query = query.limit(max_rows)
+
+    rows = []
+    update_time = run.as_of_date.strftime('%Y-%m-%d')
+    for item in query.all():
+        row = _deserialize_row(item, update_time=update_time)
+        row['id'] = item.rank_order
+        rows.append(row)
+
+    return CsvReadResult(
+        rows=rows,
+        path=run.source_file or '',
+        update_time=update_time,
+    )
+
+
+def get_annual_stock_rows_from_db(year, *, max_rows=None):
+    return _get_published_rows_from_db(
+        AnalysisRun.CATEGORY_ANNUAL_STOCK,
+        str(year),
+        max_rows=max_rows,
+    )
+
+
+def get_annual_industry_rows_from_db(year, *, max_rows=None):
+    return _get_published_rows_from_db(
+        AnalysisRun.CATEGORY_ANNUAL_INDUSTRY,
+        str(year),
+        max_rows=max_rows,
     )
 
 

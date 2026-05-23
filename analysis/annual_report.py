@@ -1,26 +1,26 @@
 # -*- coding:utf-8 -*-
 
-"""生成年度股票和行业表现报表。
+"""Generate annual stock and industry performance reports (published to Postgres)."""
 
-脚本读取股票列表和日线行情 CSV，按指定年份计算个股年度涨跌幅、振幅、年初/年末价格、
-PE/PB 等指标，并汇总行业层面的平均涨跌幅和振幅。结果写入 result_file_path 下的
-annual_technique_report_<year>.csv 和 annual_industry_report_<year>.csv，供 Web 页面展示。
-"""
+from __future__ import print_function
 
-__author__ = 'Administrator'
-
-
-
-
-import tushare as ts
-import pandas as pd
 import os
-from datetime import timedelta, datetime, date
-import time
+import sys
+from datetime import date
+
+import pandas as pd
+
 from config import config
 
-# 设置精度
+_ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
+_PROJECT_ROOT = os.path.abspath(os.path.join(_ANALYSIS_DIR, '..'))
+if _PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, _PROJECT_ROOT)
+
 from compat import set_display_precision
+from day_data import day_data_available, load_day_dataframe, load_instruments_dataframe
+from result_export import export_annual_industry_report, export_annual_stock_report
+
 set_display_precision(2)
 
 
@@ -28,21 +28,13 @@ def format_float(value):
     return round(value, 2)
 
 
-class Computer(object):
-    def __init__(self):
-        self.result_list = {}
-
-    def compute(self, code, data):
-        pass
-
-
 class StockInfo(object):
     def __init__(self, industry, code):
         self.industry = industry
         self.code = code
-        self.change_rate = -9999  # 涨跌幅
-        self.amplitude = -9999  # 振幅，最高到最低价的范围
-        self.close_prev_year = -9999  # 前收
+        self.change_rate = -9999
+        self.amplitude = -9999
+        self.close_prev_year = -9999
         self.open = -9999
         self.close = -9999
         self.high = -9999
@@ -50,37 +42,32 @@ class StockInfo(object):
         self.pe = -9999
         self.pb = -9999
 
-    def __str__(self):
-        return "industry: {}, code: {}, change_rate: {}, amplitude: {}, prev_close: {}, open: {}, close: {}, high: {}, low: {}".format(self.industry, self.code,
-                                                                               self.change_rate, self.amplitude, self.close_prev_year, self.open, self.close, self.high, self.low)
 
-
-# 技术面分析
-class TechniqueReport(Computer):
+class TechniqueReport(object):
+    def __init__(self):
+        self.result_list = {}
 
     def compute(self, industry, code, close_prev_year, data):
-        if len(data) <= 0:
+        if len(data) <= 0 or not close_prev_year:
             return
 
         stock_info = StockInfo(industry, code)
-
         low = data['close'].min()
         high = data['close'].max()
+        close_last = data.iloc[len(data) - 1]['close']
 
-        close_last = data.iloc[len(data)-1]['close']
-
-        stock_info.change_rate = format_float((close_last - close_prev_year)*100/close_prev_year)
+        stock_info.change_rate = format_float(
+            (close_last - close_prev_year) * 100 / close_prev_year
+        )
         stock_info.close_prev_year = format_float(close_prev_year)
         stock_info.low = format_float(low)
         stock_info.high = format_float(high)
         stock_info.open = format_float(data.iloc[0]['open'])
-        stock_info.close = format_float(data.iloc[len(data)-1]['close'])
-        stock_info.amplitude = format_float((high-low)*100/low)
-
+        stock_info.close = format_float(close_last)
+        stock_info.amplitude = format_float((high - low) * 100 / low)
         self.result_list[code] = stock_info
 
 
-# 行业分析
 class IndustryInfo(object):
     def __init__(self, industry):
         self.industry = industry
@@ -91,31 +78,23 @@ class IndustryInfo(object):
         self.avg_pb = -9999
         self.stock_number = 0
 
-    def __str__(self):
-        return "industry: {}, avg_change_rate: {}, avg_amplitude: {}, avg_price: {}, stock_num: {}".format(self.industry,
-                                                                                            self.avg_change_rate, self.avg_amplitude, self.avg_price, self.stock_number)
 
-
-class IndustryReport(Computer):
+class IndustryReport(object):
     def __init__(self):
         self.result_list = {}
         self._total_amplitude = {}
         self._total_change_rate = {}
         self._total_price = {}
-        self._total_high = {}
-        self._total_low = {}
         self._stock_number = {}
 
     def compute(self, data):
         for item in data.values():
-            if not self.result_list.has_key(item.industry):
+            if item.industry not in self.result_list:
                 industry_info = IndustryInfo(item.industry)
                 self.result_list[item.industry] = industry_info
                 self._total_amplitude[item.industry] = 0
                 self._total_change_rate[item.industry] = 0
                 self._total_price[item.industry] = 0
-                self._total_high[item.industry] = 0
-                self._total_low[item.industry] = 0
                 self._stock_number[item.industry] = 0
             else:
                 industry_info = self.result_list[item.industry]
@@ -123,85 +102,102 @@ class IndustryReport(Computer):
             self._total_amplitude[item.industry] += item.amplitude
             self._total_change_rate[item.industry] += item.change_rate
             self._total_price[item.industry] += item.close
-            self._total_high[item.industry] += item.high
-            self._total_low[item.industry] += item.low
             self._stock_number[item.industry] += 1
 
-            industry_info.avg_change_rate = format_float(self._total_change_rate[item.industry]/self._stock_number[item.industry])
-            industry_info.avg_amplitude = format_float(self._total_amplitude[item.industry]/self._stock_number[item.industry])
-            industry_info.avg_price = format_float(self._total_price[item.industry]/self._stock_number[item.industry])
-            industry_info.stock_number = self._stock_number[item.industry]
+            count = self._stock_number[item.industry]
+            industry_info.avg_change_rate = format_float(
+                self._total_change_rate[item.industry] / count
+            )
+            industry_info.avg_amplitude = format_float(
+                self._total_amplitude[item.industry] / count
+            )
+            industry_info.avg_price = format_float(
+                self._total_price[item.industry] / count
+            )
+            industry_info.stock_number = count
 
 
-def save_report(filename, result_list):
-    dict_list = []
-    for item in result_list:
-        dict_list.append(item.__dict__)
-
-    df = pd.DataFrame(dict_list)
-
-    df.to_csv(filename, index=False)
+def _results_to_dataframe(result_list):
+    rows = [item.__dict__ for item in result_list]
+    return pd.DataFrame(rows) if rows else pd.DataFrame()
 
 
-def compute(instrument_filename, day_file_path, result_file_path, year):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
+def compute(year=None, *, instrument_filename=None, day_file_path=None, result_file_path=None):
+    """Build annual stock/industry reports for ``year`` and publish to the database."""
+    del instrument_filename, day_file_path, result_file_path  # legacy args, unused
 
-    if instruments is None:
-        print("Could not find any instruments, exit")
-        return
+    if year is None:
+        year = int(os.environ.get('TW_ANNUAL_REPORT_YEAR', date.today().year))
 
-    instruments['close'] = None
+    instruments = load_instruments_dataframe(include_industry=True)
+    if instruments is None or instruments.empty:
+        print('Could not find any instruments, exit')
+        return {'status': 'skipped', 'reason': 'no instruments'}
 
     technique_report = TechniqueReport()
 
-    code_index = -1
-    for index, row in instruments.iterrows():
-        code = row['code']
-        industry = row['industry']
+    for _, row in instruments.iterrows():
+        code = str(row['code'])
+        industry = row.get('industry') or ''
 
-        data_filename = "%s/%s.csv" % (day_file_path, code)  # 日线数据文件名
+        print('calculate {}'.format(code))
 
-        code_index += 1
+        if not day_data_available(code):
+            continue
 
-        print "calculate %s, file path: %s" % (code, data_filename)
-
-        if os.path.exists(data_filename):
-            try:
-                df = pd.read_csv(data_filename, index_col=False)
-
-                df['date'] = pd.to_datetime(df['date'])  # 将数据类型转换为日期类型
-                df = df.set_index('date')  # 将date设置为index
-
-                prev_year = year - 1
-
-                df_year = df[str(year)]
-
-                try:
-                    df_prev_year = df[str(prev_year)]
-                    last_close = df_prev_year.iloc[len(df_prev_year)-1]['close']
-                except Exception, e:
-                    print repr(e)
-                    last_close = df_year.iloc[0]['open']
-
-                technique_report.compute(industry, code, last_close, df_year)
-            except Exception, e:
-                print repr(e)
+        try:
+            df = load_day_dataframe(code)
+            if df.empty:
                 continue
 
-    save_report(result_file_path + "/annual_technique_report_" + str(year) + ".csv", technique_report.result_list.values())
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')
+            df = df.dropna(subset=['date']).set_index('date')
 
-    for item in technique_report.result_list.values():
-        print item.__dict__
+            target_year = int(year)
+            df_year = df[df.index.year == target_year]
+            if df_year.empty:
+                continue
+
+            df_prev_year = df[df.index.year == target_year - 1]
+            try:
+                last_close = float(df_prev_year.iloc[-1]['close']) if not df_prev_year.empty else None
+            except (IndexError, TypeError, ValueError):
+                last_close = None
+            if last_close is None:
+                try:
+                    last_close = float(df_year.iloc[0]['open'])
+                except (IndexError, TypeError, ValueError):
+                    continue
+
+            if not last_close:
+                continue
+
+            technique_report.compute(industry, code, last_close, df_year)
+        except Exception as exc:
+            print(repr(exc))
+            continue
+
+    stock_frame = _results_to_dataframe(technique_report.result_list.values())
+    stock_summary = {'status': 'skipped', 'reason': 'no stock rows'}
+    if not stock_frame.empty:
+        stock_summary = export_annual_stock_report(stock_frame, year, config=config)
+        print('annual stock report:', stock_summary)
 
     industry_report = IndustryReport()
     industry_report.compute(technique_report.result_list)
+    industry_frame = _results_to_dataframe(industry_report.result_list.values())
+    industry_summary = {'status': 'skipped', 'reason': 'no industry rows'}
+    if not industry_frame.empty:
+        industry_summary = export_annual_industry_report(industry_frame, year, config=config)
+        print('annual industry report:', industry_summary)
 
-    for industry in industry_report.result_list.values():
-        print industry.__dict__
-
-    save_report(result_file_path + "/annual_industry_report_" + str(year) + ".csv", industry_report.result_list.values())
+    return {
+        'status': 'ok',
+        'year': year,
+        'stock': stock_summary,
+        'industry': industry_summary,
+    }
 
 
 if __name__ == '__main__':
-    compute(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-            result_file_path=config.RESULT_PATH, year=2018)
+    compute(year=int(os.environ.get('TW_ANNUAL_REPORT_YEAR', '2018')))

@@ -8,6 +8,12 @@ Create Date: 2026-05-20 10:00:00.000000
 from alembic import op
 import sqlalchemy as sa
 
+from migrations.util import (
+    create_index_if_missing,
+    create_table_if_missing,
+    drop_index_if_exists,
+    drop_table_if_exists,
+)
 
 revision = 'c7e2a9f41b30'
 down_revision = 'b8f4a2c91d0e'
@@ -16,7 +22,7 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table(
+    create_table_if_missing(
         'analysis_runs',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('category', sa.String(length=32), nullable=False, comment='结果类别'),
@@ -29,17 +35,32 @@ def upgrade():
         sa.ForeignKeyConstraint(['job_run_id'], ['analysis_job_run.id']),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index(op.f('ix_analysis_runs_as_of_date'), 'analysis_runs', ['as_of_date'], unique=False)
-    op.create_index(op.f('ix_analysis_runs_category'), 'analysis_runs', ['category'], unique=False)
-    op.create_index(op.f('ix_analysis_runs_result_key'), 'analysis_runs', ['result_key'], unique=False)
-    op.create_index(
+    create_index_if_missing(
+        op.f('ix_analysis_runs_as_of_date'),
+        'analysis_runs',
+        ['as_of_date'],
+        unique=False,
+    )
+    create_index_if_missing(
+        op.f('ix_analysis_runs_category'),
+        'analysis_runs',
+        ['category'],
+        unique=False,
+    )
+    create_index_if_missing(
+        op.f('ix_analysis_runs_result_key'),
+        'analysis_runs',
+        ['result_key'],
+        unique=False,
+    )
+    create_index_if_missing(
         'ix_analysis_runs_category_key_date',
         'analysis_runs',
         ['category', 'result_key', 'as_of_date'],
         unique=False,
     )
 
-    op.create_table(
+    create_table_if_missing(
         'ranking_results',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('run_id', sa.Integer(), nullable=False),
@@ -50,11 +71,26 @@ def upgrade():
         sa.ForeignKeyConstraint(['run_id'], ['analysis_runs.id']),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index(op.f('ix_ranking_results_code'), 'ranking_results', ['code'], unique=False)
-    op.create_index(op.f('ix_ranking_results_run_id'), 'ranking_results', ['run_id'], unique=False)
-    op.create_index('ix_ranking_results_run_order', 'ranking_results', ['run_id', 'rank_order'], unique=False)
+    create_index_if_missing(
+        op.f('ix_ranking_results_code'),
+        'ranking_results',
+        ['code'],
+        unique=False,
+    )
+    create_index_if_missing(
+        op.f('ix_ranking_results_run_id'),
+        'ranking_results',
+        ['run_id'],
+        unique=False,
+    )
+    create_index_if_missing(
+        'ix_ranking_results_run_order',
+        'ranking_results',
+        ['run_id', 'rank_order'],
+        unique=False,
+    )
 
-    op.create_table(
+    create_table_if_missing(
         'technical_screen_results',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('run_id', sa.Integer(), nullable=False),
@@ -65,9 +101,19 @@ def upgrade():
         sa.ForeignKeyConstraint(['run_id'], ['analysis_runs.id']),
         sa.PrimaryKeyConstraint('id'),
     )
-    op.create_index(op.f('ix_technical_screen_results_code'), 'technical_screen_results', ['code'], unique=False)
-    op.create_index(op.f('ix_technical_screen_results_run_id'), 'technical_screen_results', ['run_id'], unique=False)
-    op.create_index(
+    create_index_if_missing(
+        op.f('ix_technical_screen_results_code'),
+        'technical_screen_results',
+        ['code'],
+        unique=False,
+    )
+    create_index_if_missing(
+        op.f('ix_technical_screen_results_run_id'),
+        'technical_screen_results',
+        ['run_id'],
+        unique=False,
+    )
+    create_index_if_missing(
         'ix_technical_screen_results_run_order',
         'technical_screen_results',
         ['run_id', 'rank_order'],
@@ -76,18 +122,18 @@ def upgrade():
 
 
 def downgrade():
-    op.drop_index('ix_technical_screen_results_run_order', table_name='technical_screen_results')
-    op.drop_index(op.f('ix_technical_screen_results_run_id'), table_name='technical_screen_results')
-    op.drop_index(op.f('ix_technical_screen_results_code'), table_name='technical_screen_results')
-    op.drop_table('technical_screen_results')
+    drop_index_if_exists('ix_technical_screen_results_run_order', 'technical_screen_results')
+    drop_index_if_exists(op.f('ix_technical_screen_results_run_id'), 'technical_screen_results')
+    drop_index_if_exists(op.f('ix_technical_screen_results_code'), 'technical_screen_results')
+    drop_table_if_exists('technical_screen_results')
 
-    op.drop_index('ix_ranking_results_run_order', table_name='ranking_results')
-    op.drop_index(op.f('ix_ranking_results_run_id'), table_name='ranking_results')
-    op.drop_index(op.f('ix_ranking_results_code'), table_name='ranking_results')
-    op.drop_table('ranking_results')
+    drop_index_if_exists('ix_ranking_results_run_order', 'ranking_results')
+    drop_index_if_exists(op.f('ix_ranking_results_run_id'), 'ranking_results')
+    drop_index_if_exists(op.f('ix_ranking_results_code'), 'ranking_results')
+    drop_table_if_exists('ranking_results')
 
-    op.drop_index('ix_analysis_runs_category_key_date', table_name='analysis_runs')
-    op.drop_index(op.f('ix_analysis_runs_result_key'), table_name='analysis_runs')
-    op.drop_index(op.f('ix_analysis_runs_category'), table_name='analysis_runs')
-    op.drop_index(op.f('ix_analysis_runs_as_of_date'), table_name='analysis_runs')
-    op.drop_table('analysis_runs')
+    drop_index_if_exists('ix_analysis_runs_category_key_date', 'analysis_runs')
+    drop_index_if_exists(op.f('ix_analysis_runs_result_key'), 'analysis_runs')
+    drop_index_if_exists(op.f('ix_analysis_runs_category'), 'analysis_runs')
+    drop_index_if_exists(op.f('ix_analysis_runs_as_of_date'), 'analysis_runs')
+    drop_table_if_exists('analysis_runs')

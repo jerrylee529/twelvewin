@@ -6,6 +6,7 @@ import unittest
 from unittest import mock
 
 import app.config as config_module
+from core.config import _normalize_database_url
 
 
 class ConfigTestCase(unittest.TestCase):
@@ -15,7 +16,7 @@ class ConfigTestCase(unittest.TestCase):
     def test_normalize_database_url_uses_psycopg_and_removes_channel_binding(self):
         url = "postgresql://user:pass@example.neon.tech/twelvewin?sslmode=require&channel_binding=require"
 
-        normalized = config_module._normalize_database_url(url)
+        normalized = _normalize_database_url(url)
 
         self.assertEqual(
             "postgresql+psycopg://user:pass@example.neon.tech/twelvewin?sslmode=require",

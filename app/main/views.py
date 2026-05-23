@@ -9,7 +9,7 @@ from flask import render_template
 from flask import Blueprint, request, jsonify
 from flask_login import current_user
 from flask_login import login_required
-from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge, ExamQuestion, ExamResult
+from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge
 from app import app, db, analyzer, log
 from app.services.data_status_service import get_data_status
 
@@ -155,92 +155,8 @@ def get_investment_knowledge():
     return jsonify(ret)
 
 
-@main_blueprint.route('/main/exam/questions', methods=['GET', 'POST'])
-def get_exam_questions():
-    questions = []
-
-    total_size = 0
-
-    try:
-        total_size = db.session.query(ExamQuestion).count()
-
-        result = db.session.query(ExamQuestion).all()
-
-        for rec in result:
-            item = {}
-            item['id'] = rec.id
-            item['title'] = rec.title
-            item['type'] = rec.type
-            item['score'] = rec.score
-            item['right_answer'] = rec.right_answer
-            item['option_a'] = rec.option_a
-            item['option_b'] = rec.option_b
-            item['option_c'] = rec.option_c
-            item['option_d'] = rec.option_d
-            item['option_e'] = rec.option_e
-            item['option_f'] = rec.option_f
-
-            questions.append(item)
-
-    except Exception as e:
-        print("could not get exam questions, {}".format(repr(e)))
-
-    ret = {"total": total_size, "questions": questions}
-
-    log.debug(ret)
-
-    return jsonify(ret)
-
-
-@main_blueprint.route('/main/exam/update', methods=['POST'])
-def update_exam_result():
-    nickname = request.values.get('nickname')
-    score = request.values.get('score', type=int)
-
-    result = "failure"
-
-    try:
-        item = db.session.query(ExamResult).filter_by(user_nickname=nickname).first()
-
-        if item is None:
-            item = ExamResult(nickname, score)
-        else:
-            item.score = score
-
-        db.session.add(item)
-
-        db.session.commit()
-
-        result = "success"
-    except Exception as e:
-        print("could not update exam result, {}, {}, {}".format(nickname, score, repr(e)))
-
-    ret = {"result": result}
-
-    return jsonify(ret)
-
-
 @main_blueprint.route('/main/data_status', methods=['GET'])
 def data_status():
     return jsonify(get_data_status(app.config))
 
 
-@main_blueprint.route('/main/exam/query', methods=['GET', 'POST'])
-def query_exam_result():
-    nickname = request.values.get('nickname')
-
-    result = {}
-
-    try:
-        item = db.session.query(ExamResult).filter_by(user_nickname=nickname).first()
-
-        if item is not None:
-            result["nickname"] = item.user_nickname
-            result["score"] = item.score
-
-    except Exception as e:
-        print("could not query exam, {}".format(repr(e)))
-
-    ret = {"result": result}
-
-    return jsonify(ret)

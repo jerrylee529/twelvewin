@@ -17,7 +17,14 @@ class TechnicalAnalysisServiceTestCase(unittest.TestCase):
                 writer.writeheader()
                 writer.writerow({"code": "600000", "close": "12.30"})
 
-            result = get_technical_rows({"RESULT_PATH": tmpdir}, "highest")
+            result = get_technical_rows(
+                {
+                    "RESULT_PATH": tmpdir,
+                    "CSV_DEV_FALLBACK": True,
+                    "READ_ANALYSIS_FROM_DB": True,
+                },
+                "highest",
+            )
 
             self.assertIsNone(result.error)
             self.assertEqual(1, len(result.rows))
@@ -40,7 +47,11 @@ class TechnicalAnalysisServiceTestCase(unittest.TestCase):
                 writer.writerow({"code": "000001", "rate7": "3", "rate30": "4"})
 
             result = get_price_change_rows(
-                {"RESULT_PATH": tmpdir},
+                {
+                    "RESULT_PATH": tmpdir,
+                    "CSV_DEV_FALLBACK": True,
+                    "READ_ANALYSIS_FROM_DB": True,
+                },
                 days=u"近一周",
                 low=-10,
                 high=0,

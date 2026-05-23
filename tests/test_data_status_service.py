@@ -1,33 +1,38 @@
 # -*- coding: utf-8 -*-
 
-import os
-import tempfile
+import datetime
 import unittest
 from unittest import mock
 
-from app.models import AnalysisJobRun
+from app.models import AnalysisJobRun, AnalysisRun
 from app.services.data_status_service import get_data_status
 
 
 class DataStatusServiceTestCase(unittest.TestCase):
-    def test_get_data_status_includes_file_and_job_sections(self):
-        with tempfile.TemporaryDirectory() as tmpdir:
-            csv_path = os.path.join(tmpdir, "stock_pe.csv")
-            with open(csv_path, "w", encoding="utf-8") as handle:
-                handle.write("code,name,pe\n000001,Ping An,10.5\n")
+    def test_get_data_status_reads_db_artifacts_and_jobs(self):
+        job_run = AnalysisJobRun("daily_pipeline")
+        job_run.status = AnalysisJobRun.STATUS_SUCCESS
 
-            job_run = AnalysisJobRun("daily_pipeline")
-            job_run.status = AnalysisJobRun.STATUS_SUCCESS
+        pe_run = AnalysisRun(
+            AnalysisRun.CATEGORY_RANKING,
+            "pe",
+            datetime.date(2026, 5, 21),
+            row_count=2,
+            source_file="stock_pe.csv",
+        )
 
-            with mock.patch(
-                "app.services.data_status_service.get_latest_run",
-                return_value=job_run,
-            ):
-                status = get_data_status({"RESULT_PATH": tmpdir})
+        with mock.patch(
+            "app.services.data_status_service.get_latest_run",
+            return_value=job_run,
+        ), mock.patch(
+            "app.services.data_status_service.get_latest_analysis_run",
+            return_value=pe_run,
+        ):
+            status = get_data_status({})
 
-        self.assertEqual(tmpdir, status["result_path"])
-        self.assertIn("rankings", status["files"])
-        self.assertTrue(status["files"]["rankings"]["pe"]["exists"])
+        self.assertIn("rankings", status["artifacts"])
+        self.assertTrue(status["artifacts"]["rankings"]["pe"]["exists"])
+        self.assertEqual("2026-05-21", status["artifacts"]["rankings"]["pe"]["update_time"])
         self.assertEqual("success", status["jobs"]["daily_pipeline"]["status"])
 
 

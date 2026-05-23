@@ -1,13 +1,11 @@
 # -*- coding: utf-8 -*-
 
-"""Ranking data service: Postgres first, CSV fallback."""
+"""Ranking data service: Postgres only (CSV fallback in local DEBUG)."""
 
 from app.services.analysis_artifacts import STOCK_RANKING_FILES
-from app.services.csv_store import CsvReadResult, read_rows
-from app.services.result_store_service import (
-    get_ranking_rows_from_db,
-    read_analysis_from_db_enabled,
-)
+from app.services.analysis_access import resolve_published_rows
+from app.services.csv_store import CsvReadResult
+from app.services.result_store_service import get_ranking_rows_from_db
 
 
 def get_stock_ranking(config, ranking_key, *, is_anonymous=False) -> CsvReadResult:
@@ -18,15 +16,13 @@ def get_stock_ranking(config, ranking_key, *, is_anonymous=False) -> CsvReadResu
 
     max_rows = 20 if is_anonymous else None
 
-    if read_analysis_from_db_enabled(config):
-        db_result = get_ranking_rows_from_db(ranking_key, max_rows=max_rows)
-        if db_result is not None and db_result.rows:
-            return db_result
-
-    return read_rows(
-        config['RESULT_PATH'],
-        csv_filename,
-        add_id=True,
-        add_update_time=True,
-        max_rows=max_rows,
+    return resolve_published_rows(
+        config,
+        db_fetch=lambda: get_ranking_rows_from_db(ranking_key, max_rows=max_rows),
+        csv_filename=csv_filename,
+        csv_kwargs={
+            'add_id': True,
+            'add_update_time': True,
+            'max_rows': max_rows,
+        },
     )

@@ -152,91 +152,38 @@ postgresql+psycopg://USER:PASSWORD@HOST/DBNAME?sslmode=require
 - `postgresql+psycopg://` 明确指定 SQLAlchemy 使用 psycopg v3 驱动。
 - 当前生产配置不会自动清理 `channel_binding` 参数，建议先移除。
 
-## 6. 配置环境变量
+## 6. 配置（单一 `.env` 文件）
 
-项目支持两种配置方式。
+Web、compute、analysis 均只读取仓库根目录 **`/.env`**（`python-dotenv`，见 `core/env.py`）。**不同环境**（本机、测试机、生产）通过**各自机器上编辑 `.env` 内容**区分，不提交 `.env` 到 Git。
 
-### 6.1 推荐的本地/测试部署方式
+**不再使用** `analysis/config.ini`、`app/config/production.cfg` 或任何 INI 文件。
 
-复制示例配置：
+初始化：
 
 ```bash
 cp .env.example .env
+# 编辑 .env：APP_ENV、DATABASE_URL、SECRET_KEY 等
 ```
 
-编辑 `.env`：
+在 `.env` 中用 `APP_ENV` 选择运行形态（未设置 `APP_SETTINGS` 时自动映射 Flask 配置类）：
 
-```bash
-APP_SETTINGS=app.config.LocalConfig
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/twelvewin_dev?sslmode=require
-REDIS_URL=redis://:@127.0.0.1:6379/0
-PORT=8088
-```
+| `APP_ENV` | Flask 类 |
+|-----------|----------|
+| `local` | `LocalConfig` |
+| `development` | `DevelopmentConfig` |
+| `production` | `ProductionConfig` |
+| `test` | `TestingConfig` |
 
-这种方式会读取 `DATABASE_URL`，适合本地开发、测试服务器和内网验证。
+生产示例：同一文件，改 `APP_ENV=production`、`DEBUG=false`，并填写生产库与邮件等变量。
 
-### 6.2 生产配置方式
-
-如果要使用 `app.config.ProductionConfig`，推荐优先通过环境变量配置：
-
-```bash
-APP_SETTINGS=app.config.ProductionConfig
-DATABASE_URL=postgresql+psycopg://USER:PASSWORD@HOST/twelvewin_prod?sslmode=require
-REDIS_URL=redis://:@127.0.0.1:6379/0
-SECRET_KEY=replace-with-a-long-random-secret
-SECURITY_PASSWORD_SALT=replace-with-another-long-random-secret
-APP_MAIL_SERVER=smtp.example.com
-APP_MAIL_PORT=465
-APP_MAIL_USE_TLS=false
-APP_MAIL_USE_SSL=true
-APP_MAIL_USERNAME=your-mail-user
-APP_MAIL_PASSWORD=your-mail-password
-APP_MAIL_DEFAULT_SENDER=no-reply@example.com
-PORT=8088
-```
-
-为了兼容历史部署，也可以继续创建或更新：
-
-```text
-app/config/production.cfg
-```
-
-配置结构示例：
-
-```ini
-[keys]
-SECRET_KEY=replace-with-a-long-random-secret
-
-[mail]
-MAIL_SERVER=smtp.example.com
-MAIL_PORT=465
-MAIL_USE_TLS=false
-MAIL_USE_SSL=true
-MAIL_USERNAME=your-mail-user
-MAIL_PASSWORD=your-mail-password
-MAIL_DEFAULT_SENDER=no-reply@example.com
-
-[db]
-SQLALCHEMY_DATABASE_URI=postgresql+psycopg://USER:PASSWORD@HOST/twelvewin_prod?sslmode=require
-
-[stripe]
-STRIPE_SECRET_KEY=
-STRIPE_PUBLISHABLE_KEY=
-```
-
-如果同时配置了环境变量和 `production.cfg`，环境变量优先生效。最小 `.env` 可设置：
-
-```bash
-APP_SETTINGS=app.config.ProductionConfig
-REDIS_URL=redis://:@127.0.0.1:6379/0
-PORT=8088
-```
+`manage.py`、`python -m compute` 启动时自动加载 `.env`；启动脚本也会 `source .env`。
 
 注意：
 
-- `ProductionConfig` 会优先读取环境变量；`production.cfg` 只是兼容历史部署。
-- `production.cfg` 包含敏感信息，不应提交真实密钥到 GitHub。若当前仓库已经跟踪该文件，生产环境应确认其中没有真实密钥泄露。
-- 当前 Redis 连接解析只处理普通 `redis://` 的 host、port、password、db；如果要使用 `rediss://` TLS Redis，需要先扩展 `app/redis_op.py`。
+- `.env` 含密钥，勿提交（已在 `.gitignore`）。
+- 可用 `DOTENV_PATH` 指向其他路径（CI）。
+- 可选 `APP_SETTINGS=app.config.XXX` 覆盖 `APP_ENV` 映射。
+- Redis 连接解析仅支持普通 `redis://`；`rediss://` TLS 需扩展 `app/redis_op.py`。
 
 ## 7. 准备数据目录
 
@@ -292,7 +239,7 @@ REDIS_URL=redis://:PASSWORD@REDIS_HOST:6379/0
 
 ## 9. 初始化或迁移数据库表
 
-确认 `.env` 或 `production.cfg` 已经指向目标 PostgreSQL 数据库后执行：
+确认 `.env` 中 `DATABASE_URL` 已指向目标 PostgreSQL 数据库后执行：
 
 ### 9.1 新项目快速初始化
 
@@ -535,7 +482,7 @@ REDIS_URL=redis://:PASSWORD@HOST:6379/0
 
 - Python 版本是 3.12.x。
 - `.venv312` 已创建并安装 `requirements-local.txt`。
-- `.env` 或 `app/config/production.cfg` 已配置。
+- 根目录 `.env` 已配置（可从 `.env.example` 复制）。
 - PostgreSQL/Neon 连接串使用 `postgresql+psycopg://`。
 - Redis 可连接。
 - `local_data/day_data`、`local_data/results`、`local_data/index_data` 已创建。

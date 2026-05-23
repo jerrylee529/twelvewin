@@ -20,7 +20,9 @@ if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
 from compat import set_display_precision
+from day_data import day_data_available, load_day_dataframe, load_instruments_dataframe
 from csv_output import atomic_export_pair, get_result_path
+from result_export import export_price_change_report
 
 set_display_precision(2)
 
@@ -61,12 +63,14 @@ def price_amplitude(df, begin_date, end_date):
 
 
 def compute_all_instruments(instrument_filename, day_file_path, result_file_path, periods):
-    instruments = pd.read_csv(instrument_filename, index_col=False, dtype={'code': object})
+    instruments = load_instruments_dataframe()
 
-    if instruments is None:
+    if instruments is None or instruments.empty:
         print("Could not find any instruments, exit")
         return
 
+    instruments = instruments.copy()
+    instruments['code'] = instruments['code'].astype(str)
     instruments['close'] = None
     instruments['update_time'] = None
 
@@ -75,8 +79,9 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
 
     for code in instruments['code']:
         try:
-            file_path = day_file_path + '/' + code + '.csv'
-            df = pd.read_csv(file_path)
+            if not day_data_available(code):
+                continue
+            df = load_day_dataframe(code)
 
             for period in periods:
                 rate, close, update_time = price_change(df, period.begin_date, period.end_date)
@@ -88,14 +93,7 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
             print(str(e))
             continue
 
-    atomic_export_pair(
-        instruments,
-        result_file_path,
-        "price_change",
-        date_suffix=datetime.date.today().strftime('%Y-%m-%d'),
-        index=False,
-        float_format='%.2f',
-    )
+    export_price_change_report(instruments)
 
     return instruments
 
@@ -116,8 +114,9 @@ def compute_all_instruments_amplitude(period):
 
     for code in instruments:
         try:
-            file_path = config['DAY_FILE_PATH'] + code + '.csv'
-            df = pd.read_csv(file_path)
+            if not day_data_available(code):
+                continue
+            df = load_day_dataframe(code)
 
             df_amp = price_amplitude(df, period.begin_date, period.end_date)
 

@@ -10,6 +10,8 @@ from core.artifacts import (
     PRICE_CHANGE_FILE,
     STOCK_RANKING_FILES,
     TECHNICAL_ANALYSIS_FILES,
+    annual_industry_report_filename,
+    annual_stock_report_filename,
 )
 from core.db import session_scope
 
@@ -29,13 +31,25 @@ def _parse_as_of_date(update_time):
 def _serialize_row_payload(row, *, code_key='code', name_key='name'):
     payload = dict(row)
     payload.pop(code_key, None)
-    payload.pop(name_key, None)
+    if name_key:
+        payload.pop(name_key, None)
     payload.pop('id', None)
     payload.pop('updateTime', None)
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
 
-def _import_rows(session, category, result_key, csv_result, source_file, result_model, *, job_run_id=None):
+def _import_rows(
+    session,
+    category,
+    result_key,
+    csv_result,
+    source_file,
+    result_model,
+    *,
+    job_run_id=None,
+    code_key='code',
+    name_key='name',
+):
     as_of_date = _parse_as_of_date(csv_result.update_time)
     run = AnalysisRun(
         category,
@@ -50,7 +64,7 @@ def _import_rows(session, category, result_key, csv_result, source_file, result_
 
     objects = []
     for index, row in enumerate(csv_result.rows, start=1):
-        code = str(row.get('code', '')).strip()
+        code = str(row.get(code_key, '')).strip()
         if not code:
             continue
         objects.append(
@@ -58,8 +72,8 @@ def _import_rows(session, category, result_key, csv_result, source_file, result_
                 run.id,
                 index,
                 code,
-                row.get('name'),
-                _serialize_row_payload(row),
+                row.get(name_key) if name_key else None,
+                _serialize_row_payload(row, code_key=code_key, name_key=name_key),
             )
         )
 
@@ -166,6 +180,54 @@ def import_business_ranking_results(config, *, job_run_id=None, session=None):
             BUSINESS_RANKING_FILE,
             RankingResult,
             job_run_id=job_run_id,
+        )
+
+    if session is not None:
+        return _run(session)
+    with session_scope() as sess:
+        return _run(sess)
+
+
+def import_annual_stock_report(config, year, *, job_run_id=None, session=None):
+    source_file = annual_stock_report_filename(year)
+    csv_result = read_rows(config['RESULT_PATH'], source_file, add_update_time=True)
+    if csv_result.error or csv_result.missing:
+        return {'status': 'skipped', 'reason': csv_result.error or 'file not found'}
+
+    def _run(sess):
+        return _import_rows(
+            sess,
+            AnalysisRun.CATEGORY_ANNUAL_STOCK,
+            str(year),
+            csv_result,
+            source_file,
+            RankingResult,
+            job_run_id=job_run_id,
+        )
+
+    if session is not None:
+        return _run(session)
+    with session_scope() as sess:
+        return _run(sess)
+
+
+def import_annual_industry_report(config, year, *, job_run_id=None, session=None):
+    source_file = annual_industry_report_filename(year)
+    csv_result = read_rows(config['RESULT_PATH'], source_file, add_update_time=True)
+    if csv_result.error or csv_result.missing:
+        return {'status': 'skipped', 'reason': csv_result.error or 'file not found'}
+
+    def _run(sess):
+        return _import_rows(
+            sess,
+            AnalysisRun.CATEGORY_ANNUAL_INDUSTRY,
+            str(year),
+            csv_result,
+            source_file,
+            RankingResult,
+            job_run_id=job_run_id,
+            code_key='industry',
+            name_key=None,
         )
 
     if session is not None:

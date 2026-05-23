@@ -6,6 +6,10 @@ import os
 import sys
 import unittest
 
+from core.env import load_dotenv_files
+
+load_dotenv_files()
+
 from app import app, db
 from app.models import User
 
@@ -53,6 +57,8 @@ def import_results(target='all'):
 
     from compute.config import load_service_config_dict
     from compute.result_store import (
+        import_annual_industry_report,
+        import_annual_stock_report,
         import_business_ranking_results,
         import_price_change_results,
         import_ranking_results,
@@ -79,6 +85,10 @@ def import_results(target='all'):
             summary['business'] = import_business_ranking_results(config)
         elif target == 'price_change':
             summary['price_change'] = import_price_change_results(config)
+        elif target.startswith('annual:'):
+            year = target.split(':', 1)[1]
+            summary['annual_stock_' + year] = import_annual_stock_report(config, year)
+            summary['annual_industry_' + year] = import_annual_industry_report(config, year)
         else:
             raise SystemExit('unknown import target: {}'.format(target))
 
@@ -115,7 +125,13 @@ def build_parser():
     run_job_parser = subparsers.add_parser('run_job')
     run_job_parser.add_argument(
         'job_name',
-        choices=['daily_pipeline', 'ranking_pipeline', 'eod_all'],
+        choices=[
+            'daily_pipeline',
+            'ranking_pipeline',
+            'cluster_pipeline',
+            'annual_pipeline',
+            'eod_all',
+        ],
     )
 
     import_parser = subparsers.add_parser('import_results')
@@ -123,7 +139,7 @@ def build_parser():
         'target',
         nargs='?',
         default='all',
-        help='all | business | price_change | ranking:pe | technical:highest',
+        help='all | business | price_change | ranking:pe | technical:highest | annual:2018',
     )
 
     return parser

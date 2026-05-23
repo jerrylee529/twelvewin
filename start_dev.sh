@@ -1,6 +1,11 @@
 #!/bin/bash
+set -euo pipefail
 
-export APP_SETTINGS=app.config.DevelopmentConfig
+if [ -f .env ]; then
+  set -a
+  # shellcheck source=/dev/null
+  . ./.env
+  set +a
+fi
 
-
-python manage.py runserver -h 0.0.0.0 -p 8088
+exec python manage.py runserver -h 0.0.0.0 -p "${PORT:-8088}"

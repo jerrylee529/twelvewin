@@ -2,12 +2,14 @@
 {% block title %}欢迎来到团赢数据{% endblock %}
 
 {% block page_content %}
-   <!--<div class="container">-->
-   {% if quot == null %}
-   <img src="/static/images/default.jpg" width="100%" height="100%" style="z-index:-100;position:absolute;left:0;top:0"/>
-   {% endif %}
-   <div class="row">
-       <div class="col-md-6 col-md-offset-3">
+   <section class="tw-hero">
+       <div class="tw-hero-copy">
+           <p class="tw-kicker">Trading tools</p>
+           <h1>构建你的 A 股研究策略</h1>
+           <p>搜索股票，跟踪市场趋势，把基本面、技术面和预测结果放在一个清晰的工作台里。</p>
+       </div>
+       <div class="tw-search-card">
+            <p class="tw-search-label">Start with a stock</p>
             <form action="/main/predict" role="form">
                 <div class="input-group">
                     <input type="text" class="form-control" placeholder="代码/简称" id="code-search" name="code-search"  data-provide="typeahead" autocomplete="off">
@@ -17,13 +19,39 @@
                     </span>
                 </div>
             </form>
+       </div>
+   </section>
+   <section class="tw-brand-grid" aria-label="TwelveWin research tools">
+        <div class="tw-brand-card">
+            <span>01</span>
+            <h3>基本面排行</h3>
+            <p>从估值、分红、ROE 等维度快速定位候选股票。</p>
         </div>
-   </div>
-   <br/>
-   <br/>
+        <div class="tw-brand-card">
+            <span>02</span>
+            <h3>技术信号</h3>
+            <p>跟踪新高、新低、均线和涨跌幅变化。</p>
+        </div>
+        <div class="tw-brand-card">
+            <span>03</span>
+            <h3>行业板块</h3>
+            <p>用行业和聚类视角观察市场结构。</p>
+        </div>
+        <div class="tw-brand-card">
+            <span>04</span>
+            <h3>自选跟踪</h3>
+            <p>把关注标的加入列表，持续观察变化。</p>
+        </div>
+   </section>
    {% if quot != null %}
-   <div class="row" id="result_page" style=";padding: 5px">
-        <div><h2><strong>{{ quot.code }} {{ quot.name }}</strong></h2></div>
+   <div class="row" id="result_page">
+        <div class="tw-stock-header">
+        <div>
+        <p class="tw-kicker">Stock snapshot</p>
+        <h2><strong>{{ quot.code }} {{ quot.name }}</strong></h2>
+        </div>
+        <div class="tw-update-time">更新时间: {{ quot.update_time }}</div>
+        </div>
         {% if quot.trade|float > quot.settlement|float %}
         <div><h1><strong class="color_up">{{ quot.trade }}</strong>  <small class="color_up">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
         {% elif quot.trade|float < quot.settlement|float %}
@@ -32,10 +60,10 @@
         <div><h1><strong class="text-muted">{{ quot.trade }}</strong>  <small class="text-muted">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
         {% endif %}
 
-        <div class="container">
+        <div class="tw-market-details">
         <div class="row">
-        <div class="col-lg-6 bg-light">
-        <div><h4><strong>更新时间: </strong> <small> {{ quot.update_time }}</small></h4></div>
+        <div class="col-lg-6">
+        <div class="tw-section-title">关键统计</div>
         <table class="table">
         <tr><td>最高：<span>{{ quot.high }}</span></td><td>今开：<span>{{ quot.open }}</span></td><td>成交量：<span>{{ "%d"|format(quot.volume|int/100) }}手</span></td></tr>
         <tr><td>最低：<span>{{ quot.low }}</span></td><td>昨收：<span>{{ quot.settlement }}</span></td><td>成交额：<span>{{ "%.2f"|format(quot.amount|int/10000) }}万</span></td></tr>
@@ -45,7 +73,7 @@
         </div>
 
         <div class="col-lg-6">
-        <div><h4><strong>预测准确率: </strong> <small> {{ quot.accu_rate }}%</small></h4></div>
+        <div class="tw-section-title">预测准确率 <span>{{ quot.accu_rate }}%</span></div>
         <table class="table table-bordered table-striped table-hover">
         <thead>
         <tr>

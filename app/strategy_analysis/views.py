@@ -3,7 +3,7 @@
 
 from flask import request, jsonify, Blueprint, render_template, current_app
 from flask_login import login_required, current_user
-from app.services.csv_store import read_rows
+from app.services.ranking_service import get_stock_ranking
 
 strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)
 
@@ -20,25 +20,17 @@ def get_data(path):
 
     data = []
 
-    if (path == 'pe'):
-        csv_filename = "stock_pe.csv"
-        title = "市盈率排名"
-    elif (path == 'pb'):
-        csv_filename = "stock_pb.csv"
-        title = "市净率排名"
-    elif (path == 'roe'):
-        csv_filename = "stock_roe.csv"
-        title = "净资产收益率排名"
-    elif (path == 'divi'):
-        csv_filename = "stock_dividence.csv"
-        title = "股息率排名"
-    else:
+    if path not in ('pe', 'pb', 'roe', 'divi'):
         return jsonify({'total': len(data), 'rows': data})
 
-    result = read_rows(current_app.config['RESULT_PATH'], csv_filename, add_id=True)
+    result = get_stock_ranking(current_app.config, path)
 
     if result.error:
-        current_app.logger.warning("Could not read strategy analysis CSV %s: %s", result.path, result.error)
+        current_app.logger.warning(
+            "Could not read strategy ranking %s: %s",
+            path,
+            result.error,
+        )
 
     data = result.rows
 
