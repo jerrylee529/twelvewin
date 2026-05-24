@@ -25,21 +25,26 @@ function show_chart(code) {
     }
 
     var option = {
-        backgroundColor: '#21202D',
+        backgroundColor: '#121f34',
         legend: {
             data: ['日K'],
             inactiveColor: '#777',
             textStyle: {
-                color: '#fff'
+                color: '#e5eefb'
             }
         },
         tooltip: {
             trigger: 'axis',
+            backgroundColor: 'rgba(7, 17, 31, 0.92)',
+            borderColor: 'rgba(148, 163, 184, 0.22)',
+            textStyle: {
+                color: '#e5eefb'
+            },
             axisPointer: {
                 animation: false,
                 type: 'cross',
                 lineStyle: {
-                    color: '#376df4',
+                    color: '#94a3b8',
                     width: 2,
                     opacity: 1
                 }
@@ -48,12 +53,18 @@ function show_chart(code) {
         xAxis: {
             type: 'category',
             data: [],
-            axisLine: {lineStyle: {color: '#8392A5'}}
+            axisLine: {lineStyle: {color: 'rgba(148, 163, 184, 0.35)'}},
+            axisLabel: {color: '#94a3b8'}
         },
         yAxis: {
             scale: true,
-            axisLine: {lineStyle: {color: '#8392A5'}},
-            splitLine: {show: false}
+            axisLine: {lineStyle: {color: 'rgba(148, 163, 184, 0.35)'}},
+            axisLabel: {color: '#94a3b8'},
+            splitLine: {
+                lineStyle: {
+                    color: 'rgba(148, 163, 184, 0.12)'
+                }
+            }
         },
         grid: {
             bottom: 80

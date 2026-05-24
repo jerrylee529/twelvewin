@@ -1,0 +1,5 @@
+# Python image for DB migrations and offline compute jobs.
+-r requirements-local.txt
+-r api/requirements.txt
+-r requirements-analysis.txt
+scikit-learn>=1.4,<2.0

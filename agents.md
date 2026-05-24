@@ -1,292 +1,190 @@
-# agents.md
+# AGENTS.md
+
+Guidance for AI agents and contributors working in the Twelvewin repository.
 
 ## Project Summary
 
-This repository is a traditional Python stock-analysis web application centered on Flask.
+Twelvewin is an **open-source A-share end-of-day quantitative research terminal** (Apache 2.0).
 
-- `app/` contains the web app, blueprints, templates, auth flow, Redis access, and SQLAlchemy models.
-- `analysis/` contains offline analysis jobs, market data download logic, clustering, technical analysis, and scheduling scripts.
-- `bin/` contains one-off or batch scripts for data download, report generation, prediction, and monitoring.
-- `utils/` contains notification helpers such as mail and SMS utilities.
+The **supported OSS stack** is:
 
-The product model is not a clean API-first service. It is a hybrid system:
+1. **`compute/` + `jobs/` + `analysis/`** — offline pipelines; publish results to Postgres.
+2. **`api/`** — FastAPI **Research API** (read-only analysis endpoints; no Flask import).
+3. **`web/`** — Next.js **research terminal UI** (fundamentals, technical, clusters, stock detail).
 
-1. Download and compute market/fundamental data offline.
-2. Persist part of the data in MySQL and part of the outputs as CSV files.
-3. Serve HTML pages and AJAX endpoints that read from both the database and the generated CSV artifacts.
+Legacy **`app/`** (Flask + Jinja + Flask-Login) remains for backward compatibility but is **not** the target for new OSS features.
 
-## Current State
+**Commercial edition** (accounts, billing, cloud hosting, watchlist sync) is developed separately and is **out of scope** for this repo.
 
-This codebase appears to be written primarily in Python 2 style, but the checked-in environment files are modernized only partially.
+## License
 
-- Many files still use `reload(sys)`, `sys.setdefaultencoding(...)`, `print "..."`, and `except Exception, e`.
-- `python --version` and `python3 --version` in the current workspace both resolve to Python 3.14.0.
-- `requirements.txt` pins `Flask==3.1.3`, while several app patterns depend on old Flask extensions such as `Flask-Script` and older import conventions.
-
-Assume the repository is in a partially migrated state. Before changing runtime behavior, verify whether the target task is meant to preserve legacy compatibility or continue a Python 3 migration.
+- Root [`LICENSE`](LICENSE): **Apache License 2.0**
+- Do not add proprietary-licensed code to the main OSS tree without explicit separation.
 
 ## Primary Entry Points
 
-### Web app
+### OSS runtime (preferred)
 
-- [`manage.py`](/Users/jerrylee/Projects/twelvewin/manage.py)
-  - Main management entry.
-  - Exposes `runserver`, `db`, `create_db`, `drop_db`, `create_admin`, and `test`.
-- [`app/__init__.py`](/Users/jerrylee/Projects/twelvewin/app/__init__.py)
-  - Creates Flask app.
-  - Loads config from `APP_SETTINGS`.
-  - Initializes logging, Redis pool, SQLAlchemy, login manager, mail, bootstrap, and `Analyzer`.
-  - Registers all blueprints.
+| Component | Entry | Port |
+|-----------|--------|------|
+| Compute CLI | `python -m compute eod_all` | — |
+| Research API | `uvicorn api.main:app --port 8090` | 8090 |
+| Web terminal | `cd web && npm run dev` | 3000 |
+| Docker stack | `docker compose up -d --build` | 3000 / 8090 |
 
-### Startup scripts
+See [`docs/DOCKER.md`](docs/DOCKER.md) and [`.env.docker.example`](.env.docker.example).
 
-- [`start_dev.sh`](/Users/jerrylee/Projects/twelvewin/start_dev.sh)
-  - Sets `APP_SETTINGS=app.config.DevelopmentConfig`.
-  - Runs the Flask dev server on port `8088`.
-- [`start.sh`](/Users/jerrylee/Projects/twelvewin/start.sh)
-  - Sets `APP_SETTINGS=app.config.ProductionConfig`.
-  - Starts `manage.py runserver` in the background on port `8081`.
-- [`start_uwsgi.sh`](/Users/jerrylee/Projects/twelvewin/start_uwsgi.sh)
-  - Starts uWSGI with [`uwsgiconfig.ini`](/Users/jerrylee/Projects/twelvewin/uwsgiconfig.ini).
+### Database migrations
 
-### Analysis jobs
+```bash
+export FLASK_APP=manage.py TWELVEWIN_DISABLE_ANALYZER=1
+flask db upgrade
+```
 
-- [`analysis/schedule_job.py`](/Users/jerrylee/Projects/twelvewin/analysis/schedule_job.py)
-  - Orchestrates daily history download and technical-analysis result generation.
-- [`analysis/history_data_service.py`](/Users/jerrylee/Projects/twelvewin/analysis/history_data_service.py)
-  - Incrementally downloads daily history files.
-- [`analysis/technical_analysis_service.py`](/Users/jerrylee/Projects/twelvewin/analysis/technical_analysis_service.py)
-  - Generates result CSVs such as historical high/low and moving-average screens.
+Migrations live in `migrations/`. Compute-side schema checks: `core/schema.py`.
 
-## Configuration Model
+### Legacy Flask (maintenance only)
 
-### Web app config
+- [`manage.py`](manage.py) — `runserver`, `create_db`, `test`
+- [`app/__init__.py`](app/__init__.py) — Flask app, blueprints, `Analyzer`, Redis
+- [`start_dev.sh`](start_dev.sh) / [`start.sh`](start.sh) — legacy startup
 
-- [`app/config.py`](/Users/jerrylee/Projects/twelvewin/app/config.py)
-  - `DevelopmentConfig` points to local MySQL: `mysql://root:password@127.0.0.1/stock?charset=utf8`
-  - `ProductionConfig` reads from [`app/config/production.cfg`](/Users/jerrylee/Projects/twelvewin/app/config/production.cfg)
-  - Mail, DB, and secret settings are defined here.
+Do **not** add new product features to Flask unless explicitly asked to maintain legacy parity.
 
-Required assumptions in the app:
+## Architecture & Data Flow
 
-- `APP_SETTINGS` must be set.
-- Redis must be configured through `REDIS_URL`.
-- SQLAlchemy must be able to connect at startup.
-- Several routes assume `DAY_FILE_PATH` and `RESULT_PATH` exist in config and contain data files.
+```text
+analysis/ + jobs/ + compute/
+        → publish → Postgres (analysis_runs, ranking_results, daily_bars, …)
+        → api/services/* (read)
+        → web/lib/api.ts (fetch)
+        → web/app/(dashboard)/*
+```
 
-### Analysis config
+Optional: **Redis** for live quotes (`REDIS_URL`); **CSV mirrors** when `TW_WRITE_RESULT_CSV=1`.
 
-- [`analysis/config.py`](/Users/jerrylee/Projects/twelvewin/analysis/config.py)
-  - Reads config from `TW_ANALYSIS_CONFIG_FILE`
-  - Chooses section with `TW_ANALYSIS_ENV`
-  - Exposes paths such as `DAY_FILE_PATH` and `RESULT_FILE_PATH`
+Default read path: **`READ_ANALYSIS_FROM_DB=true`** — Web/API read published DB rows, not raw CSV.
 
-Important: the web app and the analysis scripts are tightly coupled through shared filesystem outputs. If analysis output paths move, web pages will break unless the app config is updated to the same locations.
+### Response contracts
+
+Research API and legacy Flask AJAX share table shapes:
+
+- `{ total, rows, updateTime, error? }`
+- Ranking row fields often include: `code`, `name`, `per`, `pb`, `roe`, `close`, `rate`, `valueprice`, …
+
+Preserve column names and response shapes unless all consumers (API tests, `web/`, legacy Flask) are updated together.
 
 ## Directory Guide
 
-### `app/`
+### `compute/`, `jobs/`, `analysis/`
 
-Main Flask application.
+- Batch / EOD logic, market data providers, technical screens, clustering, valuation.
+- Publish via `compute/publish.py` → Postgres.
+- Long-running; require `requirements-analysis.txt`.
 
-- `main/`
-  - Homepage, instrument search, profile data, prediction UI, investment knowledge, and exam endpoints.
-- `user/`
-  - Register, login, logout, confirmation, password reset.
-- `stock/`
-  - Fundamental ranking pages and candlestick/chart data.
-- `business/`
-  - Curated stock list built from generated CSV plus DB-backed labels.
-- `technical_analysis/`
-  - Technical-analysis ranking/filter pages.
-- `strategy_analysis/`
-  - Strategy result pages.
-- `industry_analysis/`
-  - Industry-level data and labeling.
-- `cluster_analysis/`
-  - Cluster result pages.
-- `self_selected_stock/`
-  - User watchlist management.
-- `annual_report/`
-  - Annual report and stock/industry performance pages.
-- `templates/`
-  - Server-rendered Jinja templates.
-- `static/`
-  - CSS/JS assets, including chart rendering with ECharts.
+### `core/`
 
-### `analysis/`
+- Shared DB engine (`core/db.py`), env loading (`core/env.py`), artifact keys (`core/artifacts.py`), schema helpers.
 
-Offline data and quantitative processing.
+### `api/`
 
-- Downloads instrument lists and daily data.
-- Computes technical analysis outputs into CSV files.
-- Performs clustering and prediction-related work.
-- Contains ad hoc scripts and some backup or experimental files such as `.bak` and `.old`.
+- FastAPI app: [`api/main.py`](api/main.py)
+- Routers: rankings, fundamentals, technical, business, clusters, stocks, data-status
+- Services read Postgres via `api/db/models.py` (ORM separate from Flask models but same tables)
 
-### `bin/`
+### `web/`
 
-Standalone scripts for:
+- Next.js App Router, Tailwind v4, TanStack Table
+- Key routes: `/fundamentals`, `/technical/*`, `/business`, `/clusters/*`, `/stock/[code]`
+- `/login`, `/register` are placeholders — **no OSS auth backend yet**
+- API client: [`web/lib/api.ts`](web/lib/api.ts); rewrites in [`web/next.config.ts`](web/next.config.ts)
+- Design tokens: [`web/app/globals.css`](web/app/globals.css), [`DESIGN.md`](DESIGN.md)
 
-- downloading history or index data
-- prediction dataset generation
-- business report generation
-- monitoring and alerting
-- strategy experimentation
+### `app/` (legacy)
 
-Treat `bin/` as utility scripts, not as a coherent library layer.
+Flask blueprints: `stock/`, `technical_analysis/`, `user/`, `self_selected_stock/`, etc.
 
-## Core Data Flow
+User/watchlist code here is **legacy**; future account features belong in a commercial repo, not OSS Flask.
 
-### Database-backed data
+### `docker/`
 
-Defined mainly in [`app/models.py`](/Users/jerrylee/Projects/twelvewin/app/models.py).
+- [`docker-compose.yml`](docker-compose.yml) — Postgres, Redis, migrate, api, web; `jobs` profile for `eod`
+- [`docker/api/Dockerfile`](docker/api/Dockerfile), [`docker/web/Dockerfile`](docker/web/Dockerfile), [`docker/python/Dockerfile`](docker/python/Dockerfile)
 
-Important entities include:
+### `tests/`
 
-- `User`
-- `SelfSelectedStock`
-- `Instrument`
-- `Report`
-- `StockLabels`
-- `StockCluster` / `StockClusterItem`
-- `StockPrediction`
-- additional finance/report models further down the file
+Unit tests under `tests/` (API, publish, day_bars, services, config). Run:
 
-### File-backed data
+```bash
+python -m unittest discover -s tests -p 'test_*.py'
+```
 
-A large part of the UI depends on generated CSV files.
+## Configuration
 
-Examples:
-
-- `stock_pe.csv`
-- `stock_pb.csv`
-- `stock_roe.csv`
-- `stock_dividence.csv`
-- `stock_business.csv`
-- `highest_in_history.csv`
-- `lowest_in_history.csv`
-- `ma_long.csv`
-- per-stock history files under `DAY_FILE_PATH`, typically `<code>.csv`
-
-If a page looks broken but the route code is simple, check the corresponding CSV artifact first.
-
-### Redis-backed realtime quote data
-
-- [`app/redis_op.py`](/Users/jerrylee/Projects/twelvewin/app/redis_op.py)
-- `Analyzer.get_quotation()` reads Redis hash data by stock code.
-- Candlestick/profile/prediction pages use Redis to supplement or freshen historical file data.
-
-## Web Surface Map
-
-Representative routes:
-
-- `/` home page
-- `/main/instruments` instrument autocomplete data
-- `/main/profile/<code>` finance/profile JSON
-- `/main/predict` prediction page flow
-- `/<path>` stock ranking pages such as `pe`, `pb`, `roe`, `divi`, `business`
-- `/<path>/data` corresponding ranking JSON
-- `/candlestick/<code>` K-line page
-- `/candlestick/<code>/hq` candlestick data
-- `/selfselectedstock` watchlist page
-- `/selfselectedstock/data` watchlist data
-- `/industry`, `/industry/data`, `/industry/stock/<code>` industry analysis
-- `/cluster/...` clustering results
-- `/tech/...` technical analysis
-- `/annual_report/...` annual report related pages
-
-When modifying a page, check both the Jinja template and the paired AJAX endpoint. Most pages are split that way.
-
-## Important Couplings
-
-1. `app/__init__.py` eagerly constructs `Analyzer` at import time.
-   - Startup can fail if DB/config is incomplete.
-   - `Analyzer` also preloads instrument data.
-
-2. Many views read CSV files directly from configured paths.
-   - A schema or filename change in analysis scripts can silently break the UI.
-
-3. The code mixes database truth and file truth.
-   - Example: watchlist labels are in DB, rankings are in CSV, realtime quotes are in Redis.
-
-4. The codebase uses legacy absolute imports in several places.
-   - Example: `from redis_op import RedisOP`, `from analyzer import Analyzer`
-   - Be careful when changing package layout.
-
-## Known Risks
-
-- No `tests/` directory is present, although `manage.py test` expects one.
-- The Python version story is inconsistent.
-- Some code in `analysis/` appears stale or syntactically broken for Python 3.
-- There are backup files (`.bak`, `.old`) inside live directories.
-- Some endpoints do direct file I/O without much validation or error handling.
-- Redis URL parsing is custom and narrow.
-- App startup relies on environment variables being present before import.
+- Root [`.env.example`](.env.example) — `DATABASE_URL`, `REDIS_URL`, market data `TW_*`, `TUSHARE_TOKEN`
+- Docker: [`.env.docker.example`](.env.docker.example)
+- Web: [`web/.env.example`](web/.env.example) — `API_URL`
+- Flask config: [`app/config.py`](app/config.py) via `APP_ENV` / `APP_SETTINGS`
 
 ## Safe Change Strategy
 
-When working in this repository, prefer the following order:
+1. Identify **OSS vs legacy vs commercial** scope before coding.
+2. Trace data: **Postgres published tables** first; CSV/Redis second.
+3. For UI changes: `web/app/...` + matching `api/routers/...` + compute producer if fields change.
+4. Keep diffs minimal; match existing style in each layer.
+5. Do not commit `.env`, secrets, or `local_data/`.
 
-1. Identify whether the target behavior is database-backed, CSV-backed, or Redis-backed.
-2. Trace the route to the template and the paired JSON endpoint.
-3. Trace the data source to either:
-   - `app/models.py`
-   - an analysis script under `analysis/`
-   - a generated CSV under `RESULT_PATH` or `DAY_FILE_PATH`
-4. Preserve legacy filenames and response shapes unless you also update every consumer.
-5. Avoid broad refactors unless the task explicitly asks for modernization.
+### If editing the research terminal (web)
 
-## Change Guidance By Area
+- Page: `web/app/(dashboard)/...`
+- Components: `web/components/`
+- Types / API: `web/lib/types.ts`, `web/lib/api.ts`
+- Verify: `cd web && npm run build -- --webpack`
 
-### If editing web pages
+### If editing Research API
 
-- Check the template in `app/templates/...`
-- Check the paired blueprint route in `app/*/views.py`
-- Check whether the page reads JSON from a `/data` endpoint
-- Confirm the expected columns in the underlying CSV or SQL model
+- Router: `api/routers/`
+- Service: `api/services/`
+- Tests: `tests/test_api.py` and related
+- Verify: `uvicorn api.main:app` + `/docs`
 
-### If editing analysis logic
+### If editing analysis / compute
 
-- Verify input path config first
-- Verify output filenames used by the UI
-- Keep CSV column names stable unless all readers are updated
-- Expect long-running, batch-style execution
+- Pipeline: `jobs/*_pipeline.py`, `compute/__main__.py`
+- Logic: `analysis/*.py`
+- Publish path: `compute/publish.py`, `analysis/result_export.py`
+- Verify: `python -m compute eod_all` (or scoped job) + DB row counts / `GET /api/v1/data-status`
 
-### If editing auth or user flows
+### If editing legacy Flask
 
-- Check `app/user/views.py`, `app/user/forms.py`, `app/token.py`, `app/myemail.py`
-- Email confirmation and password reset are part of the normal account flow
+- Only when maintaining old deployments or migrating behavior to API/web.
+- Check blueprint `views.py` + Jinja template + CSV/DB service.
 
-### If editing market data or charts
+### If asked about auth / subscriptions / watchlist cloud sync
 
-- Check `app/stock/views.py`
-- Check `Analyzer` methods in [`app/analyzer.py`](/Users/jerrylee/Projects/twelvewin/app/analyzer.py)
-- Check Redis quote structure and day-history CSV format together
+- Explain these are **commercial / Phase 3**, not in OSS scope.
+- OSS web login pages are placeholders.
 
-## Verification Guidance
+## Known Risks
 
-There is no reliable built-in automated test suite in the current repo state.
+- **Dual stack**: Flask and api/web may duplicate behavior — prefer api/web for new work.
+- **Dual ORM**: `app/models.py` vs `api/db/models.py` — same DB, keep schema in sync via migrations.
+- **`compute/publish.py` imports `app.models`** — Python job image needs Flask-SQLAlchemy deps (see `docker/python/Dockerfile`).
+- **Partial Python 2 heritage** in older `analysis/` files — verify Python 3 syntax before running.
+- **Market data jobs** need network + credentials; failures show as empty UI tables.
+- **`TradingAgents-main/`** is vendored/third-party — not part of OSS product surface; exclude from Docker builds.
 
-Preferred verification is manual and scoped:
+## Recommended First Checks
 
-- import/startup sanity for the touched module
-- route-level smoke test for changed endpoints
-- template render smoke test for changed pages
-- spot-check the expected CSV or DB records exist
+Before making changes, read as needed:
 
-If you need to modernize code, do it in small slices and verify one execution path at a time.
-
-## Recommended First Checks For Any Future Agent
-
-Before making changes, inspect:
-
-- [`README.md`](/Users/jerrylee/Projects/twelvewin/README.md)
-- [`manage.py`](/Users/jerrylee/Projects/twelvewin/manage.py)
-- [`app/__init__.py`](/Users/jerrylee/Projects/twelvewin/app/__init__.py)
-- [`app/config.py`](/Users/jerrylee/Projects/twelvewin/app/config.py)
-- the relevant blueprint `views.py`
-- the upstream analysis script or CSV producer for that feature
+- [`README.md`](README.md)
+- [`docs/DOCKER.md`](docs/DOCKER.md)
+- [`api/README.md`](api/README.md)
+- [`web/README.md`](web/README.md)
+- [`docs/menu-pages-data-sources.md`](docs/menu-pages-data-sources.md)
+- Relevant router/service and upstream pipeline for the feature
 
 ## Bottom Line
 
-Treat this repository as a legacy Flask + MySQL + Redis + CSV analytics system with significant Python 2 heritage and partial Python 3-era dependency updates. Small, local, compatibility-preserving changes are low risk. Broad runtime, dependency, or packaging changes should be approached as deliberate migration work, not incidental cleanup.
+Treat this repository as an **Apache 2.0 OSS research terminal**: **compute publishes, API serves read-only analysis, web displays**. Flask is legacy. User management and monetization are **not** part of the open-source edition. Prefer small, contract-preserving changes in the api/web/compute path.

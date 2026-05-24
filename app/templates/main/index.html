@@ -2,6 +2,7 @@
 {% block title %}欢迎来到团赢数据{% endblock %}
 
 {% block page_content %}
+   {% if quot is not defined or quot == null %}
    <section class="tw-hero">
        <div class="tw-hero-copy">
            <p class="tw-kicker">Trading tools</p>
@@ -43,73 +44,129 @@
             <p>把关注标的加入列表，持续观察变化。</p>
         </div>
    </section>
+   {% endif %}
    {% if quot != null %}
-   <div class="row" id="result_page">
-        <div class="tw-stock-header">
-        <div>
-        <p class="tw-kicker">Stock snapshot</p>
-        <h2><strong>{{ quot.code }} {{ quot.name }}</strong></h2>
-        </div>
-        <div class="tw-update-time">更新时间: {{ quot.update_time }}</div>
-        </div>
-        {% if quot.trade|float > quot.settlement|float %}
-        <div><h1><strong class="color_up">{{ quot.trade }}</strong>  <small class="color_up">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
-        {% elif quot.trade|float < quot.settlement|float %}
-        <div><h1><strong class="color_down">{{ quot.trade }}</strong>  <small class="color_down">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
-        {% else %}
-        <div><h1><strong class="text-muted">{{ quot.trade }}</strong>  <small class="text-muted">{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} {{ "%.2f"|format(quot.changepercent|float) }}%</small></h1></div>
-        {% endif %}
-
-        <div class="tw-market-details">
-        <div class="row">
-        <div class="col-lg-6">
-        <div class="tw-section-title">关键统计</div>
-        <table class="table">
-        <tr><td>最高：<span>{{ quot.high }}</span></td><td>今开：<span>{{ quot.open }}</span></td><td>成交量：<span>{{ "%d"|format(quot.volume|int/100) }}手</span></td></tr>
-        <tr><td>最低：<span>{{ quot.low }}</span></td><td>昨收：<span>{{ quot.settlement }}</span></td><td>成交额：<span>{{ "%.2f"|format(quot.amount|int/10000) }}万</span></td></tr>
-        <tr><td>换手：<span>{{ "%.2f"|format(quot.turnoverratio|float) }}%</span></td><td>市盈率：<span>{{ "%.2f"|format(quot.per|float) }}</span></td><td>市净率：<span>{{ "%.2f"|format(quot.pb|float) }}</span></td></tr>
-        <tr><td>流通市值：<span>{{ "%.2f"|format(quot.nmc|int/10000) }}亿</span></td><td>总市值：<span>{{ "%.2f"|format(quot.mktcap|int/10000) }}亿</span></td></tr>
-        </table>
+   <section id="result_page" class="tw-stock-terminal">
+        <div class="tw-terminal-topbar">
+            <div>
+                <p class="tw-terminal-label">单股研究</p>
+                <h1>{{ quot.code }} · {{ quot.name }}</h1>
+                <p class="tw-terminal-subtitle">K 线走势与财务指标概览</p>
+            </div>
+            <form action="/main/predict" role="form" class="tw-terminal-search">
+                <div class="input-group">
+                    <input type="text" class="form-control" placeholder="切换股票代码/简称" id="code-search" name="code-search" data-provide="typeahead" autocomplete="off">
+                    <span class="input-group-btn">
+                        <button class="btn btn-default" type="submit">研究</button>
+                    </span>
+                </div>
+            </form>
         </div>
 
-        <div class="col-lg-6">
-        <div class="tw-section-title">预测准确率 <span>{{ quot.accu_rate }}%</span></div>
-        <table class="table table-bordered table-striped table-hover">
-        <thead>
-        <tr>
-              <th scope="col">日期</th>
-              <th scope="col">真实值</th>
-              <th scope="col">预测值</th>
-        </tr>
-        </thead>
-        {% for item in quot.predictions %}
-        <tr><td>{{ item.date }}</td>
-        {% if item.real == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.real }}</td>
-        {% if item.predict == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.predict }}</td>
-        </tr>
-        {% endfor %}
-        </table>
-        </div>
+        <div class="tw-stock-hero-card">
+            <div class="tw-stock-identity">
+                <span class="tw-status-dot" aria-hidden="true"></span>
+                <span>数据截至 {{ quot.update_time }}</span>
+            </div>
+            {% if quot.trade|float > quot.settlement|float %}
+            <div class="tw-price-row tw-price-up">
+                <strong>{{ quot.trade }}</strong>
+                <span>{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} · {{ "%.2f"|format(quot.changepercent|float) }}%</span>
+            </div>
+            {% elif quot.trade|float < quot.settlement|float %}
+            <div class="tw-price-row tw-price-down">
+                <strong>{{ quot.trade }}</strong>
+                <span>{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} · {{ "%.2f"|format(quot.changepercent|float) }}%</span>
+            </div>
+            {% else %}
+            <div class="tw-price-row tw-price-flat">
+                <strong>{{ quot.trade }}</strong>
+                <span>{{ "%.2f"|format(quot.trade|float - quot.settlement|float) }} · {{ "%.2f"|format(quot.changepercent|float) }}%</span>
+            </div>
+            {% endif %}
+            <div class="tw-stat-grid" aria-label="Market statistics">
+                <div class="tw-stat-card"><span>最高</span><strong>{{ quot.high }}</strong></div>
+                <div class="tw-stat-card"><span>最低</span><strong>{{ quot.low }}</strong></div>
+                <div class="tw-stat-card"><span>今开</span><strong>{{ quot.open }}</strong></div>
+                <div class="tw-stat-card"><span>昨收</span><strong>{{ quot.settlement }}</strong></div>
+                <div class="tw-stat-card"><span>成交量</span><strong>{{ "%d"|format(quot.volume|int/100) }}手</strong></div>
+                <div class="tw-stat-card"><span>成交额</span><strong>{{ "%.2f"|format(quot.amount|int/10000) }}万</strong></div>
+                <div class="tw-stat-card"><span>市盈率</span><strong>{{ "%.2f"|format(quot.per|float) }}</strong></div>
+                <div class="tw-stat-card"><span>市净率</span><strong>{{ "%.2f"|format(quot.pb|float) }}</strong></div>
+                <div class="tw-stat-card"><span>换手</span><strong>{{ "%.2f"|format(quot.turnoverratio|float) }}%</strong></div>
+                <div class="tw-stat-card"><span>流通市值</span><strong>{{ "%.2f"|format(quot.nmc|int/10000) }}亿</strong></div>
+                <div class="tw-stat-card"><span>总市值</span><strong>{{ "%.2f"|format(quot.mktcap|int/10000) }}亿</strong></div>
+            </div>
         </div>
 
-        <div id="candlestick" class="row" style="height: 450px"></div>
-        <br>
-        <div class="row">
-        <div id="eps_yoy" class="col-lg-6" style="height: 300px"></div>
-        <div id="roe" class="col-lg-6" style="height: 300px"></div>
+        <div class="tw-stock-content">
+            <main class="tw-chart-column">
+                <article class="tw-panel tw-panel-chart">
+                    <div class="tw-panel-heading">
+                        <div>
+                            <span class="tw-panel-eyebrow">Price chart</span>
+                            <h2>K 线走势</h2>
+                        </div>
+                        <span class="tw-pill">日线</span>
+                    </div>
+                    <div id="candlestick" class="tw-chart-canvas tw-chart-candlestick"></div>
+                </article>
+
+                <section class="tw-finance-grid" aria-label="Financial metrics">
+                    <article class="tw-panel">
+                        <div id="eps_yoy" class="tw-chart-canvas"></div>
+                    </article>
+                    <article class="tw-panel">
+                        <div id="roe" class="tw-chart-canvas"></div>
+                    </article>
+                    <article class="tw-panel">
+                        <div id="npr" class="tw-chart-canvas"></div>
+                    </article>
+                    <article class="tw-panel">
+                        <div id="profits_yoy" class="tw-chart-canvas"></div>
+                    </article>
+                    <article class="tw-panel">
+                        <div id="eps" class="tw-chart-canvas"></div>
+                    </article>
+                    <article class="tw-panel">
+                        <div id="np_per_share" class="tw-chart-canvas"></div>
+                    </article>
+                </section>
+            </main>
+
+            <aside class="tw-insight-column">
+                <article class="tw-panel tw-prediction-card">
+                    <div class="tw-panel-heading">
+                        <div>
+                            <span class="tw-panel-eyebrow">Signal</span>
+                            <h2>预测表现</h2>
+                        </div>
+                        <span class="tw-score">{{ quot.accu_rate }}%</span>
+                    </div>
+                    <table class="table table-bordered table-striped table-hover tw-compact-table">
+                        <thead>
+                        <tr>
+                              <th scope="col">日期</th>
+                              <th scope="col">真实值</th>
+                              <th scope="col">预测值</th>
+                        </tr>
+                        </thead>
+                        {% for item in quot.predictions %}
+                        <tr><td>{{ item.date }}</td>
+                        {% if item.real == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.real }}</td>
+                        {% if item.predict == "涨" %}<td class='color_up'>{% else %}<td class='color_down'>{% endif %}{{ item.predict }}</td>
+                        </tr>
+                        {% endfor %}
+                    </table>
+                </article>
+                <article class="tw-panel tw-about-card">
+                    <span class="tw-panel-eyebrow">Overview</span>
+                    <h2>基本面速览</h2>
+                    <p>用价格、估值、成交与盈利质量指标快速建立个股画像，再结合下方财务趋势图做进一步判断。</p>
+                </article>
+            </aside>
         </div>
-        <br>
-        <div class="row">
-        <div id="npr" class="col-lg-6" style="height: 300px"></div>
-        <div id="profits_yoy" class="col-lg-6" style="height: 300px"></div>
-        </div>
-        <br>
-        <div class="row">
-        <div id="eps" class="col-lg-6" style="height: 300px"></div>
-        <div id="np_per_share" class="col-lg-6" style="height: 300px"></div>
-        </div>
-        </div>
-   </div>
+   </section>
    {% endif %}
 
    <!--

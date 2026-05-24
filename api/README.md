@@ -1,0 +1,60 @@
+# Twelvewin REST API
+
+Standalone FastAPI service for published analysis results. This package reads Postgres via `core/db.py` and does **not** import Flask.
+
+## Setup
+
+From the repository root:
+
+```bash
+python -m venv .venv-api
+source .venv-api/bin/activate
+pip install -r api/requirements.txt
+```
+
+Ensure `.env` contains `DATABASE_URL` (same as compute/web).
+
+Optional:
+
+- `API_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000`
+- `REDIS_URL=redis://127.0.0.1:6379/0` (for live quote bar on `/stocks/{code}/bars`)
+
+## Run
+
+```bash
+cd /path/to/twelvewin
+uvicorn api.main:app --reload --port 8090
+```
+
+- Swagger UI: http://localhost:8090/docs
+- Health: `GET /api/v1/health`
+- PE ranking: `GET /api/v1/rankings/pe`
+- Data status: `GET /api/v1/data-status`
+
+## Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/v1/health` | Liveness check |
+| GET | `/api/v1/data-status` | Artifact freshness and job status |
+| GET | `/api/v1/rankings/{pe\|pb\|roe\|divi}` | Fundamental rankings |
+| GET | `/api/v1/technical/{key}` | Technical screens |
+| GET | `/api/v1/technical/filter/price-change` | Price change filter |
+| GET | `/api/v1/business` | Curated business list |
+| GET | `/api/v1/clusters/{section}` | Index/industry clusters |
+| GET | `/api/v1/industries` | Industry list |
+| GET | `/api/v1/industries/{name}/data` | Industry cluster table |
+| GET | `/api/v1/industries/{name}/stocks/{code}` | Peers in same cluster |
+| GET | `/api/v1/stocks/search?q=` | Instrument search |
+| GET | `/api/v1/stocks/{code}/bars` | Candlestick OHLC rows |
+| GET | `/api/v1/stocks/{code}/profile` | Finance profile + quote |
+
+Response shapes match the legacy Flask AJAX endpoints (`total`, `rows`, `updateTime`).
+
+## Data prerequisite
+
+Published rows must exist in Postgres:
+
+```bash
+python -m compute eod_all
+```

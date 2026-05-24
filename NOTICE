@@ -1,0 +1,12 @@
+Twelvewin
+Copyright 2026 Twelvewin Contributors
+
+Licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+This product includes software developed as part of the Twelvewin open-source
+A-share quantitative research terminal (compute pipeline, research API, and
+web terminal UI).
+
+Third-party dependencies are subject to their respective licenses. Refer to
+each dependency's package metadata for details.

@@ -9,6 +9,7 @@ import pandas as pd
 
 from app.models import AnalysisRun, RankingResult, TechnicalScreenResult
 from core.db import session_scope
+from core.stock_codes import normalize_stock_code
 
 SCREEN_BASENAME_TO_KEY = {
     'highest_in_history': 'highest',
@@ -74,7 +75,7 @@ def publish_rows(
 
     objects = []
     for index, row in enumerate(records, start=1):
-        code = str(row.get(code_key, '')).strip()
+        code = normalize_stock_code(row.get(code_key))
         if not code:
             continue
         objects.append(

@@ -7,10 +7,16 @@ import unittest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from api.db.models import AnalysisRun, Base, FundamentalSnapshot, RankingResult
+from api.db.models import (
+    AnalysisRun,
+    Base,
+    FundamentalSnapshot,
+    RankingResult,
+    TechnicalScreenResult,
+)
 from api.main import app
 from api.services.fundamentals import search_fundamentals
-from api.services.published_results import get_ranking_rows
+from api.services.published_results import get_ranking_rows, get_technical_rows
 from fastapi.testclient import TestClient
 
 
@@ -40,6 +46,26 @@ class ApiRankingTestCase(unittest.TestCase):
                 data=json.dumps({'per': 8.5, 'close': 10.2, 'pb': 1.1}, ensure_ascii=False),
             )
         )
+
+        technical_run = AnalysisRun(
+            category=AnalysisRun.CATEGORY_TECHNICAL,
+            result_key='highest',
+            as_of_date=datetime.date(2026, 5, 21),
+            row_count=1,
+            source_file='highest_in_history.csv',
+            create_time=datetime.datetime.now(),
+        )
+        self.session.add(technical_run)
+        self.session.flush()
+        self.session.add(
+            TechnicalScreenResult(
+                run_id=technical_run.id,
+                rank_order=1,
+                code='1',
+                name='Growth Co',
+                data=json.dumps({'code': 1, 'close': 10.2}, ensure_ascii=False),
+            )
+        )
         self.session.commit()
 
     def tearDown(self):
@@ -58,6 +84,12 @@ class ApiRankingTestCase(unittest.TestCase):
         result = get_ranking_rows(self.session, 'unknown')
         self.assertEqual([], result.rows)
         self.assertEqual('unknown ranking key', result.error)
+
+    def test_get_technical_rows_normalizes_numeric_code(self):
+        result = get_technical_rows(self.session, 'highest')
+        self.assertIsNone(result.error)
+        self.assertEqual(1, len(result.rows))
+        self.assertEqual('000001', result.rows[0]['code'])
 
 
 class ApiFundamentalScreenerTestCase(unittest.TestCase):

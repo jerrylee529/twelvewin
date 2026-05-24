@@ -5,12 +5,9 @@
 from __future__ import annotations
 
 import logging
-import os
 from dataclasses import dataclass, field
-from datetime import date
 from typing import Dict, Iterable, List, Optional
 
-import numpy as np
 import pandas as pd
 
 from app.models import Instrument, StockCluster, StockClusterItem
@@ -22,6 +19,8 @@ try:
     from sklearn.cluster import AffinityPropagation
 except ImportError:
     AffinityPropagation = None
+
+DEFAULT_RATE_BEGIN_DATE = '2018-01-01'
 
 
 @dataclass
@@ -56,27 +55,69 @@ class ClusterGroups:
         self.items.append(cluster)
 
 
-def _read_rate_series(day_file_path: str, code: str, begin_date: str = '2018-01-01') -> Optional[pd.Series]:
-    from day_data import day_data_available, load_day_dataframe
-
-    if not day_data_available(code):
+def compute_rate_series(frame, *, begin_date: str, end_date: str) -> Optional[pd.Series]:
+    """Build daily return series (percent) from a ``date``/``close`` bar frame."""
+    if frame is None or frame.empty or 'close' not in frame.columns:
         return None
 
-    frame = load_day_dataframe(code)
-    if frame.empty or 'close' not in frame.columns:
+    working = frame.copy()
+    working['date'] = pd.to_datetime(working['date'], errors='coerce')
+    working = working.set_index('date').sort_index()
+    working = working.loc[begin_date:end_date]
+    working['close'] = pd.to_numeric(working['close'], errors='coerce')
+    working = working.ffill()
+    if working.empty:
         return None
 
-    frame['date'] = pd.to_datetime(frame['date'], errors='coerce')
-    frame = frame.set_index('date').sort_index()
-    end_date = date.today().strftime('%Y-%m-%d')
-    frame = frame.loc[begin_date:end_date]
-    frame['close'] = pd.to_numeric(frame['close'], errors='coerce')
-    frame = frame.ffill()
-
-    value = frame['close'] - frame['close'].shift(1)
+    value = working['close'] - working['close'].shift(1)
     value = value.ffill()
-    rate = (value / frame['close']) * 100
-    return rate
+    return (value / working['close']) * 100
+
+
+def read_rate_series(
+    code,
+    session,
+    *,
+    end_date: str,
+    begin_date: str = DEFAULT_RATE_BEGIN_DATE,
+) -> Optional[pd.Series]:
+    from day_data import load_day_since_dataframe
+
+    frame = load_day_since_dataframe(
+        code,
+        session=session,
+        since_date=begin_date,
+        columns=('date', 'close'),
+    )
+    return compute_rate_series(frame, begin_date=begin_date, end_date=end_date)
+
+
+def build_rate_series_map(
+    instruments: pd.DataFrame,
+    session,
+    *,
+    end_date: str,
+    index_code: Optional[str] = None,
+) -> Dict[str, pd.Series]:
+    """Load return series for all instruments in one DB session."""
+    index_series = None
+    if index_code:
+        index_series = read_rate_series(index_code, session, end_date=end_date)
+
+    series_map: Dict[str, pd.Series] = {}
+    total = len(instruments.index)
+    for position, code in enumerate(instruments.index, start=1):
+        if position % 100 == 0 or position == total:
+            logger.info('cluster rate series: %d / %d', position, total)
+
+        series = read_rate_series(str(code), session, end_date=end_date)
+        if series is None:
+            continue
+        if index_series is not None:
+            series = series - index_series
+        series_map[str(code)] = series
+
+    return series_map
 
 
 def cluster_by_price_series(
@@ -87,31 +128,28 @@ def cluster_by_price_series(
     index_code: Optional[str] = None,
 ) -> ClusterGroups:
     """Cluster instruments using daily return series (optional index-relative)."""
+    del day_file_path, index_file_path  # bars are loaded from Postgres via day_data
+
     if AffinityPropagation is None:
         raise RuntimeError('scikit-learn is required for cluster_compute (install requirements-analysis.txt)')
 
-    data = pd.DataFrame()
-    index_column = None
+    from market_calendar import resolve_download_end_date
 
-    if index_file_path and index_code:
-        index_series = _read_rate_series(index_file_path, index_code)
-        if index_series is not None:
-            index_column = '9' + str(index_code)
-            data[index_column] = index_series
+    with session_scope() as session:
+        end_date, end_source = resolve_download_end_date(session)
+        logger.info('cluster end_date=%s (source=%s)', end_date, end_source)
+        series_map = build_rate_series_map(
+            instruments,
+            session,
+            end_date=end_date,
+            index_code=index_code,
+        )
 
-    for code in instruments.index:
-        series = _read_rate_series(day_file_path, str(code))
-        if series is not None:
-            data[str(code)] = series
-            if index_column is not None:
-                data[str(code)] = data[str(code)] - data[index_column]
-
-    if data.empty or len(data.columns) < 2:
+    if len(series_map) < 2:
         return ClusterGroups()
 
+    data = pd.concat(series_map, axis=1)
     data = data.ffill().fillna(0.01).astype('float64')
-    if index_column and index_column in data.columns:
-        data = data.drop(columns=[index_column])
 
     matrix = data.T.values
     model = AffinityPropagation(affinity='euclidean')
@@ -119,8 +157,8 @@ def cluster_by_price_series(
 
     groups = ClusterGroups()
     for index, label in enumerate(labels):
-        code = str(instruments.index[index])
-        name = str(instruments.iloc[index].get('name', code))
+        code = str(data.columns[index])
+        name = str(instruments.at[code, 'name']) if code in instruments.index else code
         cluster = groups.existed_cluster(int(label))
         if cluster is None:
             cluster = ClusterGroup(code=code, name=name, label=int(label))
@@ -253,31 +291,38 @@ def run_index_section(
     return {'status': 'ok', 'section': section, 'clusters': len(groups.items), 'items': rows}
 
 
-def run_industry_section(industry: str) -> dict:
+def _load_industry_fundamental_rows(industry: str) -> List[dict]:
+    """Load instrument fundamentals as plain dicts (safe outside SQLAlchemy session)."""
     with session_scope() as session:
-        query = session.query(Instrument).filter(Instrument.industry == industry)
-        records = query.all()
+        records = (
+            session.query(Instrument)
+            .filter(Instrument.industry == industry)
+            .all()
+        )
+        return [
+            {
+                'code': record.code,
+                'name': record.name,
+                'pe': record.pe,
+                'pb': record.pb,
+                'outstanding': record.outstanding,
+                'totals': record.totals,
+                'total_assets': record.total_assets,
+                'liquid_assets': record.liquid_assets,
+                'fixed_assets': record.fixed_assets,
+                'esp': record.esp,
+                'bvps': record.bvps,
+                'gpr': record.gpr,
+                'npr': record.npr,
+            }
+            for record in records
+        ]
 
-    if not records:
+
+def run_industry_section(industry: str) -> dict:
+    rows = _load_industry_fundamental_rows(industry)
+    if not rows:
         return {'status': 'skipped', 'reason': 'no instruments', 'section': industry}
-
-    rows = []
-    for record in records:
-        rows.append({
-            'code': record.code,
-            'name': record.name,
-            'pe': record.pe,
-            'pb': record.pb,
-            'outstanding': record.outstanding,
-            'totals': record.totals,
-            'total_assets': record.total_assets,
-            'liquid_assets': record.liquid_assets,
-            'fixed_assets': record.fixed_assets,
-            'esp': record.esp,
-            'bvps': record.bvps,
-            'gpr': record.gpr,
-            'npr': record.npr,
-        })
 
     frame = pd.DataFrame(rows).set_index('code')
     groups = cluster_fundamentals(frame)

@@ -17,6 +17,7 @@ from core.artifacts import (
     STOCK_RANKING_FILES,
     TECHNICAL_ANALYSIS_FILES,
 )
+from core.stock_codes import normalize_stock_code
 
 
 def read_analysis_from_db_enabled(config):
@@ -44,12 +45,13 @@ def _serialize_row_payload(row, *, code_key='code', name_key='name'):
 
 
 def _deserialize_row(result_model, *, update_time=None):
-    row = {'code': result_model.code, 'name': result_model.name or ''}
+    row = {'code': normalize_stock_code(result_model.code), 'name': result_model.name or ''}
     if result_model.data:
         try:
             row.update(json.loads(result_model.data))
         except json.JSONDecodeError:
             pass
+    row['code'] = normalize_stock_code(row.get('code'))
     if update_time:
         row['updateTime'] = update_time
     return row

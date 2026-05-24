@@ -10,7 +10,12 @@ ANALYSIS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'an
 if ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, ANALYSIS_DIR)
 
-from providers.tushare_pro import code_to_ts_code, normalize_trade_date, ts_code_to_code
+from providers.tushare_pro import (
+    code_to_ts_code,
+    normalize_trade_date,
+    trade_date_to_iso,
+    ts_code_to_code,
+)
 
 
 class TushareProTestCase(unittest.TestCase):
@@ -25,6 +30,10 @@ class TushareProTestCase(unittest.TestCase):
     def test_normalize_trade_date(self):
         self.assertEqual(normalize_trade_date('2024-12-31'), '20241231')
         self.assertEqual(normalize_trade_date('20241231'), '20241231')
+
+    def test_trade_date_to_iso(self):
+        self.assertEqual(trade_date_to_iso('20260522'), '2026-05-22')
+        self.assertEqual(trade_date_to_iso('2026-05-22'), '2026-05-22')
 
 
 if __name__ == '__main__':

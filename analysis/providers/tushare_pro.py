@@ -69,8 +69,16 @@ def normalize_trade_date(value):
     return None
 
 
+def trade_date_to_iso(value):
+    """Convert ``YYYYMMDD`` or ``YYYY-MM-DD`` to ``YYYY-MM-DD``."""
+    normalized = normalize_trade_date(value)
+    if not normalized:
+        return None
+    return '{}-{}-{}'.format(normalized[:4], normalized[4:6], normalized[6:8])
+
+
 def latest_open_trade_date(pro=None, *, lookback_days=15):
-    """Most recent SSE trading day on or before today."""
+    """Most recent SSE trading day on or before today (``YYYYMMDD``)."""
     pro = pro or get_pro_client()
     end = datetime.date.today().strftime('%Y%m%d')
     start = (datetime.date.today() - datetime.timedelta(days=lookback_days)).strftime('%Y%m%d')
@@ -84,6 +92,11 @@ def latest_open_trade_date(pro=None, *, lookback_days=15):
     if cal is None or cal.empty:
         return None
     return str(cal['cal_date'].max())
+
+
+def latest_open_trade_date_iso(pro=None, *, lookback_days=15):
+    """Most recent SSE trading day as ``YYYY-MM-DD``."""
+    return trade_date_to_iso(latest_open_trade_date(pro, lookback_days=lookback_days))
 
 
 def pro_bar_to_legacy_kline(frame):

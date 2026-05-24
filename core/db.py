@@ -26,7 +26,13 @@ def get_database_uri():
 def get_engine():
     global _engine
     if _engine is None:
-        _engine = create_engine(get_database_uri(), echo=False)
+        _engine = create_engine(
+            get_database_uri(),
+            echo=False,
+            pool_pre_ping=True,
+            pool_size=5,
+            max_overflow=10,
+        )
     return _engine
 
 

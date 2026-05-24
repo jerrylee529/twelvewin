@@ -27,7 +27,7 @@ class PublishTestCase(unittest.TestCase):
     def test_publish_ranking_dataframe(self):
         frame = pd.DataFrame([
             {'code': '600000', 'name': 'Test', 'pe': 8.5},
-            {'code': '000001', 'name': 'Test2', 'pe': 12.0},
+            {'code': 1, 'name': 'Test2', 'pe': 12.0},
         ])
 
         summary = publish_ranking_dataframe(
@@ -48,6 +48,7 @@ class PublishTestCase(unittest.TestCase):
         rows = RankingResult.query.filter_by(run_id=run.id).order_by(RankingResult.rank_order).all()
         self.assertEqual(2, len(rows))
         self.assertEqual('600000', rows[0].code)
+        self.assertEqual('000001', rows[1].code)
 
 
 if __name__ == '__main__':

@@ -1,33 +1,52 @@
 # coding=utf8
 
-"""日终技术分析 CSV 生成服务。
-
-提供历史新高、历史新低、均线多头、突破指定均线、站上指定均线、区间涨跌幅和振幅分析函数。
-每个函数读取股票列表和本地日线 CSV，筛选符合条件的股票，并同时输出带日期和固定文件名的结果 CSV。
-"""
+"""End-of-day technical screen generation and publish service."""
 
 __author__ = 'Administrator'
 
+import logging
+
 import pandas as pd
-from datetime import timedelta, datetime, date
+
+from datetime import timedelta, date
+
 from config import config
-import os
-import time
-from price_change_analysis import compute_all_instruments, PriceChangePeriod, compute_all_instruments_amplitude
+from price_change_analysis import (
+    PriceChangePeriod,
+    compute_all_instruments,
+    compute_all_instruments_amplitude,
+)
 
 from compat import set_display_precision
-from day_data import day_data_available, load_day_dataframe, load_instruments_dataframe
+from core.db import session_scope
+from core.day_bars import scan_historic_extreme_codes
+from day_data import load_day_tail_dataframe, load_instruments_dataframe
 from result_export import export_screen_report
+from technical_screens import match_above_ma, match_break_ma, match_ma_long
 
 set_display_precision(2)
 
+logger = logging.getLogger(__name__)
+
 SCREEN_RESULT_COLUMNS = ('code', 'name', 'close')
+MA_TAIL_LIMIT = 250
+MA_LONG_WINDOWS = (5, 10, 20)
+BREAK_MA_WINDOW = 20
+ABOVE_MA_WINDOW = 250
+
+SCREEN_DEFINITIONS = (
+    ('highest_in_history', 'highest'),
+    ('lowest_in_history', 'lowest'),
+    ('ma_long', 'ma_long'),
+    ('break_ma', 'break_ma'),
+    ('above_ma', 'above_ma'),
+)
 
 
 def _load_instruments():
     instruments = load_instruments_dataframe()
     if instruments is None or instruments.empty:
-        print("Could not find any instruments, exit")
+        logger.warning('Could not find any instruments, exit')
         return None
     instruments = instruments.copy()
     instruments['code'] = instruments['code'].astype(str)
@@ -46,256 +65,176 @@ def _write_screen_results(instruments, result_file_path, basename):
     )
 
 
-# 技术分析基类
-class Analysis:
-    def __init__(self):
-        pass
-
-    def analyze(self, index, instruments, df):
-        pass
-
-
-# 历史新高分析
-class HighestInHistory(Analysis):
-    def analyze(self, index, instruments, df):
-        idx_max = df['close'].idxmax()  # 最大值的索引
-
-        print("index: %d, date: %s, max date: %s" % (idx_max, df.loc[idx_max]['date'], df['date'].max(),))
-
-        t1 = time.strptime(df.loc[idx_max]['date'], "%Y-%m-%d")
-        t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
-
-        if t1 == t2:
-            instruments['close'][idx_max] = df['close'].max()
-
-        return instruments
+def _rows_from_extreme_map(extreme_map, name_by_code):
+    rows = []
+    for code, close in extreme_map.items():
+        name = name_by_code.get(code)
+        if name is None:
+            continue
+        rows.append({'code': code, 'name': name, 'close': close})
+    return rows
 
 
-# 均线多头分析
-class LongMA(Analysis):
-    def analyze(self, index, instruments, df):
-        pass
+def _publish_rows(rows, result_file_path, basename):
+    if not rows:
+        logger.info('No qualified data for %s', basename)
+        return None
+    return _write_screen_results(pd.DataFrame(rows), result_file_path, basename)
 
 
-# 历史最高
+def run_all_technical_screens(instrument_filename, day_file_path, result_file_path):
+    """Run all technical screens in one DB session and publish results."""
+    instruments = _load_instruments()
+    if instruments is None:
+        return {}
+
+    name_by_code = dict(zip(instruments['code'], instruments['name']))
+    valid_codes = set(name_by_code.keys())
+    results = {basename: [] for basename, _ in SCREEN_DEFINITIONS}
+    total = len(instruments)
+
+    with session_scope() as session:
+        high_map = scan_historic_extreme_codes(session, 'high')
+        low_map = scan_historic_extreme_codes(session, 'low')
+        results['highest_in_history'] = _rows_from_extreme_map(
+            {code: close for code, close in high_map.items() if code in valid_codes},
+            name_by_code,
+        )
+        results['lowest_in_history'] = _rows_from_extreme_map(
+            {code: close for code, close in low_map.items() if code in valid_codes},
+            name_by_code,
+        )
+
+        tail_columns = ('date', 'open', 'close')
+        for index, code in enumerate(instruments['code'], start=1):
+            if index % 500 == 0 or index == total:
+                logger.info('technical screens: %d / %d', index, total)
+
+            df = load_day_tail_dataframe(
+                code,
+                session=session,
+                limit=MA_TAIL_LIMIT,
+                columns=tail_columns,
+            )
+            if df.empty:
+                continue
+
+            name = name_by_code[code]
+            close = match_ma_long(df, *MA_LONG_WINDOWS)
+            if close is not None:
+                results['ma_long'].append({'code': code, 'name': name, 'close': close})
+
+            close = match_break_ma(df, BREAK_MA_WINDOW)
+            if close is not None:
+                results['break_ma'].append({'code': code, 'name': name, 'close': close})
+
+            close = match_above_ma(df, ABOVE_MA_WINDOW)
+            if close is not None:
+                results['above_ma'].append({'code': code, 'name': name, 'close': close})
+
+    published = {}
+    for basename, _result_key in SCREEN_DEFINITIONS:
+        summary = _publish_rows(results[basename], result_file_path, basename)
+        if summary is not None:
+            published[basename] = summary
+    return published
+
+
 def highest_in_history(instrument_filename, day_file_path, result_file_path):
     instruments = _load_instruments()
     if instruments is None:
         return
 
-    instruments['close'] = None
-
-    code_index = -1
-    for code in instruments['code']:
-        code_index += 1
-
-        print("calculate %s" % code)
-
-        if day_data_available(code):
-            try:
-                df = load_day_dataframe(code)
-                index = df['close'].idxmax()  # 最大值的索引
-
-                print("index: %d, date: %s, max date: %s" % (index, df.loc[index]['date'], df['date'].max(),))
-
-                t1 = time.strptime(df.loc[index]['date'], "%Y-%m-%d")
-                t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
-
-                if t1 == t2:
-                    instruments['close'][code_index] = df['close'].max()
-            except pd.errors.EmptyDataError as pderror:
-                continue
-            except Exception as e:
-                print(repr(e))
-                break
-
-    instruments = instruments.dropna(axis=0, subset=['close'])
-
-    if not instruments.empty:
-        _write_screen_results(instruments, result_file_path, 'highest_in_history')
-    else:
-        print("No qualified data")
+    name_by_code = dict(zip(instruments['code'], instruments['name']))
+    valid_codes = set(name_by_code.keys())
+    with session_scope() as session:
+        high_map = scan_historic_extreme_codes(session, 'high')
+    rows = _rows_from_extreme_map(
+        {code: close for code, close in high_map.items() if code in valid_codes},
+        name_by_code,
+    )
+    _publish_rows(rows, result_file_path, 'highest_in_history')
 
 
-# 历史新低
 def lowest_in_history(instrument_filename, day_file_path, result_file_path):
     instruments = _load_instruments()
     if instruments is None:
         return
 
-    instruments['close'] = None
+    name_by_code = dict(zip(instruments['code'], instruments['name']))
+    valid_codes = set(name_by_code.keys())
+    with session_scope() as session:
+        low_map = scan_historic_extreme_codes(session, 'low')
+    rows = _rows_from_extreme_map(
+        {code: close for code, close in low_map.items() if code in valid_codes},
+        name_by_code,
+    )
+    _publish_rows(rows, result_file_path, 'lowest_in_history')
 
-    code_index = -1
-    for code in instruments['code']:
-        code_index += 1
 
-        print("calculate %s" % code)
-
-        if day_data_available(code):
-            try:
-                df = load_day_dataframe(code)
-                index = df['close'].idxmin()  # 最小值的索引
-
-                print("index: %d, date: %s, min date: %s" % (index, df.loc[index]['date'], df['date'].max()))
-
-                t1 = time.strptime(df.loc[index]['date'], "%Y-%m-%d")
-                t2 = time.strptime(df['date'].max(), "%Y-%m-%d")
-
-                # 如果最小值出现的日期和数据最大日期相同，则为历史新低
-                if t1 == t2:
-                    instruments['close'][code_index] = df['close'].min()
-            except pd.errors.EmptyDataError:
-                continue
-            except Exception as e:
-                print(repr(e))
-                break
-
-    instruments = instruments.dropna(axis=0, subset=['close'])
-
-    if not instruments.empty:
-        _write_screen_results(instruments, result_file_path, 'lowest_in_history')
-    else:
-        print("No qualified data")
-
-# 均线多头
 def ma_long_history(instrument_filename, day_file_path, result_file_path, ma1, ma2, ma3):
     instruments = _load_instruments()
     if instruments is None:
         return
 
-    instruments['close'] = None
-
-    code_index = -1
-    for code in instruments['code']:
-        code_index += 1
-
-        print("calculate %s" % code)
-
-        if day_data_available(code):
-            try:
-                df = load_day_dataframe(code)
-
-                df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
-                df['ma'+str(ma2)] = df['close'].rolling(window=ma2).mean()
-                df['ma'+str(ma3)] = df['close'].rolling(window=ma3).mean()
-
-                df.fillna(0)
-
-                last_row = df.tail(1)
-
-                last_row.reset_index(drop=True, inplace=True)
-
-                if not last_row.empty:
-                    if (last_row['ma'+str(ma1)][0] > last_row['ma'+str(ma2)][0]) \
-                            and (last_row['ma'+str(ma2)][0] > last_row['ma'+str(ma3)][0]):
-                        instruments['close'][code_index] = last_row['close'][0]
-            except pd.errors.EmptyDataError as pderror:
-                continue
-            except Exception as e:
-                print(repr(e))
-                break
-
-    instruments = instruments.dropna(axis=0, subset=['close'])
-
-    if not instruments.empty:
-        _write_screen_results(instruments, result_file_path, 'ma_long')
-    else:
-        print("No qualified data")
+    rows = []
+    with session_scope() as session:
+        for code, name in zip(instruments['code'], instruments['name']):
+            df = load_day_tail_dataframe(
+                code,
+                session=session,
+                limit=MA_TAIL_LIMIT,
+                columns=('date', 'open', 'close'),
+            )
+            close = match_ma_long(df, ma1, ma2, ma3)
+            if close is not None:
+                rows.append({'code': code, 'name': name, 'close': close})
+    _publish_rows(rows, result_file_path, 'ma_long')
 
 
-# 突破均线
 def break_ma(instrument_filename, day_file_path, result_file_path, ma1):
     instruments = _load_instruments()
     if instruments is None:
         return
 
-    instruments['close'] = None
-
-    code_index = -1
-    for code in instruments['code']:
-        code_index += 1
-
-        print("calculate %s" % code)
-
-        if day_data_available(code):
-            try:
-                df = load_day_dataframe(code)
-
-                df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
-
-                df.fillna(0)
-
-                last_row = df.tail(1)
-
-                last_row.reset_index(drop=True, inplace=True)
-
-                if not last_row.empty:
-                    ma_price = last_row['ma'+str(ma1)][0]
-                    if (ma_price >= last_row['open'][0]) and (ma_price <= last_row['close'][0]):
-                        instruments['close'][code_index] = last_row['close'][0]
-            except pd.errors.EmptyDataError:
-                continue
-            except Exception as e:
-                print(repr(e))
-                break
-
-    instruments = instruments.dropna(axis=0, subset=['close'])
-
-    if not instruments.empty:
-        _write_screen_results(instruments, result_file_path, 'break_ma')
-    else:
-        print("No qualified data")
+    rows = []
+    with session_scope() as session:
+        for code, name in zip(instruments['code'], instruments['name']):
+            df = load_day_tail_dataframe(
+                code,
+                session=session,
+                limit=MA_TAIL_LIMIT,
+                columns=('date', 'open', 'close'),
+            )
+            close = match_break_ma(df, ma1)
+            if close is not None:
+                rows.append({'code': code, 'name': name, 'close': close})
+    _publish_rows(rows, result_file_path, 'break_ma')
 
 
-# 年线之上的股票
 def above_ma(instrument_filename, day_file_path, result_file_path, ma1):
     instruments = _load_instruments()
     if instruments is None:
         return
 
-    instruments['close'] = None
-
-    code_index = -1
-    for code in instruments['code']:
-        code_index += 1
-
-        print("calculate %s" % code)
-
-        if day_data_available(code):
-            try:
-                df = load_day_dataframe(code)
-
-                df['ma'+str(ma1)] = df['close'].rolling(window=ma1).mean()
-
-                df.fillna(0)
-
-                last_row = df.tail(1)
-
-                last_row.reset_index(drop=True, inplace=True)
-
-                if not last_row.empty:
-                    ma_price = last_row['ma'+str(ma1)][0]
-                    if ma_price <= last_row['close'][0]:
-                        instruments['close'][code_index] = last_row['close'][0]
-            except pd.errors.EmptyDataError:
-                continue
-            except Exception as e:
-                print(repr(e))
-                break
-
-    instruments = instruments.dropna(axis=0, subset=['close'])
-
-    if not instruments.empty:
-        _write_screen_results(instruments, result_file_path, 'above_ma')
-    else:
-        print("No qualified data")
+    rows = []
+    with session_scope() as session:
+        for code, name in zip(instruments['code'], instruments['name']):
+            df = load_day_tail_dataframe(
+                code,
+                session=session,
+                limit=MA_TAIL_LIMIT,
+                columns=('date', 'open', 'close'),
+            )
+            close = match_above_ma(df, ma1)
+            if close is not None:
+                rows.append({'code': code, 'name': name, 'close': close})
+    _publish_rows(rows, result_file_path, 'above_ma')
 
 
 def price_change_computer(instrument_filename, day_file_path, result_file_path):
     today = date.today()
-
-    # 计算的周期, 近七天、一个月、三个月、六个月和一年
-    days_list = [7, 30, 30*3, 30*6, 30*12]
+    days_list = [7, 30, 30 * 3, 30 * 6, 30 * 12]
 
     periods = []
     for days in days_list:
@@ -306,8 +245,8 @@ def price_change_computer(instrument_filename, day_file_path, result_file_path):
         periods.append(period)
 
     result = compute_all_instruments(instrument_filename, day_file_path, result_file_path, periods)
-
-    print(result)
+    logger.info('price change rows: %s', len(result) if result is not None else 0)
+    return result
 
 
 def price_amplitude_computer(days):
@@ -318,28 +257,13 @@ def price_amplitude_computer(days):
     period.title = 'amp_' + str(days)
 
     result = compute_all_instruments_amplitude(period)
-
-    print(result)
+    logger.info('price amplitude rows: %s', len(result) if result is not None else 0)
+    return result
 
 
 if __name__ == '__main__':
-   
-    # highest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #                    result_file_path=config.RESULT_PATH)
-    #
-    # lowest_in_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #                   result_file_path=config.RESULT_PATH)
-    #
-    # ma_long_history(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #                 result_file_path=config.RESULT_PATH, ma1=5, ma2=10, ma3=20)
-    #
-    # break_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #          result_file_path=config.RESULT_PATH, ma1=20)
-    #
-    # above_ma(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #          result_file_path=config.RESULT_PATH, ma1=250)
-    #
-    # price_change_computer(instrument_filename=config.INSTRUMENT_FILENAME, day_file_path=config.DAY_FILE_PATH,
-    #                       result_file_path=config.RESULT_PATH)
-
-    price_amplitude_computer(30)
+    run_all_technical_screens(
+        instrument_filename=config.INSTRUMENT_FILENAME,
+        day_file_path=config.DAY_FILE_PATH,
+        result_file_path=config.RESULT_PATH,
+    )

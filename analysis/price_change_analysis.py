@@ -1,18 +1,15 @@
 # coding=utf8
 
-"""计算个股区间涨跌幅和振幅报表。
+"""Compute interval price change and amplitude reports."""
 
-compute_all_instruments() 根据多个 PriceChangePeriod 统计每只股票在指定区间内的涨跌幅，
-输出 price_change_<date>.csv 和 price_change.csv。compute_all_instruments_amplitude()
-统计指定天数窗口内的振幅，输出 price_amplitude_<date>.csv 和 price_amplitude.csv。
-"""
-
-import pandas as pd
+import datetime
+import logging
 import os
 import sys
+
+import pandas as pd
+
 from config import config
-import numpy as np
-import datetime
 from instruments import get_all_instrument_codes_before
 
 _ANALYSIS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,17 +17,20 @@ if _ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, _ANALYSIS_DIR)
 
 from compat import set_display_precision
-from day_data import day_data_available, load_day_dataframe, load_instruments_dataframe
+from core.db import session_scope
 from csv_output import atomic_export_pair, get_result_path
+from day_data import load_day_since_dataframe, load_instruments_dataframe
 from result_export import export_price_change_report
 
 set_display_precision(2)
+logger = logging.getLogger(__name__)
+
+PRICE_CHANGE_COLUMNS = ('date', 'high', 'low', 'close')
 
 
 class PriceChangePeriod(object):
-    """
-    涨跌幅计算的一个时间段
-    """
+    """One interval used for price change statistics."""
+
     def __init__(self):
         self.begin_date = ""
         self.end_date = ""
@@ -38,16 +38,15 @@ class PriceChangePeriod(object):
 
 
 def price_change(df, begin_date, end_date):
-
-    df = df[(df['date'] >= begin_date) & (df['date'] <= end_date)]
+    window = df[(df['date'] >= begin_date) & (df['date'] <= end_date)]
 
     rate = -9999
     update_date = None
     close = -9999
-    if df.shape[0] > 0:
-        first_row = df.iloc[0]
-        last_row = df.iloc[-1]
-        rate = (last_row['close'] - first_row['close'])*100/first_row['close']
+    if not window.empty:
+        first_row = window.iloc[0]
+        last_row = window.iloc[-1]
+        rate = (last_row['close'] - first_row['close']) * 100 / first_row['close']
         close = first_row['close']
         update_date = last_row['date']
 
@@ -55,10 +54,8 @@ def price_change(df, begin_date, end_date):
 
 
 def price_amplitude(df, begin_date, end_date):
-    result = df[(df['date'] >= begin_date) & (df['date'] <= end_date)]
-
-    result['amplitude'] = (result['high'] - result['low'])*100 / result['low']
-
+    result = df[(df['date'] >= begin_date) & (df['date'] <= end_date)].copy()
+    result['amplitude'] = (result['high'] - result['low']) * 100 / result['low']
     return result
 
 
@@ -66,7 +63,7 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
     instruments = load_instruments_dataframe()
 
     if instruments is None or instruments.empty:
-        print("Could not find any instruments, exit")
+        logger.warning('Could not find any instruments, exit')
         return
 
     instruments = instruments.copy()
@@ -77,24 +74,40 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
     for period in periods:
         instruments[period.title] = -9999
 
-    for code in instruments['code']:
-        try:
-            if not day_data_available(code):
+    min_begin_date = min(period.begin_date for period in periods)
+    code_to_index = {code: index for index, code in enumerate(instruments['code'])}
+
+    with session_scope() as session:
+        total = len(instruments)
+        for index, code in enumerate(instruments['code'], start=1):
+            if index % 500 == 0 or index == total:
+                logger.info('price change: %d / %d', index, total)
+
+            try:
+                df = load_day_since_dataframe(
+                    code,
+                    session=session,
+                    since_date=min_begin_date,
+                    columns=PRICE_CHANGE_COLUMNS,
+                )
+                if df.empty:
+                    continue
+
+                row_index = code_to_index[code]
+                for period in periods:
+                    rate, close, update_time = price_change(
+                        df,
+                        period.begin_date,
+                        period.end_date,
+                    )
+                    instruments.at[row_index, period.title] = rate
+                    instruments.at[row_index, 'close'] = close
+                    instruments.at[row_index, 'update_time'] = update_time
+            except Exception as exc:
+                logger.warning('price change failed for %s: %s', code, exc)
                 continue
-            df = load_day_dataframe(code)
-
-            for period in periods:
-                rate, close, update_time = price_change(df, period.begin_date, period.end_date)
-
-                instruments.loc[instruments['code'] == code, period.title] = rate
-                instruments.loc[instruments['code'] == code, 'close'] = close
-                instruments.loc[instruments['code'] == code, 'update_time'] = update_time
-        except Exception as e:
-            print(str(e))
-            continue
 
     export_price_change_report(instruments)
-
     return instruments
 
 
@@ -102,7 +115,7 @@ def compute_all_instruments_amplitude(period):
     instruments = get_all_instrument_codes_before(20190101)
 
     if instruments is None:
-        print("Could not find any instruments, exit")
+        logger.warning('Could not find any instruments, exit')
         return
 
     result = pd.DataFrame()
@@ -112,21 +125,33 @@ def compute_all_instruments_amplitude(period):
     result['amp_std'] = None
     result['code'] = instruments
 
-    for code in instruments:
-        try:
-            if not day_data_available(code):
+    code_to_index = {code: index for index, code in enumerate(instruments)}
+
+    with session_scope() as session:
+        total = len(instruments)
+        for index, code in enumerate(instruments, start=1):
+            if index % 500 == 0 or index == total:
+                logger.info('price amplitude: %d / %d', index, total)
+
+            try:
+                df = load_day_since_dataframe(
+                    code,
+                    session=session,
+                    since_date=period.begin_date,
+                    columns=PRICE_CHANGE_COLUMNS,
+                )
+                if df.empty:
+                    continue
+
+                df_amp = price_amplitude(df, period.begin_date, period.end_date)
+                row_index = code_to_index[code]
+                result.at[row_index, 'close'] = df.iloc[-1]['close']
+                result.at[row_index, 'update_time'] = df.iloc[-1]['date']
+                result.at[row_index, period.title] = df_amp['amplitude'].mean()
+                result.at[row_index, 'amp_std'] = df_amp['amplitude'].std()
+            except Exception as exc:
+                logger.warning('price amplitude failed for %s: %s', code, exc)
                 continue
-            df = load_day_dataframe(code)
-
-            df_amp = price_amplitude(df, period.begin_date, period.end_date)
-
-            result.loc[result['code'] == code, 'close'] = df.iloc[df.shape[0]-1, 2]
-            result.loc[result['code'] == code, 'update_time'] = df.iloc[df.shape[0]-1, 0]
-            result.loc[result['code'] == code, period.title] = df_amp['amplitude'].mean()
-            result.loc[result['code'] == code, 'amp_std'] = df_amp['amplitude'].std()
-        except Exception as e:
-            print(str(e))
-            continue
 
     atomic_export_pair(
         result,
@@ -142,9 +167,7 @@ def compute_all_instruments_amplitude(period):
 
 if __name__ == '__main__':
     today = datetime.date.today()
-
-    # 计算的周期, 近七天、一个月、三个月、六个月和一年
-    days_list = [7, 30, 30*3, 30*6, 30*12]
+    days_list = [7, 30, 30 * 3, 30 * 6, 30 * 12]
 
     periods = []
     for days in days_list:
@@ -154,6 +177,10 @@ if __name__ == '__main__':
         period.title = 'rate' + str(days)
         periods.append(period)
 
-    result = compute_all_instruments(config.INSTRUMENT_FILENAME, config.DAY_FILE_PATH, config.RESULT_PATH, periods)
-
+    result = compute_all_instruments(
+        config.INSTRUMENT_FILENAME,
+        config.DAY_FILE_PATH,
+        config.RESULT_PATH,
+        periods,
+    )
     print(result)

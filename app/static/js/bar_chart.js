@@ -9,27 +9,53 @@ function show_bar(title, sub_title, id, code, field) {
     app.title = code;
 
     var option = {
+        backgroundColor: '#121f34',
         title: {
             text: title,
-            subtext: sub_title
+            subtext: sub_title,
+            left: 12,
+            top: 12,
+            textStyle: {
+                color: '#e5eefb',
+                fontSize: 15,
+                fontWeight: 700
+            },
+            subtextStyle: {
+                color: '#94a3b8',
+                fontSize: 11
+            }
         },
-        color: ['#3398DB'],
+        color: ['#00c805'],
         tooltip: {
             trigger: 'axis',
+            backgroundColor: 'rgba(7, 17, 31, 0.92)',
+            borderColor: 'rgba(148, 163, 184, 0.22)',
+            textStyle: {
+                color: '#e5eefb'
+            },
             axisPointer: {            // 坐标轴指示器，坐标轴触发有效
                 type: 'shadow'        // 默认为直线，可选为：'line' | 'shadow'
             }
         },
         grid: {
-            left: '3%',
+            left: '4%',
             right: '4%',
-            bottom: '3%',
+            top: 68,
+            bottom: '8%',
             containLabel: true
         },
         xAxis: [
             {
                 type: 'category',
                 data: [],
+                axisLine: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.35)'
+                    }
+                },
+                axisLabel: {
+                    color: '#94a3b8'
+                },
                 axisTick: {
                     alignWithLabel: true
                 }
@@ -37,7 +63,20 @@ function show_bar(title, sub_title, id, code, field) {
         ],
         yAxis: [
             {
-                type: 'value'
+                type: 'value',
+                axisLine: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.35)'
+                    }
+                },
+                axisLabel: {
+                    color: '#94a3b8'
+                },
+                splitLine: {
+                    lineStyle: {
+                        color: 'rgba(148, 163, 184, 0.12)'
+                    }
+                }
             }
         ],
         series: [

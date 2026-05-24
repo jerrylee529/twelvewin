@@ -46,40 +46,21 @@ def _step_download_history(config) -> dict:
 
 def _step_technical_screens(config) -> dict:
     _ensure_analysis_path()
-    from technical_analysis_service import (
-        above_ma,
-        break_ma,
-        highest_in_history,
-        lowest_in_history,
-        ma_long_history,
-    )
+    from technical_analysis_service import run_all_technical_screens
 
     instrument_filename = config_get(config, "INSTRUMENT_FILENAME")
     day_file_path = config_get(config, "DAY_FILE_PATH")
     result_file_path = config_get(config, "RESULT_PATH") or config_get(config, "RESULT_FILE_PATH")
 
-    highest_in_history(instrument_filename, day_file_path, result_file_path)
-    lowest_in_history(instrument_filename, day_file_path, result_file_path)
-    ma_long_history(
+    published = run_all_technical_screens(
         instrument_filename,
         day_file_path,
         result_file_path,
-        ma1=5,
-        ma2=10,
-        ma3=20,
     )
-    break_ma(instrument_filename, day_file_path, result_file_path, ma1=20)
-    above_ma(instrument_filename, day_file_path, result_file_path, ma1=250)
 
     return {
         "status": "ok",
-        "published": [
-            "technical:highest",
-            "technical:lowest",
-            "technical:ma_long",
-            "technical:break_ma",
-            "technical:above_ma",
-        ],
+        "published": sorted(published.keys()),
     }
 
 

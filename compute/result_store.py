@@ -14,6 +14,7 @@ from core.artifacts import (
     annual_stock_report_filename,
 )
 from core.db import session_scope
+from core.stock_codes import normalize_stock_code
 
 from app.models import AnalysisRun, RankingResult, TechnicalScreenResult
 from app.services.csv_store import read_rows
@@ -64,7 +65,7 @@ def _import_rows(
 
     objects = []
     for index, row in enumerate(csv_result.rows, start=1):
-        code = str(row.get(code_key, '')).strip()
+        code = normalize_stock_code(row.get(code_key))
         if not code:
             continue
         objects.append(

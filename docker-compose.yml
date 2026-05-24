@@ -1,0 +1,140 @@
+# Twelvewin open-source stack: Postgres + Redis + Research API + Web Terminal
+#
+# Quick start:
+#   cp .env.docker.example .env
+#   docker compose up -d --build
+#   docker compose --profile jobs run --rm eod    # optional: publish analysis data
+#
+# Open:
+#   Web:  http://localhost:3000
+#   API:  http://localhost:8090/docs
+
+name: twelvewin
+
+x-app-env: &app-env
+  APP_ENV: production
+  DATABASE_URL: postgresql+psycopg://twelvewin:twelvewin@postgres:5432/twelvewin
+  REDIS_URL: redis://redis:6379/0
+  SECRET_KEY: change-me-in-production
+  SECURITY_PASSWORD_SALT: change-me-in-production
+  TWELVEWIN_DISABLE_ANALYZER: "1"
+  READ_ANALYSIS_FROM_DB: "true"
+  CSV_DEV_FALLBACK: "false"
+  FLASK_APP: manage.py
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: twelvewin
+      POSTGRES_PASSWORD: twelvewin
+      POSTGRES_DB: twelvewin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U twelvewin -d twelvewin"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  migrate:
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    environment:
+      <<: *app-env
+    command: ["flask", "db", "upgrade"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/api/Dockerfile
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      API_CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "8090:8090"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: docker/web/Dockerfile
+      args:
+        API_URL: http://api:8090
+    restart: unless-stopped
+    environment:
+      API_URL: http://api:8090
+      PORT: "3000"
+    ports:
+      - "3000:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+
+  # Optional: run end-of-day pipelines (requires market data credentials in .env)
+  eod:
+    profiles: ["jobs"]
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    environment:
+      <<: *app-env
+    env_file:
+      - path: .env
+        required: false
+    command: ["python", "-m", "compute", "eod_all"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+  ranking:
+    profiles: ["jobs"]
+    build:
+      context: .
+      dockerfile: docker/python/Dockerfile
+    environment:
+      <<: *app-env
+    env_file:
+      - path: .env
+        required: false
+    command: ["python", "-m", "compute", "ranking_pipeline"]
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  postgres_data:
