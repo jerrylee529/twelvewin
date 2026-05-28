@@ -44,3 +44,13 @@ class ProfileResponse(BaseModel):
     basic_eps: list[dict[str, Any]] = Field(default_factory=list)
     gross_selling_rate: list[dict[str, Any]] = Field(default_factory=list)
     np_per_share: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class ClusterChartResponse(BaseModel):
+    nodes: list[dict[str, Any]] = Field(default_factory=list)
+    edges: list[dict[str, Any]] = Field(default_factory=list)
+    heatmap: dict[str, Any] = Field(default_factory=dict)
+    clusters: list[dict[str, Any]] = Field(default_factory=list)
+    meta: dict[str, Any] = Field(default_factory=dict)
+    updateTime: Optional[str] = None
+    error: Optional[str] = None

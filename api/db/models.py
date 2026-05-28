@@ -169,6 +169,14 @@ class StockClusterItem(Base):
     corr: Mapped[float] = mapped_column(Float, nullable=False)
 
 
+class StockClusterChart(Base):
+    __tablename__ = 'stock_cluster_chart'
+
+    section: Mapped[str] = mapped_column(String(64), primary_key=True)
+    payload: Mapped[str] = mapped_column(Text, nullable=False)
+    update_time: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+
+
 class StockLabels(Base):
     __tablename__ = 'stock_labels'
 

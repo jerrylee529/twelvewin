@@ -43,13 +43,6 @@ def get_data(path):
 
         items = []
 
-        rsp_cluster_item = {}
-        rsp_cluster_item['code'] = cluster.code
-        rsp_cluster_item['name'] = cluster.name
-        rsp_cluster_item['corr'] = 1.0
-
-        items.append(rsp_cluster_item)
-
         for cluster_item in cluster_items:
             if cluster.code == cluster_item.parent_code:
                 rsp_cluster_item = {}
@@ -57,6 +50,13 @@ def get_data(path):
                 rsp_cluster_item['name'] = cluster_item.name
                 rsp_cluster_item['corr'] = cluster_item.corr
                 items.append(rsp_cluster_item)
+
+        items.sort(
+            key=lambda item: (
+                0 if item['code'] == cluster.code else 1,
+                -item['corr'],
+            )
+        )
 
         rsp_cluster['items'] = items
 

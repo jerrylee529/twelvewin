@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ChevronDown, Search } from "lucide-react";
 import { BrandLogo } from "@/components/brand-logo";
-import { primaryNavTabs } from "@/lib/navigation";
+import {
+  isNavChildActive,
+  primaryNavTabs,
+} from "@/lib/navigation";
 import { StockSearch } from "@/components/stock-search";
 
 export function SiteHeader({
@@ -65,7 +68,7 @@ export function SiteHeader({
                   </Link>
                   <div className="invisible absolute left-0 top-full z-50 min-w-36 rounded-md border border-on-surface/10 bg-surface-container-lowest py-1 opacity-0 shadow-xl transition group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100">
                     {children.map((child) => {
-                      const childActive = pathname === child.href;
+                      const childActive = isNavChildActive(pathname, child);
 
                       return (
                         <Link

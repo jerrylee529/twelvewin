@@ -229,6 +229,19 @@ class StockClusterItem(db.Model):
         self.update_time = datetime.datetime.now()
 
 
+class StockClusterChart(db.Model):
+    __tablename__ = 'stock_cluster_chart'
+
+    section = db.Column(db.String(64), primary_key=True)
+    payload = db.Column(db.Text, nullable=False)
+    update_time = db.Column(db.DateTime, nullable=False)
+
+    def __init__(self, section, payload):
+        self.section = section
+        self.payload = payload
+        self.update_time = datetime.datetime.now()
+
+
 class StockPrediction(db.Model):
     '''
     股票预测结果表

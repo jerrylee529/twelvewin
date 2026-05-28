@@ -93,6 +93,7 @@
   --color-on-primary-fixed: var(--on-primary-fixed);
   --color-primary: var(--primary);
   --color-primary-container: var(--primary-container);
+  --color-on-primary-container: var(--on-primary-container);
   --color-secondary: var(--secondary);
   --color-secondary-container: var(--secondary-container);
   --color-tertiary: var(--tertiary);
@@ -214,6 +215,11 @@ a {
 .btn-gradient-primary {
   background: var(--gradient-cyber);
   color: var(--on-primary-fixed) !important;
+}
+
+.btn-primary-container {
+  background: var(--primary-container);
+  color: var(--on-primary-container) !important;
 }
 
 .text-gradient-cyber {

@@ -17,13 +17,7 @@ def get_cluster_payload(session: Session, section: str) -> QueryResult:
 
     rows = []
     for index, cluster in enumerate(clusters, start=1):
-        items = [
-            {
-                'code': cluster.code,
-                'name': cluster.name,
-                'corr': 1.0,
-            }
-        ]
+        items = []
         for cluster_item in cluster_items:
             if cluster.code == cluster_item.parent_code:
                 items.append(
@@ -33,6 +27,13 @@ def get_cluster_payload(session: Session, section: str) -> QueryResult:
                         'corr': cluster_item.corr,
                     }
                 )
+
+        items.sort(
+            key=lambda item: (
+                0 if item['code'] == cluster.code else 1,
+                -item['corr'],
+            )
+        )
 
         rows.append(
             {

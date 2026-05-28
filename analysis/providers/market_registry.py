@@ -3,6 +3,7 @@
 """Market data provider chain for ranking / valuation jobs."""
 
 import os
+import time
 
 from providers import akshare_market, tushare_market, yahoo_market
 from providers.tushare_pro import get_tushare_token
@@ -37,6 +38,38 @@ _FETCHERS = {
         'financial_indicators': tushare_market.fetch_financial_indicators_dataframe,
     },
 }
+
+_QUOTES_CACHE = {
+    'frame': None,
+    'fetched_at': 0.0,
+}
+
+
+def _quotes_cache_ttl_sec():
+    try:
+        return float(os.environ.get('TW_QUOTES_CACHE_TTL_SEC', '900'))
+    except (TypeError, ValueError):
+        return 900.0
+
+
+def clear_quotes_cache():
+    _QUOTES_CACHE['frame'] = None
+    _QUOTES_CACHE['fetched_at'] = 0.0
+
+
+def _get_cached_quotes():
+    frame = _QUOTES_CACHE.get('frame')
+    fetched_at = _QUOTES_CACHE.get('fetched_at') or 0.0
+    if frame is None or frame.empty:
+        return None
+    if (time.time() - fetched_at) > _quotes_cache_ttl_sec():
+        return None
+    return frame
+
+
+def _store_quotes_cache(frame):
+    _QUOTES_CACHE['frame'] = frame
+    _QUOTES_CACHE['fetched_at'] = time.time()
 
 
 def get_market_provider_chain(explicit=None):
@@ -74,8 +107,51 @@ def fetch_dividend_dataframe(provider=None, report_date=None):
     return _fetch('dividend', provider=provider, report_date=report_date)
 
 
-def fetch_today_quotes_dataframe(provider=None, *, enrich=True):
-    return _fetch('quotes', provider=provider, enrich=enrich)
+def fetch_today_quotes_dataframe(provider=None, *, enrich=True, use_cache=True):
+    if use_cache:
+        cached = _get_cached_quotes()
+        if cached is not None:
+            return cached
+
+    frame = _fetch('quotes', provider=provider, enrich=enrich)
+    if frame is not None and not frame.empty:
+        _store_quotes_cache(frame)
+    return frame
+
+
+def fetch_today_quotes_with_retry(
+    *,
+    max_attempts=3,
+    backoff_sec=None,
+    provider=None,
+    enrich=True,
+    use_cache=True,
+):
+    if backoff_sec is None:
+        try:
+            backoff_sec = float(os.environ.get('TW_QUOTES_RETRY_BACKOFF_SEC', '30'))
+        except (TypeError, ValueError):
+            backoff_sec = 30.0
+
+    errors = []
+    for attempt in range(1, max_attempts + 1):
+        try:
+            frame = fetch_today_quotes_dataframe(
+                provider=provider,
+                enrich=enrich,
+                use_cache=use_cache and attempt == 1,
+            )
+            if frame is not None and not frame.empty:
+                return frame
+            errors.append('attempt {}: empty response'.format(attempt))
+        except Exception as exc:
+            errors.append('attempt {}: {}'.format(attempt, repr(exc)))
+
+        if attempt < max_attempts:
+            time.sleep(backoff_sec * attempt)
+
+    print('spot quotes unavailable after {} attempts: {}'.format(max_attempts, '; '.join(errors)))
+    return None
 
 
 def fetch_stock_basics_dataframe(provider=None):

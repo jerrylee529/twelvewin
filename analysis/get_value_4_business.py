@@ -25,7 +25,7 @@ if _ANALYSIS_DIR not in sys.path:
 from compat import apply_close_price, set_display_precision
 from result_export import export_ranking_report
 from getvaluation import _prepare_quotes
-from providers.market_registry import fetch_today_quotes_dataframe
+from providers.market_registry import fetch_today_quotes_with_retry
 
 set_display_precision(2)
 
@@ -91,19 +91,12 @@ def get_stock_ma(code, ma1, ma2, ma3):
 
 
 def get_profit_report():
-    df_quots = pd.DataFrame()
-
-    for _attempt in range(0, 3):
-        try:
-            df_quots = fetch_today_quotes_dataframe()
-            if df_quots is not None and not df_quots.empty:
-                break
-        except Exception:
-            time.sleep(10 * 60)
-            continue
-
+    df_quots = fetch_today_quotes_with_retry()
     if df_quots is None or df_quots.empty:
-        raise RuntimeError('unable to load spot quotes for business screen')
+        raise RuntimeError(
+            'unable to load spot quotes for business screen '
+            '(check TW_MARKET_DATA_PROVIDER / network; valuation step may have cached quotes)'
+        )
 
     df_quots = _prepare_quotes(df_quots.copy())
 

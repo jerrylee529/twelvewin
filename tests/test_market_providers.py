@@ -73,6 +73,39 @@ class AkShareMarketProviderTestCase(unittest.TestCase):
             chain = _registry.get_market_provider_chain('auto')
         self.assertEqual(chain, ('tushare', 'akshare', 'yahoo'))
 
+    def test_fetch_today_quotes_uses_in_process_cache(self):
+        import pandas as pd
+
+        _registry.clear_quotes_cache()
+        frame = pd.DataFrame({'code': ['600000'], 'close': [9.0]})
+
+        with mock.patch.object(_registry, '_fetch', return_value=frame) as mock_fetch:
+            first = _registry.fetch_today_quotes_dataframe(enrich=False)
+            second = _registry.fetch_today_quotes_dataframe(enrich=False)
+
+        self.assertIs(first, second)
+        self.assertEqual(1, mock_fetch.call_count)
+        _registry.clear_quotes_cache()
+
+    def test_fetch_today_quotes_with_retry_waits_on_empty_response(self):
+        import pandas as pd
+
+        _registry.clear_quotes_cache()
+        frame = pd.DataFrame({'code': ['600000'], 'close': [9.0]})
+
+        with mock.patch.object(_registry, '_fetch', side_effect=[None, frame]):
+            with mock.patch.object(_registry.time, 'sleep') as mock_sleep:
+                result = _registry.fetch_today_quotes_with_retry(
+                    max_attempts=2,
+                    backoff_sec=5,
+                    use_cache=False,
+                )
+
+        self.assertIsNotNone(result)
+        self.assertEqual(['600000'], result['code'].tolist())
+        mock_sleep.assert_called_once_with(5)
+        _registry.clear_quotes_cache()
+
     def test_code_to_yahoo_symbol(self):
         _base_path = os.path.join(ANALYSIS_DIR, 'providers', 'base.py')
         _spec = importlib.util.spec_from_file_location('providers_base', _base_path)

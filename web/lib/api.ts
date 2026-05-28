@@ -1,9 +1,11 @@
 import type {
   BarsResponse,
+  ClusterChartPayload,
   ClusterResponse,
   DataStatusResponse,
   FundamentalScreenerQuery,
   InstrumentsResponse,
+  IndustriesResponse,
   PriceChangePeriod,
   ProfileResponse,
   QuoteResponse,
@@ -164,4 +166,14 @@ export function getCluster(section: string) {
   return fetchJson<ClusterResponse>(
     `/api/v1/clusters/${encodeURIComponent(section)}`,
   );
+}
+
+export function getClusterChart(section: string) {
+  return fetchJson<ClusterChartPayload>(
+    `/api/v1/clusters/${encodeURIComponent(section)}/chart`,
+  );
+}
+
+export function getIndustries() {
+  return fetchJson<IndustriesResponse>("/api/v1/industries");
 }

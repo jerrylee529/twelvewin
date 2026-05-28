@@ -10,7 +10,7 @@ import {
   Settings,
   Table2,
 } from "lucide-react";
-import { sidebarNavItems } from "@/lib/navigation";
+import { isNavChildActive, sidebarNavItems } from "@/lib/navigation";
 
 const iconByLabel: Record<string, typeof Table2> = {
   基本面: Table2,
@@ -57,7 +57,7 @@ export function DashboardSidebar() {
               {children ? (
                 <div className="mt-1 space-y-0.5 pl-6">
                   {children.map((child) => {
-                    const childActive = pathname === child.href;
+                    const childActive = isNavChildActive(pathname, child);
 
                     return (
                       <Link

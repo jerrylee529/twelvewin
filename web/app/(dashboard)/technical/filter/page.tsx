@@ -82,7 +82,7 @@ export default async function PriceChangePage({
         </label>
         <button
           type="submit"
-          className="rounded-sm bg-primary-container px-4 py-2 text-xs font-medium text-on-primary-container transition hover:opacity-90"
+          className="btn-primary-container rounded-sm px-4 py-2 text-xs font-medium transition hover:opacity-90"
         >
           提交
         </button>

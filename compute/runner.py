@@ -6,6 +6,7 @@ import logging
 import traceback
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
+from app.models import AnalysisJobRun
 from core import job_run as job_run_service
 from core.db import session_scope
 from core.schema import ensure_analysis_schema
@@ -18,6 +19,12 @@ Step = Tuple[str, Callable[[], Any]]
 class JobRunner:
     def __init__(self, job_name: str):
         self.job_name = job_name
+
+    def _load_job_run(self, session, job_run_id: int) -> AnalysisJobRun:
+        job_run = session.get(AnalysisJobRun, job_run_id)
+        if job_run is None:
+            raise RuntimeError('analysis job run {} not found'.format(job_run_id))
+        return job_run
 
     def run_steps(
         self,
@@ -36,25 +43,32 @@ class JobRunner:
             )
             job_run_id = job_run.id
 
-            try:
-                for step_name, step_fn in steps:
-                    logger.info('job %s: starting step %s', self.job_name, step_name)
-                    step_outputs[step_name] = step_fn()
-                    logger.info('job %s: finished step %s', self.job_name, step_name)
+        try:
+            for step_name, step_fn in steps:
+                logger.info('job %s: starting step %s', self.job_name, step_name)
+                step_outputs[step_name] = step_fn()
+                logger.info('job %s: finished step %s', self.job_name, step_name)
 
-                output = {'steps': step_outputs}
+            output = {'steps': step_outputs}
+            with session_scope() as session:
+                job_run = self._load_job_run(session, job_run_id)
                 job_run_service.mark_success(job_run, output=output, session=session)
-                return output
-            except Exception as exc:
-                job_run_service.mark_failure(
-                    job_run,
-                    error={
-                        'message': str(exc),
-                        'type': type(exc).__name__,
-                        'traceback': traceback.format_exc(),
-                        'completed_steps': list(step_outputs.keys()),
-                    },
-                    session=session,
+            return output
+        except Exception as exc:
+            error_payload = {
+                'message': str(exc),
+                'type': type(exc).__name__,
+                'traceback': traceback.format_exc(),
+                'completed_steps': list(step_outputs.keys()),
+            }
+            try:
+                with session_scope() as session:
+                    job_run = self._load_job_run(session, job_run_id)
+                    job_run_service.mark_failure(job_run, error=error_payload, session=session)
+            except Exception:
+                logger.exception(
+                    'job %s: failed to persist failure status for run %s',
+                    self.job_name,
+                    job_run_id,
                 )
-                session.commit()
-                raise
+            raise

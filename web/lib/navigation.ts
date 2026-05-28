@@ -9,6 +9,59 @@ export const technicalNavItems = [
   { href: "/technical/above_ma", key: "above_ma", label: "年线之上" },
 ] as const;
 
+export const clusterNavItems = [
+  { href: "/clusters/sz50", key: "sz50", label: "上证50" },
+  { href: "/clusters/hs300", key: "hs300", label: "沪深300" },
+  { href: "/clusters/zz500", key: "zz500", label: "中证500" },
+  { href: "/clusters/all", key: "all", label: "全部股票" },
+] as const;
+
+export const CLUSTER_SECTION_TITLES: Record<string, string> = {
+  sz50: "上证50",
+  hs300: "沪深300",
+  zz500: "中证500",
+  all: "全部股票",
+};
+
+const CLUSTER_INDEX_KEYS = new Set(["sz50", "hs300", "zz500", "all"]);
+
+export function getClusterTitle(section: string) {
+  return CLUSTER_SECTION_TITLES[section] || decodeURIComponent(section);
+}
+
+export function isClusterNavChildActive(
+  pathname: string,
+  href: string,
+  key: string,
+) {
+  if (pathname === href) {
+    return true;
+  }
+  if (key !== "all") {
+    return false;
+  }
+  const match = pathname.match(/^\/clusters\/([^/?]+)/);
+  if (!match) {
+    return false;
+  }
+  const section = decodeURIComponent(match[1]);
+  return !CLUSTER_INDEX_KEYS.has(section);
+}
+
+export function isTechnicalNavChildActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function isNavChildActive(
+  pathname: string,
+  child: { href: string; key: string },
+) {
+  if (clusterNavItems.some((item) => item.key === child.key)) {
+    return isClusterNavChildActive(pathname, child.href, child.key);
+  }
+  return isTechnicalNavChildActive(pathname, child.href);
+}
+
 export const primaryNavTabs = [
   { href: "/fundamentals?metric=pe", label: "基本面分析", match: /^\/fundamentals|^\/rankings/ },
   {
@@ -17,7 +70,12 @@ export const primaryNavTabs = [
     match: /^\/technical/,
     children: technicalNavItems,
   },
-  { href: "/clusters/sz50", label: "板块分析", match: /^\/clusters/ },
+  {
+    href: "/clusters/sz50",
+    label: "板块分析",
+    match: /^\/clusters/,
+    children: clusterNavItems,
+  },
   { href: "/business", label: "行业分析", match: /^\/business/ },
 ] as const;
 
@@ -37,6 +95,7 @@ export const sidebarNavItems = [
     href: "/clusters/sz50",
     label: "板块聚类",
     match: /^\/clusters/,
+    children: clusterNavItems,
   },
   {
     href: "/business",

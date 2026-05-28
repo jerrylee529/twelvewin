@@ -14,6 +14,13 @@ export type InstrumentsResponse = {
   }>;
 };
 
+export type IndustriesResponse = {
+  industries: Array<{
+    id: number;
+    name: string;
+  }>;
+};
+
 export type BarsResponse = {
   rows: Array<[string, number, number, number, number]>;
   updateTime?: string | null;
@@ -64,6 +71,38 @@ export type ClusterRow = {
 export type ClusterResponse = {
   total: number;
   rows: ClusterRow[];
+  updateTime?: string | null;
+  error?: string | null;
+};
+
+export type ClusterChartNode = {
+  code: string;
+  name: string;
+  clusterId: number;
+  clusterName: string;
+  x: number;
+  y: number;
+};
+
+export type ClusterChartEdge = {
+  source: string;
+  target: string;
+  corr: number;
+};
+
+export type ClusterChartPayload = {
+  nodes: ClusterChartNode[];
+  edges: ClusterChartEdge[];
+  heatmap: {
+    labels: Array<{ code: string; name: string; clusterId: number }>;
+    values: number[][];
+  };
+  clusters: Array<{ id: number; code: string; name: string; size: number }>;
+  meta: {
+    edgeThreshold?: number;
+    stockCount?: number;
+    valueMode?: string;
+  };
   updateTime?: string | null;
   error?: string | null;
 };

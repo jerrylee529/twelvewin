@@ -10,7 +10,15 @@ ANALYSIS_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'an
 if ANALYSIS_DIR not in sys.path:
     sys.path.insert(0, ANALYSIS_DIR)
 
-from cluster_compute import compute_rate_series
+from cluster_compute import (
+    assign_cluster_correlations,
+    build_cluster_chart_payload,
+    ClusterGroup,
+    ClusterGroups,
+    ClusterItem,
+    compute_rate_series,
+    lookup_instrument_name,
+)
 
 
 class ClusterComputeTestCase(unittest.TestCase):
@@ -36,6 +44,64 @@ class ClusterComputeTestCase(unittest.TestCase):
         data = pd.concat({'600000': first, '000001': second}, axis=1)
         self.assertEqual(['600000', '000001'], list(data.columns))
         self.assertEqual(2, len(data.columns))
+
+    def test_assign_cluster_correlations_uses_center_pearson(self):
+        data = pd.DataFrame(
+            {
+                '600000': [1.0, 2.0, 3.0, 4.0],
+                '000001': [1.0, 2.0, 3.0, 4.0],
+                '000002': [4.0, 3.0, 2.0, 1.0],
+            }
+        )
+        groups = ClusterGroups()
+        center = ClusterGroup(code='600000', name='Center', label=0)
+        center.add(ClusterItem(code='600000', name='Center', corr=1.0))
+        center.add(ClusterItem(code='000001', name='Same Trend', corr=1.0))
+        center.add(ClusterItem(code='000002', name='Opposite', corr=1.0))
+        groups.add(center)
+
+        assign_cluster_correlations(groups, data.corr())
+
+        self.assertAlmostEqual(1.0, center.stocks['600000'].corr)
+        self.assertAlmostEqual(1.0, center.stocks['000001'].corr)
+        self.assertLess(center.stocks['000002'].corr, 0.0)
+
+    def test_lookup_instrument_name_handles_duplicate_index_rows(self):
+        instruments = pd.DataFrame(
+            {
+                'code': ['600845', '600845'],
+                'name': ['宝信软件', '宝信软件'],
+            }
+        ).set_index('code')
+
+        self.assertEqual('宝信软件', lookup_instrument_name(instruments, '600845'))
+        self.assertEqual('000001', lookup_instrument_name(instruments, '000001'))
+
+    def test_build_cluster_chart_payload_contains_visual_layers(self):
+        data = pd.DataFrame(
+            {
+                '600000': [1.0, 2.0, 3.0, 4.0, 5.0],
+                '000001': [1.0, 2.0, 3.0, 4.0, 5.0],
+                '000002': [5.0, 4.0, 3.0, 2.0, 1.0],
+            }
+        )
+        groups = ClusterGroups()
+        center = ClusterGroup(code='600000', name='Center', label=0)
+        center.add(ClusterItem(code='600000', name='Center', corr=1.0))
+        center.add(ClusterItem(code='000001', name='Same Trend', corr=1.0))
+        groups.add(center)
+        opposite = ClusterGroup(code='000002', name='Opposite', label=1)
+        opposite.add(ClusterItem(code='000002', name='Opposite', corr=1.0))
+        groups.add(opposite)
+        assign_cluster_correlations(groups, data.corr())
+
+        payload = build_cluster_chart_payload(groups, data, value_mode='returns')
+
+        self.assertEqual(3, len(payload['nodes']))
+        self.assertGreater(len(payload['edges']), 0)
+        self.assertEqual(3, len(payload['heatmap']['labels']))
+        self.assertEqual(2, len(payload['clusters']))
+        self.assertEqual('returns', payload['meta']['valueMode'])
 
 
 if __name__ == '__main__':
