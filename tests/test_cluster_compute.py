@@ -16,6 +16,7 @@ from cluster_compute import (
     ClusterGroup,
     ClusterGroups,
     ClusterItem,
+    _compute_embedding,
     compute_rate_series,
     lookup_instrument_name,
 )
@@ -102,6 +103,33 @@ class ClusterComputeTestCase(unittest.TestCase):
         self.assertEqual(3, len(payload['heatmap']['labels']))
         self.assertEqual(2, len(payload['clusters']))
         self.assertEqual('returns', payload['meta']['valueMode'])
+
+    def test_compute_embedding_handles_degenerate_matrix_without_nan(self):
+        import math
+
+        matrix = [[0.0] * 8 for _ in range(6)]
+        coords = _compute_embedding(matrix)
+
+        self.assertEqual(6, len(coords))
+        for point_x, point_y in coords:
+            self.assertTrue(math.isfinite(point_x))
+            self.assertTrue(math.isfinite(point_y))
+
+    def test_build_cluster_chart_payload_handles_identical_return_series(self):
+        data = pd.DataFrame({code: [0.01] * 12 for code in ('600000', '000001', '000002')})
+        groups = ClusterGroups()
+        center = ClusterGroup(code='600000', name='Center', label=0)
+        for code, name in (('600000', 'Center'), ('000001', 'Peer A'), ('000002', 'Peer B')):
+            center.add(ClusterItem(code=code, name=name, corr=1.0))
+        groups.add(center)
+        assign_cluster_correlations(groups, data.corr())
+
+        payload = build_cluster_chart_payload(groups, data, value_mode='returns')
+
+        self.assertEqual(3, len(payload['nodes']))
+        for node in payload['nodes']:
+            self.assertTrue(abs(node['x']) < 10.0)
+            self.assertTrue(abs(node['y']) < 10.0)
 
 
 if __name__ == '__main__':

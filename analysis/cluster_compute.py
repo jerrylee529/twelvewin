@@ -7,7 +7,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass, field
-from typing import Dict, Iterable, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
@@ -30,6 +30,8 @@ DEFAULT_RATE_BEGIN_DATE = '2018-01-01'
 CHART_EDGE_THRESHOLD = 0.5
 CHART_MAX_EDGES = 800
 CHART_HEATMAP_MAX_STOCKS = 120
+EMBEDDING_MIN_VARIANCE = 1e-12
+EMBEDDING_TSNE_MAX_SAMPLES = 80
 
 
 @dataclass
@@ -191,11 +193,13 @@ def cluster_by_price_series(
         return ClusterGroups(), None
 
     data = pd.concat(series_map, axis=1)
-    data = data.ffill().fillna(0.01).astype('float64')
+    data = data.ffill().bfill().fillna(0.0).astype('float64')
+    variance = data.std(axis=0, skipna=True)
+    data = data.loc[:, variance > EMBEDDING_MIN_VARIANCE]
+    if data.shape[1] < 2:
+        return ClusterGroups(), None
 
-    matrix = data.T.values
-    model = AffinityPropagation(affinity='euclidean')
-    labels = model.fit_predict(matrix)
+    labels = _fit_affinity_labels(data.corr().fillna(0.0).values)
 
     groups = ClusterGroups()
     for index, label in enumerate(labels):
@@ -227,9 +231,12 @@ def cluster_fundamentals(instruments: pd.DataFrame) -> Tuple[ClusterGroups, Opti
         return ClusterGroups(), None
 
     data = instruments[available].apply(pd.to_numeric, errors='coerce').fillna(0.0)
-    matrix = data.values
-    model = AffinityPropagation(affinity='euclidean')
-    labels = model.fit_predict(matrix)
+    variance = data.std(axis=0, skipna=True)
+    data = data.loc[:, variance > EMBEDDING_MIN_VARIANCE]
+    if data.shape[1] < 1:
+        return ClusterGroups(), None
+
+    labels = _fit_affinity_labels(data.T.corr().fillna(0.0).values)
 
     groups = ClusterGroups()
     for index, label in enumerate(labels):
@@ -247,38 +254,150 @@ def cluster_fundamentals(instruments: pd.DataFrame) -> Tuple[ClusterGroups, Opti
     return groups, data
 
 
+def _fit_affinity_labels(similarity_matrix) -> List[int]:
+    """Cluster from a precomputed similarity matrix (e.g. Pearson correlation)."""
+    import numpy as np
+
+    if AffinityPropagation is None:
+        raise RuntimeError('scikit-learn is required for cluster_compute (install requirements-analysis.txt)')
+
+    similarity = np.asarray(similarity_matrix, dtype=np.float64)
+    similarity = np.nan_to_num(similarity, nan=0.0, posinf=0.0, neginf=0.0)
+    np.fill_diagonal(similarity, 1.0)
+
+    row_std = np.std(similarity, axis=1)
+    if np.all(row_std <= EMBEDDING_MIN_VARIANCE):
+        return list(range(similarity.shape[0]))
+
+    model = AffinityPropagation(affinity='precomputed', random_state=42, max_iter=500)
+    return [int(label) for label in model.fit_predict(similarity)]
+
+
+def _circle_layout(sample_count: int) -> List[List[float]]:
+    import numpy as np
+
+    if sample_count <= 0:
+        return []
+    if sample_count == 1:
+        return [[0.0, 0.0]]
+
+    angles = np.linspace(0.0, 2.0 * np.pi, sample_count, endpoint=False)
+    return np.column_stack([np.cos(angles), np.sin(angles)]).tolist()
+
+
+def _prepare_embedding_matrix(matrix) -> Optional[Any]:
+    """Return a finite feature matrix or None when every sample is degenerate."""
+    import numpy as np
+
+    working = np.asarray(matrix, dtype=np.float64)
+    if working.ndim != 2 or working.size == 0:
+        return None
+
+    working = np.nan_to_num(working, nan=0.0, posinf=0.0, neginf=0.0)
+    if working.shape[1] > 1:
+        col_std = np.std(working, axis=0)
+        keep = col_std > EMBEDDING_MIN_VARIANCE
+        if keep.any():
+            working = working[:, keep]
+        else:
+            working = working[:, :1]
+
+    row_std = np.std(working, axis=1)
+    if np.all(row_std <= EMBEDDING_MIN_VARIANCE):
+        return None
+
+    degenerate = row_std <= EMBEDDING_MIN_VARIANCE
+    if degenerate.any():
+        rng = np.random.default_rng(42)
+        for row_index in np.where(degenerate)[0]:
+            working[row_index] += rng.normal(0.0, 1e-8, size=working.shape[1])
+
+    return working
+
+
+def _pca_to_2d(working) -> Optional[List[List[float]]]:
+    """Reduce features to two dimensions with PCA; return None on failure."""
+    import numpy as np
+
+    if PCA is None:
+        return None
+
+    sample_count = working.shape[0]
+    feature_count = working.shape[1]
+    if sample_count < 2 or feature_count < 1:
+        return None
+
+    component_count = min(2, sample_count, feature_count)
+    try:
+        reduced = PCA(n_components=component_count, random_state=42).fit_transform(working)
+    except Exception:
+        return None
+
+    reduced = np.asarray(reduced, dtype=np.float64)
+    reduced = np.nan_to_num(reduced, nan=0.0, posinf=0.0, neginf=0.0)
+    if reduced.shape[1] == 1:
+        reduced = np.column_stack([reduced[:, 0], np.zeros(sample_count)])
+    if not np.isfinite(reduced).all() or np.std(reduced) <= EMBEDDING_MIN_VARIANCE:
+        return None
+    return reduced.tolist()
+
+
 def _compute_embedding(matrix) -> List[List[float]]:
     """Project high-dimensional stock features into 2D coordinates."""
     import numpy as np
 
-    sample_count = matrix.shape[0]
+    sample_count = np.asarray(matrix).shape[0] if np.asarray(matrix).size else 0
     if sample_count == 0:
         return []
     if sample_count == 1:
         return [[0.0, 0.0]]
 
-    working = matrix
+    working = _prepare_embedding_matrix(matrix)
+    if working is None:
+        return _circle_layout(sample_count)
+
+    pca_2d = _pca_to_2d(working)
+    if pca_2d is None:
+        return _circle_layout(sample_count)
+
+    use_tsne = (
+        TSNE is not None
+        and sample_count >= 4
+        and sample_count <= EMBEDDING_TSNE_MAX_SAMPLES
+        and working.shape[1] > 2
+    )
+    if not use_tsne:
+        return pca_2d
+
+    reduced = working
     if PCA is not None and working.shape[1] > 30 and sample_count > 2:
         component_count = min(30, sample_count - 1, working.shape[1])
-        working = PCA(n_components=component_count, random_state=42).fit_transform(working)
-
-    if sample_count < 4 or TSNE is None:
-        if PCA is None:
-            return working[:, :2].tolist() if working.shape[1] >= 2 else [[float(working[0, 0]), 0.0]]
-        reduced = PCA(n_components=min(2, sample_count, working.shape[1]), random_state=42).fit_transform(working)
-        if reduced.shape[1] == 1:
-            reduced = np.column_stack([reduced[:, 0], np.zeros(sample_count)])
-        return reduced.tolist()
+        try:
+            reduced = PCA(n_components=component_count, random_state=42).fit_transform(working)
+        except Exception:
+            return pca_2d
+        reduced = np.nan_to_num(reduced, nan=0.0, posinf=0.0, neginf=0.0)
+        if not np.isfinite(reduced).all() or np.std(reduced) <= EMBEDDING_MIN_VARIANCE:
+            return pca_2d
 
     perplexity = min(30, max(2, sample_count - 1))
-    tsne = TSNE(
-        n_components=2,
-        random_state=42,
-        perplexity=perplexity,
-        init='pca',
-        learning_rate='auto',
-    )
-    return tsne.fit_transform(working).tolist()
+    try:
+        tsne = TSNE(
+            n_components=2,
+            random_state=42,
+            perplexity=perplexity,
+            init='pca',
+            learning_rate='auto',
+        )
+        embedded = np.asarray(tsne.fit_transform(reduced), dtype=np.float64)
+    except Exception:
+        logger.warning('t-SNE embedding failed; falling back to PCA layout')
+        return pca_2d
+
+    embedded = np.nan_to_num(embedded, nan=0.0, posinf=0.0, neginf=0.0)
+    if not np.isfinite(embedded).all() or np.std(embedded) <= EMBEDDING_MIN_VARIANCE:
+        return pca_2d
+    return embedded.tolist()
 
 
 def _build_code_cluster_map(groups: ClusterGroups) -> Dict[str, dict]:
@@ -325,11 +444,11 @@ def build_cluster_chart_payload(
     if value_mode == 'returns':
         feature_frame = data
         corr_matrix = data.corr()
-        embedding_matrix = data.T.values
+        embedding_matrix = corr_matrix.fillna(0.0).values
     else:
         feature_frame = data
         corr_matrix = data.T.corr()
-        embedding_matrix = data.values
+        embedding_matrix = corr_matrix.fillna(0.0).values
 
     codes = [normalize_stock_code(str(code)) for code in feature_frame.columns]
     if value_mode == 'fundamentals':

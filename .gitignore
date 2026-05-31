@@ -8,3 +8,5 @@ __pycache__/
 
 flask.log
 local_data/
+
+.DS_Store/
