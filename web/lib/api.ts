@@ -13,6 +13,7 @@ import type {
   TableResponse,
   TechnicalKey,
 } from "@/lib/types";
+import { getResearchApiHeaders } from "@/lib/research-api-headers";
 
 /** Max trading days fetched for the stock chart (covers 5Y range). */
 export const STOCK_BARS_MAX_DAYS = 1260;
@@ -42,6 +43,7 @@ async function fetchJson<T>(
     ...init,
     headers: {
       Accept: "application/json",
+      ...getResearchApiHeaders(),
       ...(init?.headers || {}),
     },
     cache:

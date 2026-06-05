@@ -92,6 +92,7 @@
   --color-on-background: var(--on-background);
   --color-on-primary-fixed: var(--on-primary-fixed);
   --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
   --color-primary-container: var(--primary-container);
   --color-on-primary-container: var(--on-primary-container);
   --color-secondary: var(--secondary);

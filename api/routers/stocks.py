@@ -10,7 +10,9 @@ from api.schemas.responses import (
     InstrumentsResponse,
     ProfileResponse,
     QuoteResponse,
+    ResearchContextResponse,
 )
+from api.services.research_context import get_research_context
 from api.services.stocks import (
     get_daily_bars,
     get_profile,
@@ -73,3 +75,11 @@ def profile(
     session: Session = Depends(get_db_session),
 ):
     return ProfileResponse(**get_profile(session, code, include_quote=include_quote))
+
+
+@router.get('/{code}/research-context', response_model=ResearchContextResponse)
+def research_context(code: str, session: Session = Depends(get_db_session)):
+    payload = get_research_context(session, code)
+    if payload.get('error'):
+        return ResearchContextResponse(error=payload['error'])
+    return ResearchContextResponse(**payload)

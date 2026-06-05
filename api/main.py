@@ -5,6 +5,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api.middleware.research_api_key import ResearchApiKeyMiddleware
 from api.routers import (
     business,
     clusters,
@@ -26,6 +27,10 @@ def _cors_origins():
 
 
 def create_app() -> FastAPI:
+    from core.env import load_dotenv_files
+
+    load_dotenv_files()
+
     app = FastAPI(
         title='Twelvewin API',
         version='1.0.0',
@@ -33,6 +38,7 @@ def create_app() -> FastAPI:
         openapi_url='/openapi.json',
     )
 
+    app.add_middleware(ResearchApiKeyMiddleware)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_cors_origins(),

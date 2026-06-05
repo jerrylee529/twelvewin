@@ -18,6 +18,7 @@ Optional:
 
 - `API_CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000`
 - `REDIS_URL=redis://127.0.0.1:6379/0` (for live quote bar on `/stocks/{code}/bars`)
+- `TW_RESEARCH_API_KEY=` (when set, all `/api/v1/*` routes except `/health` require `X-Twelvewin-Api-Key`)
 
 ## Run
 
@@ -48,6 +49,9 @@ uvicorn api.main:app --reload --port 8090
 | GET | `/api/v1/stocks/search?q=` | Instrument search |
 | GET | `/api/v1/stocks/{code}/bars` | Candlestick OHLC rows |
 | GET | `/api/v1/stocks/{code}/profile` | Finance profile + quote |
+| GET | `/api/v1/stocks/{code}/research-context` | Aggregated research payload for Dify agent tools |
+
+Optional header when `TW_RESEARCH_API_KEY` is set: `X-Twelvewin-Api-Key`.
 
 Response shapes match the legacy Flask AJAX endpoints (`total`, `rows`, `updateTime`).
 
@@ -58,3 +62,9 @@ Published rows must exist in Postgres:
 ```bash
 python -m compute eod_all
 ```
+
+## Dify agent integration
+
+When Twelvewin API runs on the host (`uvicorn :8090`) and Dify runs in Docker on the same machine, configure Dify tools to call `http://host.docker.internal:8090`, not `127.0.0.1`.
+
+See [`deploy/dify/README.md`](../deploy/dify/README.md) for exact URLs, env vars, and HTTP tool paths.

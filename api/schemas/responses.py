@@ -46,6 +46,25 @@ class ProfileResponse(BaseModel):
     np_per_share: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class ResearchContextResponse(BaseModel):
+    code: Optional[str] = None
+    name: Optional[str] = None
+    industry: Optional[str] = None
+    data_as_of: Optional[str] = None
+    labels: Optional[str] = None
+    fundamentals: Optional[dict[str, Any]] = None
+    industry_benchmark: Optional[dict[str, Any]] = None
+    technical_signals: list[str] = Field(default_factory=list)
+    rankings: dict[str, int] = Field(default_factory=dict)
+    quote: Optional[dict[str, Any]] = None
+    bars_summary: Optional[dict[str, Any]] = None
+    finance_profile: dict[str, Any] = Field(default_factory=dict)
+    cluster_peers: list[dict[str, Any]] = Field(default_factory=list)
+    artifacts_freshness: dict[str, Any] = Field(default_factory=dict)
+    errors: dict[str, Any] = Field(default_factory=dict)
+    error: Optional[str] = None
+
+
 class ClusterChartResponse(BaseModel):
     nodes: list[dict[str, Any]] = Field(default_factory=list)
     edges: list[dict[str, Any]] = Field(default_factory=list)
