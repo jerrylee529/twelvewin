@@ -160,7 +160,7 @@ export function getStockProfile(code: string) {
   return fetchJson<ProfileResponse>(
     `/api/v1/stocks/${encodeURIComponent(code)}/profile`,
     undefined,
-    { revalidate: 3600 },
+    { revalidate: false },
   );
 }
 

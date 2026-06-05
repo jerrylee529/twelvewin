@@ -32,6 +32,7 @@ def main(argv=None):
             'daily_pipeline',
             'ranking_pipeline',
             'cluster_pipeline',
+            'finance_profile_pipeline',
             'eod_all',
             'import_results',
             'import_day_bars',
@@ -58,6 +59,12 @@ def main(argv=None):
         from jobs.cluster_pipeline import run_cluster_pipeline
 
         run_cluster_pipeline()
+        return 0
+
+    if args.job_name == 'finance_profile_pipeline':
+        from jobs.finance_profile_pipeline import run_finance_profile_pipeline
+
+        run_finance_profile_pipeline()
         return 0
 
     if args.job_name == 'eod_all':

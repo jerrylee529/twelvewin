@@ -35,7 +35,7 @@ export function StockAboutSection({
   ].filter(Boolean);
 
   return (
-    <section className="mt-10 border-t border-outline-variant/40 py-8">
+    <section className="border-t border-outline-variant/40 pt-8 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
       <h2 className="text-xl font-bold text-on-surface">关于 {code}</h2>
       <p className="mt-4 text-sm leading-7 text-on-surface-variant">
         {snapshotParts.join(" ")}

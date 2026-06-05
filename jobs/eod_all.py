@@ -14,6 +14,7 @@ from jobs.config import config_get, load_service_config
 from jobs.annual_pipeline import build_annual_pipeline_steps
 from jobs.cluster_pipeline import build_cluster_pipeline_steps
 from jobs.daily_pipeline import build_daily_pipeline_steps
+from jobs.finance_profile_pipeline import build_finance_profile_pipeline_steps
 from jobs.ranking_pipeline import build_ranking_pipeline_steps
 
 EOD_ALL_JOB = "eod_all"
@@ -35,9 +36,15 @@ def _annual_report_enabled():
     return os.environ.get('TW_RUN_ANNUAL_REPORT', '').lower() in ('1', 'true', 'yes', 'on')
 
 
+def _finance_profile_enabled():
+    return os.environ.get('TW_RUN_FINANCE_PROFILE', '').lower() in ('1', 'true', 'yes', 'on')
+
+
 def build_eod_all_steps(config):
     steps = build_daily_pipeline_steps(config) + build_ranking_pipeline_steps(config)
     steps += build_cluster_pipeline_steps(config)
+    if _finance_profile_enabled():
+        steps += build_finance_profile_pipeline_steps(config)
     if _annual_report_enabled():
         steps += build_annual_pipeline_steps(config)
     if _csv_sync_enabled():

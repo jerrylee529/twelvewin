@@ -34,20 +34,34 @@ export function StockChartSkeleton() {
 
 export function StockStatsSkeleton() {
   return (
-    <section className="mt-10">
-      <Pulse className="h-7 w-32" />
-      <div className="mt-2 space-y-3">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div
-            key={index}
-            className="flex items-center justify-between border-b border-outline-variant/40 py-3"
-          >
-            <Pulse className="h-4 w-20" />
-            <Pulse className="h-4 w-24" />
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:items-start">
+      <section>
+        <Pulse className="h-7 w-32" />
+        <div className="mt-2 space-y-3">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center justify-between border-b border-outline-variant/40 py-3"
+            >
+              <Pulse className="h-4 w-20" />
+              <Pulse className="h-4 w-24" />
+            </div>
+          ))}
+        </div>
+      </section>
+      <section className="border-t border-outline-variant/40 pt-8 lg:border-t-0 lg:border-l lg:pl-8 lg:pt-0">
+        <Pulse className="h-7 w-28" />
+        <Pulse className="mt-4 h-16 w-full" />
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index}>
+              <Pulse className="h-3 w-16" />
+              <Pulse className="mt-2 h-4 w-24" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
   );
 }
 

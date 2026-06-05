@@ -63,6 +63,15 @@ Published rows must exist in Postgres:
 python -m compute eod_all
 ```
 
+Stock finance profile charts (`/stocks/{code}/profile`) are populated separately from Tushare Pro:
+
+```bash
+export TUSHARE_TOKEN=your-token
+python -m compute finance_profile_pipeline
+```
+
+Optional env vars: `TW_FINANCE_PROFILE_YEARS` (default `5`), `TW_FINANCE_PROFILE_CODES`, `TW_FINANCE_PROFILE_MAX_CODES`, `TW_FINANCE_PROFILE_SLEEP_SEC`. Set `TW_RUN_FINANCE_PROFILE=1` to include this step in `eod_all`.
+
 ## Dify agent integration
 
 When Twelvewin API runs on the host (`uvicorn :8090`) and Dify runs in Docker on the same machine, configure Dify tools to call `http://host.docker.internal:8090`, not `127.0.0.1`.

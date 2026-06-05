@@ -81,16 +81,18 @@ export function StockStatsSection({
         </p>
       ) : null}
 
-      <section className="mt-10">
-        <h2 className="text-xl font-bold text-on-surface">{code} 关键指标</h2>
-        <dl className="mt-2">
-          {stats.map((item) => (
-            <StatItem key={item.label} label={item.label} value={item.value} />
-          ))}
-        </dl>
-      </section>
+      <div className="mt-10 grid gap-8 lg:grid-cols-2 lg:items-start">
+        <section>
+          <h2 className="text-xl font-bold text-on-surface">{code} 关键指标</h2>
+          <dl className="mt-2">
+            {stats.map((item) => (
+              <StatItem key={item.label} label={item.label} value={item.value} />
+            ))}
+          </dl>
+        </section>
 
-      <StockAboutSection code={code} bars={bars} />
+        <StockAboutSection code={code} bars={bars} />
+      </div>
     </>
   );
 }
