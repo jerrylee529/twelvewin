@@ -3,7 +3,15 @@ import { StockLineChart } from "@/components/stock-line-chart";
 import { StockStatsSection } from "@/components/stock-stats-section";
 import type { BarRow } from "@/lib/stock-format";
 
-export async function StockChartSection({ code }: { code: string }) {
+export async function StockChartSection({
+  code,
+  name,
+  initialQuot,
+}: {
+  code: string;
+  name: string;
+  initialQuot?: Record<string, string> | null;
+}) {
   const bars = await getStockBars(code);
   const rows = bars.rows as BarRow[];
 
@@ -21,8 +29,10 @@ export async function StockChartSection({ code }: { code: string }) {
 
       <StockStatsSection
         code={code}
+        name={name}
         bars={rows}
         updateTime={bars.updateTime}
+        initialQuot={initialQuot}
       />
     </>
   );

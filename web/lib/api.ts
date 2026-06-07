@@ -89,6 +89,20 @@ export function getRanking(key: RankingKey, preview = false) {
   return fetchJson<TableResponse>(`/api/v1/rankings/${key}${query}`);
 }
 
+export function getValueRanking(preview = false) {
+  const query = preview ? "?preview=true" : "";
+  return fetchJson<TableResponse>(`/api/v1/rankings/value${query}`);
+}
+
+export function listInstruments(limit?: number) {
+  const params = limit ? `?limit=${limit}` : "";
+  return fetchJson<{ total: number; instruments: InstrumentsResponse["instruments"] }>(
+    `/api/v1/stocks/list${params}`,
+    undefined,
+    { revalidate: 3600 },
+  );
+}
+
 export function getFundamentalScreener(query: FundamentalScreenerQuery = {}) {
   const params = new URLSearchParams();
   Object.entries(query).forEach(([key, value]) => {

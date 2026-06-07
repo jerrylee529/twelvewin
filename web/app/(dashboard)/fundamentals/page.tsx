@@ -1,4 +1,7 @@
+import type { Metadata } from "next";
+import { JsonLd } from "@/components/json-ld";
 import { EmptyState } from "@/components/dashboard-shell";
+import { absoluteUrl, buildFundamentalMetadata } from "@/lib/seo";
 import { FundamentalsWorkspace } from "@/components/fundamentals-workspace";
 import { getFundamentalScreener } from "@/lib/api";
 import {
@@ -29,6 +32,18 @@ const EMPTY_RESPONSE: TableResponse = {
   error: "API unavailable",
 };
 
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<FundamentalScreenerQuery>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const metric = VALID_METRICS.has(params.metric ?? "")
+    ? (params.metric as RankingKey)
+    : "pe";
+  return buildFundamentalMetadata(metric);
+}
+
 export default async function FundamentalsPage({
   searchParams,
 }: {
@@ -52,9 +67,19 @@ export default async function FundamentalsPage({
     data = EMPTY_RESPONSE;
   }
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: meta.title,
+    description: meta.description,
+    url: absoluteUrl(`/fundamentals?metric=${metric}`),
+    numberOfItems: data.total,
+  };
+
   if (data.error && data.rows.length === 0) {
     return (
       <>
+        <JsonLd data={jsonLd} />
         <div className="mb-6">
           <h1 className="text-lg font-semibold text-on-surface">{meta.title}</h1>
           <p className="mt-1 text-xs text-on-surface-variant">{meta.description}</p>
@@ -76,12 +101,15 @@ export default async function FundamentalsPage({
   }
 
   return (
-    <FundamentalsWorkspace
+    <>
+      <JsonLd data={jsonLd} />
+      <FundamentalsWorkspace
       metric={metric}
       query={query}
       rows={data.rows}
       total={data.total}
       updateTime={data.updateTime}
     />
+    </>
   );
 }

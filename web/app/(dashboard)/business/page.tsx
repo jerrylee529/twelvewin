@@ -1,4 +1,6 @@
+import { JsonLd } from "@/components/json-ld";
 import { EmptyState, PageHeader } from "@/components/dashboard-shell";
+import { absoluteUrl } from "@/lib/seo";
 import { RankingTable } from "@/components/ranking-table";
 import { Chip } from "@/components/ui/primitives";
 import { getBusiness } from "@/lib/api";
@@ -6,8 +8,18 @@ import { getBusiness } from "@/lib/api";
 export default async function BusinessPage() {
   const data = await getBusiness();
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: "行业分析",
+    description: "按行业维度查看业务价值与标签筛选结果",
+    url: absoluteUrl("/business"),
+    numberOfItems: data.total,
+  };
+
   return (
     <>
+      <JsonLd data={jsonLd} />
       <PageHeader
         title="行业分析"
         description="按行业维度查看业务价值与标签筛选结果"

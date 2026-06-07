@@ -1,7 +1,7 @@
 import type { RankingKey } from "@/lib/types";
 
 export const technicalNavItems = [
-  { href: "/technical/filter", key: "filter", label: "涨跌幅分析" },
+  { href: "/technical/filter/week", key: "filter", label: "涨跌幅分析" },
   { href: "/technical/highest", key: "highest", label: "创历史新高" },
   { href: "/technical/lowest", key: "lowest", label: "创历史新低" },
   { href: "/technical/ma_long", key: "ma_long", label: "均线多头" },
@@ -65,7 +65,7 @@ export function isNavChildActive(
 export const primaryNavTabs = [
   { href: "/fundamentals?metric=pe", label: "基本面分析", match: /^\/fundamentals|^\/rankings/ },
   {
-    href: "/technical/filter",
+    href: "/technical/filter/week",
     label: "技术面分析",
     match: /^\/technical/,
     children: technicalNavItems,
@@ -86,7 +86,7 @@ export const sidebarNavItems = [
     match: /^\/fundamentals|^\/rankings/,
   },
   {
-    href: "/technical/filter",
+    href: "/technical/filter/week",
     label: "技术图",
     match: /^\/technical/,
     children: technicalNavItems,
@@ -114,6 +114,11 @@ export const fundamentalMetrics: Array<{
   { key: "roe", label: "净资产收益率 (ROE)", shortLabel: "ROE" },
   { key: "divi", label: "股息率", shortLabel: "股息率" },
 ];
+
+export const valueRankingNavItem = {
+  href: "/value",
+  label: "内在价值",
+};
 
 export function formatStockCode(code: string) {
   const normalized = String(code).trim();

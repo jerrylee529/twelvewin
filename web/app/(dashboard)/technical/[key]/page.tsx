@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/json-ld";
 import { EmptyState, PageHeader } from "@/components/dashboard-shell";
+import { absoluteUrl } from "@/lib/seo";
 import { RankingTable } from "@/components/ranking-table";
 import { Chip } from "@/components/ui/primitives";
 import { getTechnical } from "@/lib/api";
@@ -22,8 +24,18 @@ export default async function TechnicalPage({
   const meta = TECHNICAL_META[technicalKey];
   const data = await getTechnical(technicalKey);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: meta.title,
+    description: meta.description,
+    url: absoluteUrl(`/technical/${technicalKey}`),
+    numberOfItems: data.total,
+  };
+
   return (
     <>
+      <JsonLd data={jsonLd} />
       <PageHeader
         title={meta.title}
         description={meta.description}

@@ -1,5 +1,7 @@
 import { notFound } from "next/navigation";
+import { JsonLd } from "@/components/json-ld";
 import { EmptyState, PageHeader } from "@/components/dashboard-shell";
+import { absoluteUrl } from "@/lib/seo";
 import { ClusterChartView } from "@/components/cluster-chart-view";
 import { ClusterSectionTabs } from "@/components/cluster-section-tabs";
 import { Chip } from "@/components/ui/primitives";
@@ -40,8 +42,18 @@ export default async function ClusterPage({
     chart.nodes.length > 0 &&
     chart.clusters.length > 0;
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "ItemList",
+    name: title,
+    description,
+    url: absoluteUrl(`/clusters/${encodeURIComponent(section)}`),
+    numberOfItems: data.total,
+  };
+
   return (
     <div className="flex h-[calc(100dvh-5.5rem)] flex-col lg:h-[calc(100dvh-6rem)]">
+      <JsonLd data={jsonLd} />
       <PageHeader
         title={title}
         description={description}

@@ -11,6 +11,7 @@ from api.db.models import (
     AnalysisRun,
     Base,
     FundamentalSnapshot,
+    Instrument,
     RankingResult,
     TechnicalScreenResult,
 )
@@ -160,6 +161,39 @@ class ApiFundamentalScreenerTestCase(unittest.TestCase):
         self.assertIsNone(result.error)
         self.assertEqual(1, result.total)
         self.assertEqual('600000', result.rows[0]['code'])
+
+
+class ApiStocksListTestCase(unittest.TestCase):
+    def setUp(self):
+        self.engine = create_engine('sqlite:///:memory:')
+        Base.metadata.create_all(self.engine)
+        self.session = sessionmaker(bind=self.engine)()
+        self.session.add_all([
+            Instrument(id=1, code='600000', name='Test Bank', industry='Bank'),
+            Instrument(id=2, code='000001', name='Growth Co', industry='Tech'),
+        ])
+        self.session.commit()
+
+    def tearDown(self):
+        self.session.close()
+        Base.metadata.drop_all(self.engine)
+
+    def test_list_instruments_returns_all_codes(self):
+        from api.services.stocks import list_instruments
+
+        items, total = list_instruments(self.session)
+        self.assertEqual(2, total)
+        self.assertEqual(2, len(items))
+        self.assertEqual('000001', items[0]['code'])
+        self.assertEqual('Growth Co', items[0]['name'])
+
+    def test_list_instruments_supports_pagination(self):
+        from api.services.stocks import list_instruments
+
+        items, total = list_instruments(self.session, offset=1, limit=1)
+        self.assertEqual(2, total)
+        self.assertEqual(1, len(items))
+        self.assertEqual('600000', items[0]['code'])
 
 
 class ApiHttpTestCase(unittest.TestCase):

@@ -9,7 +9,7 @@ import {
   parseNumber,
   type BarRow,
 } from "@/lib/stock-format";
-import { StockAboutSection } from "@/components/stock-about-section";
+import { StockSeoAbout } from "@/components/stock-seo-about";
 
 function StatItem({ label, value }: { label: string; value: string }) {
   return (
@@ -24,15 +24,19 @@ function StatItem({ label, value }: { label: string; value: string }) {
 
 export function StockStatsSection({
   code,
+  name,
   bars,
   updateTime,
+  initialQuot,
 }: {
   code: string;
+  name: string;
   bars: BarRow[];
   updateTime?: string | null;
+  initialQuot?: Record<string, string> | null;
 }) {
   const { data } = useStockQuote();
-  const quot = data?.quot;
+  const quot = data?.quot ?? initialQuot;
   const settlement = parseNumber(quot?.settlement);
   const week52 = compute52WeekRange(bars);
 
@@ -91,7 +95,7 @@ export function StockStatsSection({
           </dl>
         </section>
 
-        <StockAboutSection code={code} bars={bars} />
+        <StockSeoAbout code={code} name={name} quot={quot} bars={bars} />
       </div>
     </>
   );

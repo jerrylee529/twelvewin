@@ -20,6 +20,11 @@ class InstrumentsResponse(BaseModel):
     instruments: list[dict[str, Any]] = Field(default_factory=list)
 
 
+class InstrumentsListResponse(BaseModel):
+    total: int
+    instruments: list[dict[str, Any]] = Field(default_factory=list)
+
+
 class BarsResponse(BaseModel):
     rows: list[list[Any]] = Field(default_factory=list)
     updateTime: Optional[str] = None

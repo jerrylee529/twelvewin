@@ -24,13 +24,15 @@ const StockQuoteContext = createContext<StockQuoteContextValue | null>(null);
 
 export function StockQuoteProvider({
   code,
+  initialData = null,
   children,
 }: {
   code: string;
+  initialData?: QuoteResponse | null;
   children: ReactNode;
 }) {
-  const [data, setData] = useState<QuoteResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<QuoteResponse | null>(initialData);
+  const [loading, setLoading] = useState(!initialData?.quot);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -46,8 +48,8 @@ export function StockQuoteProvider({
   }, [code]);
 
   useEffect(() => {
-    setLoading(true);
-    setData(null);
+    setLoading(!initialData?.quot);
+    setData(initialData);
     setError(null);
     void refresh();
 
@@ -56,7 +58,7 @@ export function StockQuoteProvider({
     }, QUOTE_REFRESH_MS);
 
     return () => window.clearInterval(timer);
-  }, [code, refresh]);
+  }, [code, initialData, refresh]);
 
   return (
     <StockQuoteContext.Provider value={{ data, loading, error, refresh }}>

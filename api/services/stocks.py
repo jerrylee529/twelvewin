@@ -37,6 +37,33 @@ def _convert_float(value, *, is_amount=False):
     return round(value / 10000 if is_amount else value, 2)
 
 
+def list_instruments(
+    session: Session,
+    *,
+    offset: int = 0,
+    limit: int | None = None,
+) -> tuple[list[dict], int]:
+    """Return all instruments for sitemap and bulk SEO pages."""
+    total = session.query(func.count(Instrument.id)).scalar() or 0
+    db_query = session.query(Instrument).order_by(Instrument.code)
+    if offset > 0:
+        db_query = db_query.offset(offset)
+    if limit is not None and limit > 0:
+        db_query = db_query.limit(limit)
+
+    items = []
+    for index, instrument in enumerate(db_query.all(), start=offset + 1):
+        items.append(
+            {
+                'id': index,
+                'code': instrument.code,
+                'name': instrument.name,
+                'industry': instrument.industry,
+            }
+        )
+    return items, total
+
+
 def search_instruments(session: Session, query: str = '', *, limit=50) -> list[dict]:
     q = (query or '').strip()
     db_query = session.query(Instrument).order_by(Instrument.code)

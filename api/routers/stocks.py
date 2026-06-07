@@ -7,6 +7,7 @@ from api.db.session import get_db_session
 from api.routers.helpers import to_table_response
 from api.schemas.responses import (
     BarsResponse,
+    InstrumentsListResponse,
     InstrumentsResponse,
     ProfileResponse,
     QuoteResponse,
@@ -17,10 +18,26 @@ from api.services.stocks import (
     get_daily_bars,
     get_profile,
     get_quote,
+    list_instruments,
     search_instruments,
 )
 
 router = APIRouter(prefix='/stocks', tags=['stocks'])
+
+
+@router.get('/list', response_model=InstrumentsListResponse)
+def instrument_list(
+    offset: int = Query(0, ge=0),
+    limit: int | None = Query(
+        None,
+        ge=1,
+        le=10000,
+        description='Max rows to return; omit for all instruments',
+    ),
+    session: Session = Depends(get_db_session),
+):
+    instruments, total = list_instruments(session, offset=offset, limit=limit)
+    return InstrumentsListResponse(total=total, instruments=instruments)
 
 
 @router.get('/search', response_model=InstrumentsResponse)
