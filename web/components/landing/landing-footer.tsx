@@ -8,13 +8,14 @@ const productLinks = [
 ];
 
 const legalLinks = [
+  { href: "/blog", label: "研究博客" },
   { href: "/register", label: "服务条款" },
   { href: "/register", label: "隐私政策" },
   { href: "/register", label: "数据免责声明" },
 ];
 
 const connectLinks = [
-  { href: "mailto:support@twelvewin.com", label: "support@twelvewin.com" },
+  { href: "mailto:support@twelvewin.win", label: "support@twelvewin.win" },
   { href: "/register", label: "企业销售" },
 ];
 

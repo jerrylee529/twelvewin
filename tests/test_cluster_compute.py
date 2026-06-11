@@ -13,6 +13,7 @@ if ANALYSIS_DIR not in sys.path:
 from cluster_compute import (
     assign_cluster_correlations,
     build_cluster_chart_payload,
+    cluster_fundamentals,
     ClusterGroup,
     ClusterGroups,
     ClusterItem,
@@ -114,6 +115,22 @@ class ClusterComputeTestCase(unittest.TestCase):
         for point_x, point_y in coords:
             self.assertTrue(math.isfinite(point_x))
             self.assertTrue(math.isfinite(point_y))
+
+    def test_cluster_fundamentals_uses_snapshot_style_columns(self):
+        frame = pd.DataFrame(
+            [
+                {'code': '000001', 'name': 'A', 'pe': 8.0, 'pb': 1.2, 'roe': 12.0},
+                {'code': '000002', 'name': 'B', 'pe': 9.0, 'pb': 1.3, 'roe': 11.0},
+                {'code': '000003', 'name': 'C', 'pe': 20.0, 'pb': 3.5, 'roe': 4.0},
+                {'code': '000004', 'name': 'D', 'pe': 21.0, 'pb': 3.8, 'roe': 3.5},
+            ]
+        ).set_index('code')
+
+        groups, data = cluster_fundamentals(frame)
+
+        self.assertGreater(len(groups.items), 0)
+        self.assertIsNotNone(data)
+        self.assertGreater(data.shape[1], 0)
 
     def test_build_cluster_chart_payload_handles_identical_return_series(self):
         data = pd.DataFrame({code: [0.01] * 12 for code in ('600000', '000001', '000002')})

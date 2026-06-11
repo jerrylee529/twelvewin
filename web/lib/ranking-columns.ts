@@ -1,8 +1,75 @@
-import type { ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef, Row } from "@tanstack/react-table";
 import type { ReactNode } from "react";
 import type { RankingKey } from "@/lib/types";
+import { formatCompactNumber } from "@/lib/stock-format";
 
 export type RankingRow = Record<string, unknown>;
+
+/** Columns published in 万元 that should render as 万/亿/万亿. */
+export const MARKET_CAP_KEYS = new Set([
+  "market_cap",
+  "float_market_cap",
+  "mktcap",
+  "nmc",
+]);
+
+/** Signed percentage columns: red when positive, green when negative. */
+export const SIGNED_PERCENT_KEYS = new Set([
+  "rate",
+  "revenue_growth",
+  "profit_growth",
+  "rev",
+  "profit",
+]);
+
+export function formatMarketCapCell(value: unknown): string {
+  const numeric = parseRankingNumber(value);
+  if (numeric == null || numeric === 0) {
+    return "—";
+  }
+  return formatCompactNumber(numeric * 10000);
+}
+
+/** A-share convention: red for gains, green for losses. */
+export function signedToneClass(value: unknown): string {
+  const numeric = parseRankingNumber(value);
+  if (numeric == null || numeric === 0) {
+    return "text-on-surface-variant";
+  }
+  return numeric > 0 ? "text-bullish" : "text-bearish";
+}
+
+export function formatSignedPercent(value: unknown): string {
+  const numeric = parseRankingNumber(value);
+  if (numeric == null) {
+    return formatRankingValue(value);
+  }
+  const prefix = numeric > 0 ? "+" : "";
+  return `${prefix}${formatRankingValue(value)}%`;
+}
+
+export function compareRankingValues(a: unknown, b: unknown): number {
+  const numericA = parseRankingNumber(a);
+  const numericB = parseRankingNumber(b);
+  if (numericA != null && numericB != null) {
+    return numericA - numericB;
+  }
+  if (numericA != null) {
+    return 1;
+  }
+  if (numericB != null) {
+    return -1;
+  }
+  return String(a ?? "").localeCompare(String(b ?? ""), "zh-CN");
+}
+
+export function rankingSortingFn(
+  rowA: Row<RankingRow>,
+  rowB: Row<RankingRow>,
+  columnId: string,
+): number {
+  return compareRankingValues(rowA.original[columnId], rowB.original[columnId]);
+}
 
 export const RANKING_COLUMN_ORDER = [
   "id",
@@ -195,6 +262,7 @@ export function buildRankingColumnDefs(
   return keys.map((key) => ({
     accessorKey: key,
     header: RANKING_COLUMN_LABELS[key] || key,
+    sortingFn: rankingSortingFn,
     cell: ({ row }) => {
       const value = row.original[key];
 

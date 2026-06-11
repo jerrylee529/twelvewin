@@ -11,12 +11,13 @@ import {
 
 type BarRow = [string, number, number, number, number];
 
+/* Keep in sync with --bullish / --bearish tokens in globals.css */
 const CHART_COLORS = {
   background: "#171f33",
   text: "#8b95b8",
   grid: "#131b2e",
-  up: "#ff6b7a",
-  down: "#4ade80",
+  up: "#f6465d",
+  down: "#0ecb81",
 };
 
 export function CandlestickChart({ rows }: { rows: BarRow[] }) {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { getAllPostSummaries } from "@/lib/blog/posts";
 import {
   RANKING_META,
   TECHNICAL_META,
@@ -13,7 +14,7 @@ export function getSiteUrl(): string {
   const raw =
     process.env.NEXT_PUBLIC_SITE_URL ||
     process.env.SITE_URL ||
-    "https://twelvewin.com";
+    "https://twelvewin.win";
   return raw.replace(/\/$/, "");
 }
 
@@ -204,6 +205,37 @@ export function buildPriceChangeMetadata(slug: PriceChangePeriodSlug): Metadata 
   });
 }
 
+export function buildBlogIndexMetadata(): Metadata {
+  return buildPageMetadata({
+    title: "研究博客",
+    description:
+      "A 股量化研究方法、板块聚类与筛选工具使用指南。内容与研究终端功能模块独立更新。",
+    path: "/blog",
+    keywords: ["A股", "量化研究", "聚类分析", "投资方法"],
+  });
+}
+
+export function buildBlogPostMetadata({
+  title,
+  description,
+  slug,
+  date,
+  tags,
+}: {
+  title: string;
+  description: string;
+  slug: string;
+  date: string;
+  tags?: string[];
+}): Metadata {
+  return buildPageMetadata({
+    title,
+    description,
+    path: `/blog/${slug}`,
+    keywords: ["A股", "量化研究", ...(tags ?? [])],
+  });
+}
+
 export function buildClusterMetadata(section: string): Metadata {
   const title = getClusterTitle(section);
   const description = CLUSTER_INDEX_SECTIONS.includes(
@@ -268,7 +300,22 @@ export async function buildSitemapEntries(): Promise<
       changeFrequency: "daily",
       priority: 0.8,
     },
+    {
+      url: `${siteUrl}/blog`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.7,
+    },
   ];
+
+  for (const post of getAllPostSummaries()) {
+    entries.push({
+      url: `${siteUrl}/blog/${post.slug}`,
+      lastModified: new Date(`${post.date}T00:00:00`),
+      changeFrequency: "monthly",
+      priority: 0.6,
+    });
+  }
 
   for (const metric of FUNDAMENTAL_METRIC_KEYS) {
     entries.push({

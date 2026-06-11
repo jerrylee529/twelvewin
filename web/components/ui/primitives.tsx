@@ -54,8 +54,8 @@ export function Chip({
   className?: string;
 }) {
   const toneClasses = {
-    bullish: "bg-error-container/40 text-bullish",
-    bearish: "bg-surface-container-highest text-bearish",
+    bullish: "bg-bullish-container text-bullish",
+    bearish: "bg-bearish-container text-bearish",
     ai: "bg-secondary-container/40 text-secondary",
     gold: "bg-tertiary-container/30 text-on-surface",
     neutral: "bg-surface-container-highest text-on-surface-variant",

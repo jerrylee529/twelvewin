@@ -72,16 +72,16 @@ export default async function PriceChangePeriodPage({
 
       <nav
         aria-label="涨跌幅周期"
-        className="mb-4 flex flex-wrap gap-2"
+        className="mb-4 inline-flex flex-wrap rounded-sm border border-outline-variant/40 p-0.5"
       >
         {PRICE_CHANGE_SLUGS.map((slug) => (
           <Link
             key={slug}
             href={priceChangePath(slug)}
-            className={`rounded-sm px-3 py-1.5 text-xs font-medium transition ${
+            className={`rounded-sm px-3 py-1.5 text-xs font-medium transition-colors ${
               slug === periodSlug
-                ? "bg-primary text-on-primary"
-                : "bg-surface-container-high text-on-surface-variant hover:text-on-surface"
+                ? "bg-surface-bright font-semibold text-on-surface"
+                : "text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface"
             }`}
           >
             {PRICE_CHANGE_PERIOD_SLUGS[slug]}

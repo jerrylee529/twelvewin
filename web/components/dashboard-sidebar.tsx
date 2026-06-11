@@ -25,7 +25,7 @@ export function DashboardSidebar() {
   return (
     <aside className="flex w-56 shrink-0 flex-col border-r border-on-surface/5 bg-surface-container-low">
       <div className="border-b border-on-surface/5 px-4 py-4">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-on-surface-variant">
+        <p className="text-xs font-semibold text-on-surface-variant">
           研究
         </p>
         <p className="mt-0.5 text-sm font-semibold text-on-surface">

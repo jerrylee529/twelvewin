@@ -5,16 +5,24 @@ import {
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
+  type SortingState,
 } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { StockLink } from "@/components/dashboard-shell";
+import { ariaSortValue, SortableHeader } from "@/components/fundamentals-table";
 import { Chip } from "@/components/ui/primitives";
 import {
   buildRankingColumnDefs,
+  formatMarketCapCell,
   formatRankingValue,
+  formatSignedPercent,
   formatStockCodeValue,
   isUndervalued,
+  MARKET_CAP_KEYS,
+  SIGNED_PERCENT_KEYS,
+  signedToneClass,
   type RankingRow,
 } from "@/lib/ranking-columns";
 
@@ -43,22 +51,44 @@ export function RankingTable({
               {isUndervalued(row) ? <Chip tone="ai">低估</Chip> : null}
             </span>
           ),
-          default: (_key, _row, value) => (
-            <span className="tabular-nums">{formatRankingValue(value)}</span>
-          ),
+          default: (key, _row, value) => {
+            if (SIGNED_PERCENT_KEYS.has(key)) {
+              return (
+                <span
+                  className={`tabular-nums font-medium ${signedToneClass(value)}`}
+                >
+                  {formatSignedPercent(value)}
+                </span>
+              );
+            }
+            if (MARKET_CAP_KEYS.has(key)) {
+              return (
+                <span className="tabular-nums">
+                  {formatMarketCapCell(value)}
+                </span>
+              );
+            }
+            return (
+              <span className="tabular-nums">{formatRankingValue(value)}</span>
+            );
+          },
         },
         { includeUpdateTime: true },
       ),
     [rows],
   );
 
+  const [sorting, setSorting] = useState<SortingState>([]);
+
   const table = useReactTable({
     data: rows,
     columns,
-    state: { globalFilter },
+    state: { globalFilter, sorting },
     onGlobalFilterChange: setGlobalFilter,
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: { pageSize },
@@ -78,8 +108,8 @@ export function RankingTable({
       </div>
 
       <div className="terminal-pane overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
+        <div className="max-h-[72vh] overflow-auto">
+          <table className="terminal-table min-w-full text-xs">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr
@@ -89,14 +119,10 @@ export function RankingTable({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
+                      aria-sort={ariaSortValue(header.column.getIsSorted())}
                       className="whitespace-nowrap px-3 py-2.5 font-medium text-on-surface-variant"
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                      <SortableHeader header={header} />
                     </th>
                   ))}
                 </tr>

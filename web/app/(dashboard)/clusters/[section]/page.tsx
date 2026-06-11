@@ -3,6 +3,7 @@ import { JsonLd } from "@/components/json-ld";
 import { EmptyState, PageHeader } from "@/components/dashboard-shell";
 import { absoluteUrl } from "@/lib/seo";
 import { ClusterChartView } from "@/components/cluster-chart-view";
+import { ClusterResultTable } from "@/components/cluster-result-table";
 import { ClusterSectionTabs } from "@/components/cluster-section-tabs";
 import { Chip } from "@/components/ui/primitives";
 import { getCluster, getClusterChart } from "@/lib/api";
@@ -70,10 +71,7 @@ export default async function ClusterPage({
       ) : hasChart ? (
         <ClusterChartView payload={chart} className="min-h-0 flex-1" />
       ) : (
-        <EmptyState
-          message="暂无图表数据"
-          hint="请重新运行 python -m compute cluster_pipeline 以生成散点图、关系图和热力图数据。"
-        />
+        <ClusterResultTable rows={data.rows} showChartHint />
       )}
     </div>
   );

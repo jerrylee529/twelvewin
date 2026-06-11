@@ -27,7 +27,7 @@ export function HomeSearchHero() {
   }
 
   return (
-    <section className="hero-terminal-bg flex min-h-[calc(100vh-3.5rem)] flex-col items-center justify-start px-4 pb-24 pt-[clamp(2.5rem,14vh,7rem)]">
+    <section className="hero-terminal-bg flex min-h-[55vh] flex-col items-center justify-start px-4 pb-16 pt-[clamp(2.5rem,10vh,5.5rem)]">
       <div className="flex w-full max-w-2xl -translate-y-4 flex-col items-center text-center sm:-translate-y-6">
         <BrandLogo className="h-12 object-contain sm:h-14" />
         <h1 className="display-sm mt-8 text-on-surface">搜索 A 股股票</h1>

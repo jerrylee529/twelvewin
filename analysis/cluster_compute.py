@@ -11,7 +11,13 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import pandas as pd
 
-from app.models import Instrument, StockCluster, StockClusterChart, StockClusterItem
+from app.models import (
+    FundamentalSnapshot,
+    Instrument,
+    StockCluster,
+    StockClusterChart,
+    StockClusterItem,
+)
 from core.db import session_scope
 from core.stock_codes import normalize_stock_code
 
@@ -218,13 +224,28 @@ def cluster_by_price_series(
 
 
 def cluster_fundamentals(instruments: pd.DataFrame) -> Tuple[ClusterGroups, Optional[pd.DataFrame]]:
-    """Cluster by numeric fundamentals (pe, pb, roe-style columns on Instrument)."""
+    """Cluster by numeric fundamentals from snapshots or legacy Instrument columns."""
     if AffinityPropagation is None:
         raise RuntimeError('scikit-learn is required for cluster_compute')
 
     numeric_cols = [
-        'pe', 'pb', 'outstanding', 'totals', 'total_assets', 'liquid_assets',
-        'fixed_assets', 'esp', 'bvps', 'gpr', 'npr',
+        'pe',
+        'pb',
+        'roe',
+        'dividend_yield',
+        'market_cap',
+        'float_market_cap',
+        'revenue_growth',
+        'profit_growth',
+        'outstanding',
+        'totals',
+        'total_assets',
+        'liquid_assets',
+        'fixed_assets',
+        'esp',
+        'bvps',
+        'gpr',
+        'npr',
     ]
     available = [col for col in numeric_cols if col in instruments.columns]
     if not available:
@@ -651,10 +672,47 @@ def run_index_section(
     return {'status': 'ok', 'section': section, 'clusters': len(groups.items), 'items': rows}
 
 
+def _latest_fundamental_snapshot_date(session) -> Optional[Any]:
+    from sqlalchemy import func
+
+    return session.query(func.max(FundamentalSnapshot.trade_date)).scalar()
+
+
 def _load_industry_fundamental_rows(industry: str) -> List[dict]:
-    """Load instrument fundamentals as plain dicts (safe outside SQLAlchemy session)."""
+    """Load latest published fundamentals for an industry (safe outside session)."""
     with session_scope() as session:
+        latest_date = _latest_fundamental_snapshot_date(session)
+        if latest_date is None:
+            logger.warning('fundamental_snapshots is empty; skip industry %s', industry)
+            return []
+
         records = (
+            session.query(FundamentalSnapshot)
+            .filter(
+                FundamentalSnapshot.trade_date == latest_date,
+                FundamentalSnapshot.industry == industry,
+            )
+            .all()
+        )
+        if records:
+            return [
+                {
+                    'code': record.code,
+                    'name': record.name or record.code,
+                    'pe': record.pe_ttm,
+                    'pb': record.pb_lf,
+                    'roe': record.roe,
+                    'dividend_yield': record.dividend_yield,
+                    'market_cap': record.market_cap,
+                    'float_market_cap': record.float_market_cap,
+                    'revenue_growth': record.revenue_growth,
+                    'profit_growth': record.profit_growth,
+                }
+                for record in records
+            ]
+
+        # Fallback for environments without published snapshots.
+        legacy = (
             session.query(Instrument)
             .filter(Instrument.industry == industry)
             .all()
@@ -675,7 +733,7 @@ def _load_industry_fundamental_rows(industry: str) -> List[dict]:
                 'gpr': record.gpr,
                 'npr': record.npr,
             }
-            for record in records
+            for record in legacy
         ]
 
 
@@ -700,11 +758,22 @@ def run_industry_section(industry: str) -> dict:
 
 def run_all_industry_sections() -> dict:
     with session_scope() as session:
-        industries = [
-            row[0]
-            for row in session.query(Instrument.industry).distinct().all()
-            if row[0]
-        ]
+        latest_date = _latest_fundamental_snapshot_date(session)
+        if latest_date is not None:
+            industries = [
+                row[0]
+                for row in session.query(FundamentalSnapshot.industry)
+                .filter(FundamentalSnapshot.trade_date == latest_date)
+                .distinct()
+                .all()
+                if row[0]
+            ]
+        else:
+            industries = [
+                row[0]
+                for row in session.query(Instrument.industry).distinct().all()
+                if row[0]
+            ]
 
     summary = {}
     for industry in industries:

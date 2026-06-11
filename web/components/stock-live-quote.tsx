@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useStockQuote } from "@/components/stock-quote-provider";
 import {
   formatPercent,
@@ -7,11 +8,34 @@ import {
   parseNumber,
 } from "@/lib/stock-format";
 
+/** Background flash on price change, A-share red-up / green-down. */
+function usePriceFlash(price: number | null) {
+  const previousRef = useRef<number | null>(null);
+  const [flash, setFlash] = useState<{ dir: "up" | "down"; id: number } | null>(
+    null,
+  );
+
+  useEffect(() => {
+    if (price == null) {
+      return;
+    }
+    const previous = previousRef.current;
+    previousRef.current = price;
+    if (previous == null || previous === price) {
+      return;
+    }
+    setFlash({ dir: price > previous ? "up" : "down", id: Date.now() });
+  }, [price]);
+
+  return flash;
+}
+
 /** Live price overlay; H1 is rendered server-side in StockPageHeader. */
 export function StockLivePrice() {
   const { data, loading, error } = useStockQuote();
   const quot = data?.quot;
   const quotSource = data?.quot_source;
+  const flash = usePriceFlash(quot ? parseNumber(quot.trade) : null);
 
   if (loading && !quot) {
     return null;
@@ -37,7 +61,10 @@ export function StockLivePrice() {
   return (
     <div className="mt-4" aria-live="polite">
       <p
-        className={`text-[44px] font-bold leading-none tabular-nums tracking-tight ${toneClass}`}
+        key={flash?.id}
+        className={`inline-block rounded-sm text-[44px] font-bold leading-none tabular-nums tracking-tight ${toneClass} ${
+          flash ? (flash.dir === "up" ? "flash-up" : "flash-down") : ""
+        }`}
       >
         ¥{formatPrice(trade)}
       </p>

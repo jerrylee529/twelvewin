@@ -17,8 +17,9 @@ import {
   type ChartRange,
 } from "@/lib/stock-format";
 
-const STOCK_UP = "#FF5000";
-const STOCK_DOWN = "#00C805";
+/* Keep in sync with --bullish / --bearish tokens in globals.css */
+const STOCK_UP = "#f6465d";
+const STOCK_DOWN = "#0ecb81";
 
 export function StockLineChart({ rows }: { rows: BarRow[] }) {
   const [range, setRange] = useState<ChartRange>("1Y");
@@ -33,7 +34,7 @@ export function StockLineChart({ rows }: { rows: BarRow[] }) {
 
   const isUp = useMemo(() => rangePerformance(filteredRows) >= 0, [filteredRows]);
   const lineColor = isUp ? STOCK_UP : STOCK_DOWN;
-  const areaTop = isUp ? "rgba(255, 80, 0, 0.24)" : "rgba(0, 200, 5, 0.28)";
+  const areaTop = isUp ? "rgba(246, 70, 93, 0.22)" : "rgba(14, 203, 129, 0.22)";
   const areaBottom = "rgba(0, 0, 0, 0)";
 
   useEffect(() => {

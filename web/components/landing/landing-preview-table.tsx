@@ -93,7 +93,7 @@ export function LandingPreviewTable() {
                         : "bg-surface-container-low"
                     }
                   >
-                    <td className="px-[var(--cell-padding-x)] py-[var(--cell-padding-y)] data-num text-secondary">
+                    <td className="px-[var(--cell-padding-x)] py-[var(--cell-padding-y)] data-num text-primary-container">
                       {row.code}
                     </td>
                     <td className="px-[var(--cell-padding-x)] py-[var(--cell-padding-y)] body-sm text-on-surface">

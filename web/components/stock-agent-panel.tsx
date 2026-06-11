@@ -387,7 +387,7 @@ export function StockAgentPanel({ code }: { code: string }) {
                     : "mr-4 rounded-sm border border-outline-variant/30 px-3 py-2 text-sm leading-7 text-on-surface"
                 }
               >
-                <p className="mb-1 text-[10px] uppercase tracking-[0.16em] text-on-surface-variant">
+                <p className="mb-1 text-[11px] font-medium text-on-surface-variant">
                   {message.role === "user" ? "你" : "助手"}
                 </p>
                 {message.role === "assistant" ? (

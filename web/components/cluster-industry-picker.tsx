@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useTransition } from "react";
 
 export function ClusterIndustryPicker({
   industries,
@@ -9,15 +9,28 @@ export function ClusterIndustryPicker({
   industries: Array<{ id: number; name: string }>;
 }) {
   const router = useRouter();
-  const [industry, setIndustry] = useState("");
+  const selectRef = useRef<HTMLSelectElement>(null);
+  const [isPending, startTransition] = useTransition();
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const value = industry.trim();
+  function navigateToIndustry(raw: string) {
+    const value = raw.trim();
     if (!value) {
       return;
     }
-    router.push(`/clusters/${encodeURIComponent(value)}`);
+
+    const href = `/clusters/${encodeURIComponent(value)}`;
+    startTransition(() => {
+      router.push(href);
+    });
+  }
+
+  function handleChange(event: React.ChangeEvent<HTMLSelectElement>) {
+    navigateToIndustry(event.target.value);
+  }
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    navigateToIndustry(selectRef.current?.value ?? "");
   }
 
   return (
@@ -28,9 +41,12 @@ export function ClusterIndustryPicker({
       <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs text-on-surface-variant">
         行业
         <select
-          value={industry}
-          onChange={(event) => setIndustry(event.target.value)}
-          className="trading-input w-full rounded-sm text-on-surface"
+          ref={selectRef}
+          name="industry"
+          defaultValue=""
+          onChange={handleChange}
+          disabled={isPending}
+          className="trading-input w-full cursor-pointer rounded-sm px-3 py-2 text-sm text-on-surface outline-none disabled:cursor-wait disabled:opacity-60"
         >
           <option value="">请选择行业</option>
           {industries.map((item) => (
@@ -42,10 +58,10 @@ export function ClusterIndustryPicker({
       </label>
       <button
         type="submit"
-        disabled={!industry}
-        className="btn-primary-container rounded-sm px-4 py-2 text-xs font-medium transition hover:opacity-90 disabled:opacity-40"
+        disabled={isPending}
+        className="btn-primary-container rounded-sm px-4 py-2 text-xs font-medium transition hover:opacity-90 disabled:cursor-wait disabled:opacity-60"
       >
-        查看聚类
+        {isPending ? "加载中…" : "查看聚类"}
       </button>
     </form>
   );

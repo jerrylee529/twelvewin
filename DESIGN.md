@@ -1,134 +1,112 @@
-# Design System: Robinhood-Inspired Investing Web
+# Design System: The Predictive Terminal (Dark)
 
-## 1. North Star: "Build Your Market Strategy"
+## 1. North Star: "A Professional A-Share Research Terminal"
 
-The UI should reference Robinhood's broader public web brand, not just a single stock detail page. The reference is a confident consumer investing site: oversized headlines, bold green brand areas, black text, rounded pill actions, clear product sections, and a calm but energetic path into market tools.
+TwelveWin's web UI is a **dark, data-dense quantitative research terminal** for Chinese A-share investors. The reference points are professional market tools (TradingView dark, Bloomberg-style terminals, Binance) rather than consumer investing brands.
 
-TwelveWin remains a data-heavy A-share research product, but the interface should feel more welcoming and productized. The first impression should say: "start researching, build your strategy, and track market signals" before the user drops into dense rankings and charts.
+The first impression should say: precision, data density, and market awareness. Dark surfaces, one electric-blue brand accent, and the Chinese market convention of **red = up, green = down** everywhere.
+
+Tokens live in [`web/app/globals.css`](web/app/globals.css). All components must consume tokens — no ad-hoc hex values in components.
 
 ## 2. Design Principles
 
-- **Brand-first sections:** Use large, memorable panels instead of small generic cards for primary landing content.
-- **Green as a brand surface:** Green is not only a button color. It can be a full hero or feature background with black text.
-- **Big type, short copy:** Robinhood's public pages use direct, compact messaging. Prefer short headlines over explanatory paragraphs.
-- **Rounded product UI:** Use pill CTAs, large radii, and friendly spacing while keeping data tables precise.
-- **Editorial section flow:** Alternate hero, tool introduction, market data, and legal/footer areas with clear spacing.
-- **Business logic stays invisible:** UI changes must not alter routes, request payloads, table columns, chart APIs, or existing user flows.
+- **Dark terminal first:** Deep-space blue surfaces (`#0b1326` family) on every page, including marketing/landing and blog.
+- **One brand accent:** Electric blue (`--primary: #3b82f6`) for CTAs, active states, links, and focus. Purple (`--secondary`) is reserved exclusively for AI-related features (AI chips, AI research assistant identity).
+- **China market color convention:** Red rises, green falls. Never invert. Color is never the only signal — keep text labels (e.g. "低估", "+0.24%").
+- **Data density over whitespace:** Tables, KPI panes and charts should feel like a terminal: compact paddings (`--cell-padding-*`), 1px pane gaps, tabular numbers.
+- **CJK-first typography:** Chinese labels are never uppercased or letter-spaced like English microcopy; minimum 12px for Chinese label text.
+- **Business logic stays invisible:** UI changes must not alter routes, request payloads, table columns, chart APIs, or existing flows.
 
 ## 3. Color Tokens
 
-| Role | Token | Hex | Usage |
+| Role | Token | Value | Usage |
 | --- | --- | --- | --- |
-| Brand green | `--tw-primary` | `#00c805` | Primary actions, hero sections, active navigation |
-| Brand green hover | `--tw-primary-hover` | `#00b806` | Hover/active state for primary actions |
-| Ink | `--tw-ink` | `#000000` | Robinhood-style hero text and strong headlines |
-| Text strong | `--tw-text` | `#111827` | Content headings, prices, core labels |
-| Text muted | `--tw-muted` | `#6b7280` | Secondary copy, timestamps, helper text |
-| Page background | `--tw-bg` | `#ffffff` | Main page background |
-| Cream panel | `--tw-cream` | `#f7f3ea` | Warm homepage sections and feature panels |
-| Card background | `--tw-surface` | `#ffffff` | Tables, cards, modals, form areas |
-| Soft surface | `--tw-surface-soft` | `#f1f3f5` | Hover rows, nested blocks |
-| Border | `--tw-border` | `#e5e7eb` | Subtle separation only |
-| Up / China market | `--tw-up` | `#d93025` | Rising price in the current A-share convention |
-| Down / China market | `--tw-down` | `#008a22` | Falling price in the current A-share convention |
-| Focus ring | `--tw-focus` | `rgba(0, 200, 5, 0.25)` | Keyboard and input focus |
+| Surface | `--surface` | `#0b1326` | Page background |
+| Pane | `--surface-container` | `#171f33` | Tables, cards, panes |
+| Recessed | `--surface-container-lowest` | `#060d20` | Inputs, table headers |
+| Text | `--on-surface` | `#dbe2fd` | Primary text |
+| Muted text | `--on-surface-variant` | `#b8c1dc` | Secondary copy, labels |
+| Brand primary | `--primary` | `#3b82f6` | CTAs, active nav, focus, links |
+| Primary strong | `--inverse-primary` | `#2563eb` | Filled CTA backgrounds |
+| Primary accent text | `--primary-container` | `#8ab4ff` | Accent text/icons on dark, stock codes |
+| CTA gradient | `--gradient-cyber` | `#2563eb → #38bdf8` | Primary gradient buttons |
+| Up / rising | `--bullish` | `#f6465d` | Rising prices, gains (A-share red) |
+| Up background | `--bullish-container` | `rgb(246 70 93 / 0.14)` | Up chips, flash backgrounds |
+| Down / falling | `--bearish` | `#0ecb81` | Falling prices, losses (A-share green) |
+| Down background | `--bearish-container` | `rgb(14 203 129 / 0.14)` | Down chips, flash backgrounds |
+| AI accent | `--secondary` | `#ebb2ff` | AI features only (chips, AI assistant) |
+| Error | `--error` / `--error-container` | `#ffb4ab` / `#93000a` | Errors only — never for market up/down |
+
+Charts (`lightweight-charts`, ECharts) cannot read CSS variables in all options; chart constants must stay in sync with `--bullish` / `--bearish` (see comments in `candlestick-chart.tsx`, `stock-line-chart.tsx`).
 
 ## 4. Typography
 
-Use the system sans-serif stack by default, with Inter as the preferred web font when available.
+System sans stack with CJK fonts listed **before** the generic `sans-serif` fallback (PingFang SC / Microsoft YaHei / Source Han Sans).
 
-- **Brand display:** `56px-72px`, `800`, tight letter spacing, line height near `1.0`.
-- **Display price:** `40px-48px`, `700`, tight letter spacing, tabular numbers.
-- **Page title:** `32px-44px`, `800`, line height `1.08`.
-- **Section title:** `18px`, `700`.
-- **Body:** `14px-16px`, line height `1.55`.
-- **Table text:** `13px-14px`, tabular numbers for numeric columns.
-
-All numeric data should use `font-variant-numeric: tabular-nums` to keep prices, ratios, and rankings stable while scanning.
+- **Body:** 14px, line-height 1.5.
+- **Display:** `.display-lg` 48px / `.display-sm` 32px, 700, tight tracking.
+- **Headline:** `.headline-md` 18px / 600.
+- **Labels (CJK-safe):** `.title-sm`, `.label-md`, `.label-sm`, `.label-zh` — all ≥12px, no `text-transform: uppercase`, letter-spacing ≤0.04em. Uppercase + wide tracking is allowed only for genuinely English microcopy (e.g. "AI Research").
+- **Numbers:** always `font-variant-numeric: tabular-nums` (`.tabular-nums` / `.data-num`); mono (`--font-mono`) for code-like data.
 
 ## 5. Layout
 
-- Public-facing entry sections can break out visually with large panels inside the centered container.
-- Navigation remains persistent, white, and low-shadow, matching the light consumer finance tone.
-- Hero sections use `32px-56px` padding, large radius, and strong brand color.
-- Cards use `16px-24px` padding, `18px-24px` radius, and a soft border.
-- Tables should look like data products, not Bootstrap defaults: sticky-like visual header, soft row hover, no heavy black borders.
-- Mobile layout should stack cards and keep touch targets at least `44px` high.
+- Max container `--container-max-width: 1920px`; dashboard = top header (48px) + 224px left sidebar + scrollable main.
+- Panes separated by `--terminal-gap: 1px` instead of borders, on recessed background.
+- Table cells: `--cell-padding-x: 8px`, `--cell-padding-y: 4px`; zebra rows with `surface-container` / `surface-container-low`, hover `surface-container-high`.
+- Radii are intentionally small: `--radius-sm: 2px`; pills only for search/quick-link chips.
+- Mobile: stack panes, keep touch targets ≥44px.
 
 ## 6. Components
 
 ### Navigation
-
-- White background, dark text, brand green active/hover state.
-- Dropdown menus should feel like floating cards with rounded corners and soft shadows.
-- Navigation should be clean and product-site-like, closer to Robinhood's "Log in / Sign up" simplicity than a dense admin menu.
+- Dark translucent header (`.nav-header`) with blur; active link gets `--nav-accent` (= `--primary`) 2px underline.
+- CTA button `.nav-menu-cta`: filled `--inverse-primary`, hover `--primary`, white text.
+- Landing and dashboard headers share the same dark terminal style.
 
 ### Buttons
-
-- **Primary:** Green filled pill, dark text, strong hover state.
-- **Dark CTA:** Black filled pill with white text on green or cream panels.
-- **Secondary:** Light gray or cream pill with dark text.
-- **Link button:** Green text, no underline unless hovered.
-- Buttons should have visible focus rings and a minimum height of `38px`.
-
-### Inputs
-
-- Search and filter controls use rounded pill or rounded rectangle shapes.
-- Focus state uses the brand green ring.
-- Placeholder text stays muted, never low contrast.
+- **Primary:** `.btn-gradient-primary` blue gradient, white text.
+- **Container:** `.btn-primary-container` light-blue fill (`--primary-container`), navy text.
+- **Secondary/ghost/outline:** surface-container fills or `ghost-outline` inset ring.
+- Visible focus states required; min height 38px.
 
 ### Tables
+- Header row on `surface-container-lowest`, muted 12px text.
+- Numeric columns right-aligned conceptually, tabular nums, red/green tone for signed values.
+- Large CNY values must be humanized (`万` / `亿` / `万亿`) — never raw 8-digit numbers.
 
-- Header background is soft slate.
-- Rows are white with subtle hover.
-- Borders are light and used only for structure.
-- Pagination and toolbar buttons inherit the same pill button system.
+### Market data
+- Price up: `--bullish` red; down: `--bearish` green; flat: `--on-surface-variant`.
+- Up/down chips use `bullish-container` / `bearish-container` backgrounds.
+- Charts sit on `surface-container` panes with reserved height to avoid layout shift.
 
-### Market Cards
-
-- Price cards should prioritize current price, daily change, open/high/low, volume, valuation ratios, and update time.
-- Use red for rising and green for falling to preserve the existing A-share convention.
-- Charts sit in white rounded panels with enough height reserved to prevent visual jumps.
-
-### Brand Feature Cards
-
-- Use short labels like "基本面排行", "技术信号", "行业板块", and "自选跟踪".
-- Cards can sit on cream or white panels with minimal copy.
-- Avoid heavy illustrations unless they are part of a coherent asset set.
-
-### Modals
-
-- Modal content uses rounded corners, clean header spacing, and a subtle shadow.
-- The close button remains visible and keyboard accessible.
+### AI features
+- AI chips/labels use `--secondary` purple — this is the *only* place purple appears.
 
 ## 7. Motion & Interaction
 
-- Use short transitions between `150ms` and `220ms`.
-- Animate color, border, shadow, and transform only.
-- Hover lift should be subtle: no more than `translateY(-1px)`.
-- Respect `prefers-reduced-motion` by disabling transitions.
+- Transitions 150–220ms; animate color/border/shadow/transform only.
+- Price-change flash: background pulse with `bullish-container` / `bearish-container` ~200ms.
+- Respect `prefers-reduced-motion`.
 
 ## 8. Accessibility
 
-- Body text and table text must meet WCAG AA contrast.
-- Focus rings must remain visible on links, buttons, inputs, and dropdown toggles.
-- Color cannot be the only indicator for important states; labels such as "低估" should remain text-based.
-- Do not remove Bootstrap's keyboard behavior for dropdowns, modals, or forms.
+- Body and table text meet WCAG AA on their actual surfaces (check dark contrast separately).
+- Focus rings visible on links, buttons, inputs.
+- Color never the sole indicator: keep text labels alongside red/green.
 
 ## 9. Do / Don't
 
 ### Do
-
-- Use green and cream sections to create Robinhood-like brand rhythm.
-- Use oversized headlines on entry pages.
-- Keep financial numbers stable with tabular figures.
-- Use brand green for product actions and positive affordances.
-- Keep existing data shape and endpoint behavior unchanged.
+- Keep the dark terminal palette on all pages, including landing and blog.
+- Use one blue accent for everything interactive; purple only for AI.
+- Use red-up/green-down consistently, sourced from tokens.
+- Humanize large numbers with Chinese units (亿 / 万亿).
+- Keep existing data shapes and endpoint behavior unchanged.
 
 ### Don't
-
-- Do not reintroduce the dark terminal palette for normal pages.
-- Do not add decorative gradients that compete with stock charts.
-- Do not make every surface a small white card; Robinhood's broader brand relies on large confident panels.
-- Do not rely on red/green alone without labels when introducing new states.
-- Do not change business routes, JavaScript request URLs, or table response handlers for visual work.
+- Don't introduce light-theme pages without a deliberate, separate decision.
+- Don't add purple/pink "AI" gradients to product surfaces.
+- Don't hardcode hex colors in components — extend tokens instead.
+- Don't uppercase or letter-space Chinese text; don't set Chinese labels below 12px.
+- Don't change business routes, request URLs, or response handlers for visual work.

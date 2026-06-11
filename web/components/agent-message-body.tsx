@@ -35,7 +35,7 @@ function ThinkBlock({
           aria-hidden
         />
         <span className="font-medium text-on-surface">思考过程</span>
-        <span className="text-[10px] uppercase tracking-[0.14em] text-on-surface-variant">
+        <span className="text-[11px] text-on-surface-variant">
           {complete ? "可展开" : "生成中…"}
         </span>
       </button>

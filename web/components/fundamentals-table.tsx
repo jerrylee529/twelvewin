@@ -5,20 +5,68 @@ import {
   flexRender,
   getCoreRowModel,
   getPaginationRowModel,
+  getSortedRowModel,
   useReactTable,
+  type Header,
+  type SortingState,
 } from "@tanstack/react-table";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { ChevronDown, ChevronUp, ChevronsUpDown } from "lucide-react";
 import { StockLink } from "@/components/dashboard-shell";
 import { Chip } from "@/components/ui/primitives";
 import { formatStockCode } from "@/lib/navigation";
 import {
   buildRankingColumnDefs,
   exportRankingCsv,
+  formatMarketCapCell,
   formatRankingValue,
+  formatSignedPercent,
   isUndervalued,
+  MARKET_CAP_KEYS,
   parseRankingNumber,
+  SIGNED_PERCENT_KEYS,
+  signedToneClass,
   type RankingRow,
 } from "@/lib/ranking-columns";
+
+export function SortableHeader({
+  header,
+}: {
+  header: Header<RankingRow, unknown>;
+}) {
+  if (header.isPlaceholder) {
+    return null;
+  }
+
+  const sorted = header.column.getIsSorted();
+
+  return (
+    <button
+      type="button"
+      onClick={header.column.getToggleSortingHandler()}
+      className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap transition hover:text-on-surface"
+    >
+      {flexRender(header.column.columnDef.header, header.getContext())}
+      {sorted === "asc" ? (
+        <ChevronUp className="h-3 w-3 shrink-0 text-primary-container" />
+      ) : sorted === "desc" ? (
+        <ChevronDown className="h-3 w-3 shrink-0 text-primary-container" />
+      ) : (
+        <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-30" />
+      )}
+    </button>
+  );
+}
+
+export function ariaSortValue(
+  sorted: false | "asc" | "desc",
+): "ascending" | "descending" | "none" {
+  return sorted === "asc"
+    ? "ascending"
+    : sorted === "desc"
+      ? "descending"
+      : "none";
+}
 
 function renderDefaultCell(key: string, row: RankingRow, value: unknown) {
   if (key === "valueprice") {
@@ -31,7 +79,19 @@ function renderDefaultCell(key: string, row: RankingRow, value: unknown) {
     return value ? <Chip tone="bearish">ST</Chip> : <span>否</span>;
   }
 
-  if (key === "roe" || key.startsWith("roe_y") || key === "rate" || key === "dividend_yield") {
+  if (SIGNED_PERCENT_KEYS.has(key)) {
+    return (
+      <span className={`tabular-nums font-medium ${signedToneClass(value)}`}>
+        {formatSignedPercent(value)}
+      </span>
+    );
+  }
+
+  if (MARKET_CAP_KEYS.has(key)) {
+    return <span className="tabular-nums">{formatMarketCapCell(value)}</span>;
+  }
+
+  if (key === "roe" || key.startsWith("roe_y") || key === "dividend_yield") {
     const numeric = parseRankingNumber(value);
     const suffix = numeric != null ? "%" : "";
     return (
@@ -59,27 +119,6 @@ function renderDefaultCell(key: string, row: RankingRow, value: unknown) {
         {formatRankingValue(value)}
       </span>
     );
-  }
-
-  if (
-    [
-      "per",
-      "pe_ttm",
-      "divi",
-      "shares",
-      "year",
-      "mktcap",
-      "nmc",
-      "market_cap",
-      "float_market_cap",
-      "turnoverratio",
-      "pe_discount_to_industry",
-      "pb_discount_to_industry",
-      "revenue_growth",
-      "profit_growth",
-    ].includes(key)
-  ) {
-    return <span className="tabular-nums">{formatRankingValue(value)}</span>;
   }
 
   return <span className="tabular-nums">{formatRankingValue(value)}</span>;
@@ -118,10 +157,15 @@ export function FundamentalsTable({
     [rows],
   );
 
+  const [sorting, setSorting] = useState<SortingState>([]);
+
   const table = useReactTable({
     data: rows,
     columns,
+    state: { sorting },
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+    getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
     initialState: { pagination: { pageSize } },
   });
@@ -151,8 +195,8 @@ export function FundamentalsTable({
   return (
     <div className="space-y-0">
       <div className="overflow-hidden rounded-md border border-on-surface/5 bg-surface-container">
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-xs">
+        <div className="max-h-[72vh] overflow-auto">
+          <table className="terminal-table min-w-full text-xs">
             <thead>
               {table.getHeaderGroups().map((headerGroup) => (
                 <tr
@@ -162,14 +206,10 @@ export function FundamentalsTable({
                   {headerGroup.headers.map((header) => (
                     <th
                       key={header.id}
+                      aria-sort={ariaSortValue(header.column.getIsSorted())}
                       className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-medium text-on-surface-variant"
                     >
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                      <SortableHeader header={header} />
                     </th>
                   ))}
                 </tr>

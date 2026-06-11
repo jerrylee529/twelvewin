@@ -20,8 +20,8 @@ function formatAxisValue(value: number, format: MetricFormat): string {
 
 function metricTone(value: number) {
   return value >= 0
-    ? { bar: "bg-[#FF5000]/80", text: "text-[#FF6A3D]" }
-    : { bar: "bg-[#00C805]/80", text: "text-[#2EEA5A]" };
+    ? { bar: "bg-bullish/80", text: "text-bullish" }
+    : { bar: "bg-bearish/80", text: "text-bearish" };
 }
 
 function MetricSection({

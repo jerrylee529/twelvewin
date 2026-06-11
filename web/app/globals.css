@@ -15,24 +15,25 @@
   --background: #0b1326;
 
   --on-surface: #dbe2fd;
-  --on-surface-variant: #c1c8c8;
+  --on-surface-variant: #b8c1dc;
   --on-background: #dbe2fd;
   --inverse-surface: #dbe2fd;
   --inverse-on-surface: #283044;
 
-  --outline: #8b9292;
-  --outline-variant: #414848;
-  --surface-tint: #b0ccce;
+  --outline: #8e96ad;
+  --outline-variant: #3c4458;
+  --surface-tint: #8ab4ff;
 
-  --primary: #ffffff;
-  --on-primary: #1b3436;
-  --primary-container: #cce8ea;
-  --on-primary-container: #4f696b;
-  --inverse-primary: #496365;
-  --primary-fixed: #cce8ea;
-  --primary-fixed-dim: #b0ccce;
-  --on-primary-fixed: #041f21;
-  --on-primary-fixed-variant: #324b4d;
+  /* Brand primary: fintech electric blue */
+  --primary: #3b82f6;
+  --on-primary: #ffffff;
+  --primary-container: #8ab4ff;
+  --on-primary-container: #0a1f44;
+  --inverse-primary: #2563eb;
+  --primary-fixed: #8ab4ff;
+  --primary-fixed-dim: #5e93f5;
+  --on-primary-fixed: #ffffff;
+  --on-primary-fixed-variant: #dbe7ff;
 
   --secondary: #ebb2ff;
   --on-secondary: #491b5d;
@@ -51,10 +52,13 @@
   --error-container: #93000a;
   --on-error-container: #ffdad6;
 
-  --bullish: #ff6b7a;
-  --bearish: #4ade80;
+  /* A-share convention: red = up (bullish), green = down (bearish) */
+  --bullish: #f6465d;
+  --bullish-container: rgb(246 70 93 / 0.14);
+  --bearish: #0ecb81;
+  --bearish-container: rgb(14 203 129 / 0.14);
 
-  --gradient-cyber: linear-gradient(135deg, #cce8ea 0%, #ebb2ff 100%);
+  --gradient-cyber: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
   --glass-bg: rgb(34 42 62 / 0.72);
   --glass-blur: 24px;
 
@@ -67,11 +71,15 @@
   --radius-sm: 2px;
   --radius-none: 0px;
 
+  /* CJK fonts must come before the generic `sans-serif` fallback */
   --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto, Ubuntu,
-    Cantarell, "Noto Sans", sans-serif, Arial, "PingFang SC",
-    "Source Han Sans SC", "Microsoft YaHei UI", "Microsoft YaHei",
-    "Noto Sans CJK SC", sans-serif;
+    -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, Roboto,
+    "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei UI", "Microsoft YaHei",
+    "Source Han Sans SC", "Noto Sans CJK SC", "Noto Sans", Arial, sans-serif;
+  --font-nav: var(--font-sans);
+  --nav-text: #9ca8c8;
+  --nav-text-active: #ffffff;
+  --nav-accent: var(--primary);
   --font-mono:
     "Fira Code", "Fira Mono", Menlo, Consolas, "DejaVu Sans Mono", monospace;
 }
@@ -102,7 +110,9 @@
   --color-error-container: var(--error-container);
   --color-error-on: var(--error);
   --color-bullish: var(--bullish);
+  --color-bullish-container: var(--bullish-container);
   --color-bearish: var(--bearish);
+  --color-bearish-container: var(--bearish-container);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);
   --radius-sm: var(--radius-sm);
@@ -118,7 +128,60 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Shared header & menu typography */
+.nav-header {
+  border-bottom: 1px solid rgb(219 226 253 / 0.08);
+  background: rgb(11 19 38 / 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.nav-menu,
+.nav-menu-actions {
+  font-family: var(--font-nav);
+  font-size: 0.875rem;
+  font-weight: 500;
+  line-height: 1.25rem;
+  letter-spacing: normal;
+}
+
+.nav-menu-link {
+  font-family: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  color: var(--nav-text);
+  transition: color 0.15s ease;
+}
+
+.nav-menu-link:hover {
+  color: var(--nav-text-active);
+}
+
+.nav-menu-link-active {
+  color: var(--nav-text-active);
+  border-bottom: 2px solid var(--nav-accent);
+  padding-bottom: 2px;
+}
+
+.nav-menu-cta {
+  font-family: var(--font-nav);
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1rem;
+  color: var(--on-primary);
+  background: var(--inverse-primary);
+  border-radius: 0.25rem;
+  padding: 0.375rem 1rem;
+  transition: background-color 0.15s ease;
+}
+
+.nav-menu-cta:hover {
+  background: var(--primary);
 }
 
 a {
@@ -158,6 +221,15 @@ a {
   text-transform: uppercase;
 }
 
+/* CJK-friendly eyebrow label: no uppercase, modest tracking */
+.title-sm {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 18px;
+  letter-spacing: 0.04em;
+  color: var(--on-surface-variant);
+}
+
 .headline-md {
   font-size: 18px;
   font-weight: 600;
@@ -177,12 +249,12 @@ a {
   line-height: 18px;
 }
 
+/* Labels render Chinese text: keep >=12px, no uppercase transform */
 .label-md {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  line-height: 16px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  line-height: 18px;
+  letter-spacing: 0.02em;
   color: var(--on-surface-variant);
 }
 
@@ -195,11 +267,10 @@ a {
 }
 
 .label-sm {
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 14px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  letter-spacing: 0.02em;
   color: var(--on-surface-variant);
 }
 
@@ -271,16 +342,75 @@ a {
   border-bottom-color: var(--primary-container);
 }
 
+.trading-input option {
+  background: var(--surface-container);
+  color: var(--on-surface);
+}
+
 .hero-terminal-bg {
   background:
     linear-gradient(90deg, rgb(11 19 38 / 0.92) 0%, rgb(11 19 38 / 0.75) 45%, rgb(11 19 38 / 0.55) 100%),
-    radial-gradient(circle at 70% 40%, rgb(235 178 255 / 0.12) 0%, transparent 45%),
-    radial-gradient(circle at 30% 60%, rgb(204 232 234 / 0.08) 0%, transparent 40%),
+    radial-gradient(circle at 70% 40%, rgb(59 130 246 / 0.14) 0%, transparent 45%),
+    radial-gradient(circle at 30% 60%, rgb(56 189 248 / 0.08) 0%, transparent 40%),
     linear-gradient(180deg, #131b2e 0%, #0b1326 100%);
 }
 
 .ghost-outline {
   box-shadow: inset 0 0 0 1px rgb(219 226 253 / 0.2);
+}
+
+/* Terminal data tables: hover accent bar + sticky header support */
+.terminal-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-container-lowest);
+}
+
+.terminal-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.terminal-table tbody tr:hover td:first-child {
+  box-shadow: inset 2px 0 0 0 var(--primary);
+}
+
+/* Price update flash, A-share red-up / green-down */
+@keyframes price-flash-up {
+  from {
+    background-color: var(--bullish-container);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes price-flash-down {
+  from {
+    background-color: var(--bearish-container);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.flash-up {
+  animation: price-flash-up 0.7s ease-out;
+}
+
+.flash-down {
+  animation: price-flash-down 0.7s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flash-up,
+  .flash-down {
+    animation: none;
+  }
+
+  .terminal-table tbody tr {
+    transition: none;
+  }
 }
 
 ::-webkit-scrollbar {

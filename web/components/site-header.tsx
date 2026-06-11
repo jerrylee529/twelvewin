@@ -47,7 +47,7 @@ export function SiteHeader({
           <BrandLogo />
         </Link>
 
-        <div className="flex min-w-0 flex-1 items-center gap-1 overflow-visible px-2">
+        <div className="nav-menu flex min-w-0 flex-1 items-center gap-1 overflow-visible px-2">
           {primaryNavTabs.map((tab) => {
             const active = tab.match.test(pathname);
             const children = "children" in tab ? tab.children : undefined;
@@ -57,10 +57,8 @@ export function SiteHeader({
                 <div key={tab.href} className="group relative flex items-stretch">
                   <Link
                     href={tab.href}
-                    className={`flex items-center gap-1 whitespace-nowrap border-b-2 px-3 py-3 text-xs transition ${
-                      active
-                        ? "border-primary-container text-on-surface"
-                        : "border-transparent text-on-surface-variant hover:text-on-surface"
+                    className={`nav-menu-link flex items-center gap-1 whitespace-nowrap px-3 py-3 transition ${
+                      active ? "nav-menu-link-active border-b-2" : ""
                     }`}
                   >
                     {tab.label}
@@ -74,10 +72,10 @@ export function SiteHeader({
                         <Link
                           key={child.href}
                           href={child.href}
-                          className={`block whitespace-nowrap px-3 py-2 text-xs transition ${
+                          className={`nav-menu-link block whitespace-nowrap px-3 py-2 transition ${
                             childActive
-                              ? "bg-surface-container-high text-on-surface"
-                              : "text-on-surface-variant hover:bg-surface-container-highest hover:text-on-surface"
+                              ? "nav-menu-link-active bg-surface-container-high"
+                              : "hover:bg-surface-container-highest"
                           }`}
                         >
                           {child.label}
@@ -93,10 +91,8 @@ export function SiteHeader({
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`whitespace-nowrap border-b-2 px-3 py-3 text-xs transition ${
-                  active
-                    ? "border-primary-container text-on-surface"
-                    : "border-transparent text-on-surface-variant hover:text-on-surface"
+                className={`nav-menu-link whitespace-nowrap px-3 py-3 transition ${
+                  active ? "nav-menu-link-active border-b-2" : ""
                 }`}
               >
                 {tab.label}
@@ -112,16 +108,10 @@ export function SiteHeader({
               <StockSearch compact />
             </div>
           </div>
-          <Link
-            href="/register"
-            className="hidden text-xs text-on-surface-variant transition hover:text-on-surface sm:inline"
-          >
+          <Link href="/register" className="nav-menu-link hidden sm:inline">
             注册
           </Link>
-          <Link
-            href="/login"
-            className="btn-gradient-primary px-3 py-1.5 text-xs font-medium transition hover:opacity-90"
-          >
+          <Link href="/login" className="nav-menu-cta">
             登录
           </Link>
         </div>
