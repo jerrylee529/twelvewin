@@ -1,4 +1,4 @@
-export type BarRow = [string, number, number, number, number];
+export type BarRow = [string, number, number, number, number, number?];
 
 export type ChartRange = "1D" | "1W" | "1M" | "3M" | "YTD" | "1Y" | "5Y" | "ALL";
 
@@ -63,6 +63,14 @@ export function formatVolume(raw: string | undefined | null): string {
     return "—";
   }
   return formatCompactNumber(value);
+}
+
+export function barVolume(row: BarRow): number {
+  return row[5] ?? 0;
+}
+
+export function hasBarVolume(rows: BarRow[]): boolean {
+  return rows.some((row) => (row[5] ?? 0) > 0);
 }
 
 export function compute52WeekRange(rows: BarRow[]): {

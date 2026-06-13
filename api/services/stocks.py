@@ -112,34 +112,34 @@ def get_daily_bars(
             continue
         trade_date = bar.trade_date.strftime('%Y-%m-%d')
         update_time = trade_date
-        rows.append([
+        row = [
             trade_date,
             float(bar.open),
             float(bar.close),
             float(bar.low),
             float(bar.high),
-        ])
+        ]
+        if bar.volume is not None:
+            row.append(float(bar.volume))
+        rows.append(row)
 
     if include_quote:
         quot = get_quotation(code)
         if quot:
             quote_date = quot['update_time'].split()[0]
+            quote_row = [
+                quote_date,
+                float(quot['open']),
+                float(quot['trade']),
+                float(quot['low']),
+                float(quot['high']),
+            ]
+            if quot.get('volume'):
+                quote_row.append(float(quot['volume']))
             if rows and rows[-1][0] != quote_date:
-                rows.append([
-                    quote_date,
-                    float(quot['open']),
-                    float(quot['trade']),
-                    float(quot['low']),
-                    float(quot['high']),
-                ])
+                rows.append(quote_row)
             elif not rows:
-                rows.append([
-                    quote_date,
-                    float(quot['open']),
-                    float(quot['trade']),
-                    float(quot['low']),
-                    float(quot['high']),
-                ])
+                rows.append(quote_row)
                 update_time = quote_date
 
     if not rows:
@@ -152,6 +152,7 @@ def _load_finance_reports(session: Session, code: str) -> dict:
     query_result = (
         session.query(XueQiuReportInfo)
         .filter_by(security_code=code, report_type=3)
+        .order_by(XueQiuReportInfo.id.desc())
         .first()
     )
     reports = {}

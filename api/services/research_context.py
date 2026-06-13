@@ -2,11 +2,12 @@
 
 """Aggregate published research data for Dify agent tools."""
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
 from api.db.models import (
     AnalysisRun,
+    FundamentalSnapshot,
     IndustryFundamentalBenchmark,
     Instrument,
     RankingResult,
@@ -206,15 +207,40 @@ def _cluster_peers(session: Session, industry: str | None, code: str) -> list[di
     normalized = normalize_stock_code(code)
     peers = []
 
+    latest_snapshot_date = session.query(func.max(FundamentalSnapshot.trade_date)).scalar()
+    snapshots_by_code: dict[str, FundamentalSnapshot] = {}
+    if latest_snapshot_date is not None:
+        snapshots = (
+            session.query(FundamentalSnapshot)
+            .filter_by(trade_date=latest_snapshot_date, industry=industry)
+            .all()
+        )
+        for snapshot in snapshots:
+            snapshots_by_code[normalize_stock_code(snapshot.code)] = snapshot
+
     for row in rows:
         if _match_code(row.get('code'), code):
             continue
+
+        peer_code = normalize_stock_code(row.get('code'))
+        snapshot = snapshots_by_code.get(peer_code)
+        pe = (
+            round(float(snapshot.pe_ttm), 2)
+            if snapshot and snapshot.pe_ttm is not None
+            else row.get('pe')
+        )
+        pb = (
+            round(float(snapshot.pb_lf), 2)
+            if snapshot and snapshot.pb_lf is not None
+            else row.get('pb')
+        )
+
         peers.append(
             {
-                'code': normalize_stock_code(row.get('code')),
+                'code': peer_code,
                 'name': row.get('name'),
-                'pe': row.get('pe'),
-                'pb': row.get('pb'),
+                'pe': pe,
+                'pb': pb,
                 'label': row.get('label'),
             }
         )

@@ -1,8 +1,10 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw } from "lucide-react";
 
 import { AgentMessageBody } from "@/components/agent-message-body";
+import { AgentSummaryView } from "@/components/agent-summary-view";
 import { useStockQuote } from "@/components/stock-quote-provider";
 
 type AgentStatus = {
@@ -17,14 +19,13 @@ type ChatMessage = {
   content: string;
 };
 
+type AgentTab = "summary" | "chat";
+
 const QUICK_PROMPTS = [
   "相对同行业，估值处于什么水平？",
   "近期有哪些技术信号？",
   "ROE 和盈利趋势如何？",
 ];
-
-const PANEL_SECTION_CLASS =
-  "mt-2 flex min-h-0 flex-col border-t border-outline-variant/40 pt-8 lg:mt-0 lg:flex-1 lg:min-h-0 lg:overflow-hidden lg:border-t-0 lg:pt-0";
 
 const CHAT_SCROLL_STICKY_THRESHOLD_PX = 80;
 
@@ -104,11 +105,42 @@ async function readSseStream(
   return { conversationId };
 }
 
-export function StockAgentPanel({ code }: { code: string }) {
+function TabButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex-1 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+        active
+          ? "bg-on-surface text-surface"
+          : "text-on-surface-variant hover:text-on-surface"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
+export function StockAgentPanel({
+  code,
+  layout = "drawer",
+}: {
+  code: string;
+  layout?: "drawer" | "inline";
+}) {
   const { data: quoteData } = useStockQuote();
   const stockName = quoteData?.quot?.name || code;
 
   const [status, setStatus] = useState<AgentStatus | null>(null);
+  const [activeTab, setActiveTab] = useState<AgentTab>("summary");
   const [summary, setSummary] = useState("");
   const [summaryLoading, setSummaryLoading] = useState(false);
   const [summaryError, setSummaryError] = useState<string | null>(null);
@@ -218,6 +250,7 @@ export function StockAgentPanel({ code }: { code: string }) {
         return;
       }
 
+      setActiveTab("chat");
       setChatError(null);
       setChatLoading(true);
       setDraft("");
@@ -281,22 +314,14 @@ export function StockAgentPanel({ code }: { code: string }) {
   };
 
   if (status && !status.enabled) {
-    const missing = status.missing?.length
-      ? status.missing.join("、")
-      : "TW_AGENT_ENABLED、DIFY_API_URL、DIFY_STOCK_AGENT_API_KEY";
-
     return (
-      <section className={PANEL_SECTION_CLASS}>
-        <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">
-          AI Research
+      <section className="text-sm leading-7 text-on-surface-variant">
+        <p>
+          研究助手尚未启用。请在{" "}
+          <code className="text-on-surface">web/.env.local</code> 中配置（修改后需重启{" "}
+          <code className="text-on-surface">npm run start</code>）：
         </p>
-        <h2 className="mt-1 text-xl font-bold text-on-surface">研究助手</h2>
-        <p className="mt-3 text-sm leading-7 text-on-surface-variant">
-          研究助手尚未启用。请在 <code className="text-on-surface">web/.env.local</code>{" "}
-          中配置（修改后需重启 <code className="text-on-surface">npm run start</code>
-          ）：
-        </p>
-        <ul className="mt-2 list-inside list-disc text-sm text-on-surface-variant">
+        <ul className="mt-2 list-inside list-disc">
           {(status.missing?.length
             ? status.missing
             : ["TW_AGENT_ENABLED=true", "DIFY_API_URL", "DIFY_STOCK_AGENT_API_KEY"]
@@ -306,16 +331,131 @@ export function StockAgentPanel({ code }: { code: string }) {
             </li>
           ))}
         </ul>
-        <p className="mt-3 text-xs text-on-surface-variant">
-          注意：Next.js 不会读取项目根目录的 <code className="text-on-surface">.env</code>
-          ，Dify 相关变量必须写在 <code className="text-on-surface">web/.env.local</code>。
-        </p>
       </section>
     );
   }
 
+  const chatInput = (
+    <form className="flex shrink-0 gap-2" onSubmit={onSubmit}>
+      <input
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        placeholder="继续提问…"
+        className="min-w-0 flex-1 rounded-sm border border-outline-variant/50 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition focus:border-outline"
+        disabled={chatLoading}
+      />
+      <button
+        type="submit"
+        className="btn-primary-container shrink-0 rounded-sm px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+        disabled={chatLoading || !draft.trim()}
+      >
+        {chatLoading ? "发送中…" : "发送"}
+      </button>
+    </form>
+  );
+
+  if (layout === "drawer") {
+    return (
+      <div className="flex h-full min-h-0 flex-col">
+        <div className="mb-3 flex shrink-0 items-center gap-2">
+          <div className="flex min-w-0 flex-1 gap-1 rounded-full border border-outline-variant/40 p-0.5">
+            <TabButton
+              active={activeTab === "summary"}
+              label="研究摘要"
+              onClick={() => setActiveTab("summary")}
+            />
+            <TabButton
+              active={activeTab === "chat"}
+              label="继续提问"
+              onClick={() => setActiveTab("chat")}
+            />
+          </div>
+          {activeTab === "summary" ? (
+            <button
+              type="button"
+              aria-label="刷新摘要"
+              className="shrink-0 rounded-sm border border-outline-variant/50 p-2 text-on-surface-variant transition hover:border-outline hover:text-on-surface disabled:opacity-50"
+              onClick={() => void loadSummary()}
+              disabled={summaryLoading || chatLoading}
+            >
+              <RefreshCw
+                className={`h-4 w-4 ${summaryLoading ? "animate-spin" : ""}`}
+              />
+            </button>
+          ) : null}
+        </div>
+
+        <p className="mb-3 shrink-0 text-[11px] leading-relaxed text-on-surface-variant">
+          AI 生成内容仅供研究参考，不构成投资建议。数据以 Twelvewin 日终结果为准。
+        </p>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          {activeTab === "summary" ? (
+            <AgentSummaryView
+              content={summary}
+              loading={summaryLoading}
+              error={summaryError}
+            />
+          ) : (
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="mb-3 flex flex-wrap gap-2">
+                {QUICK_PROMPTS.map((prompt) => (
+                  <button
+                    key={prompt}
+                    type="button"
+                    className="rounded-full border border-outline-variant/40 px-3 py-1.5 text-xs text-on-surface-variant transition hover:border-outline hover:text-on-surface disabled:opacity-50"
+                    onClick={() => void sendMessage(prompt)}
+                    disabled={chatLoading}
+                  >
+                    {prompt}
+                  </button>
+                ))}
+              </div>
+
+              <div ref={messagesScrollRef} className="space-y-3 pb-2">
+                {messages.length === 0 ? (
+                  <p className="text-sm text-on-surface-variant">
+                    输入问题，助手会通过 Twelvewin 研究 API 查询数据后回答。
+                  </p>
+                ) : (
+                  messages.map((message) => (
+                    <div
+                      key={message.id}
+                      className={
+                        message.role === "user"
+                          ? "ml-6 rounded-sm bg-surface-container-high px-3 py-2 text-sm text-on-surface"
+                          : "mr-2 rounded-sm border border-outline-variant/30 px-3 py-2 text-sm leading-7 text-on-surface"
+                      }
+                    >
+                      <p className="mb-1 text-[11px] font-medium text-on-surface-variant">
+                        {message.role === "user" ? "你" : "助手"}
+                      </p>
+                      {message.role === "assistant" ? (
+                        <AgentMessageBody content={message.content} />
+                      ) : (
+                        <p className="whitespace-pre-wrap">{message.content}</p>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {chatError ? (
+                <p className="mt-2 text-sm text-error">{chatError}</p>
+              ) : null}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-3 shrink-0 border-t border-outline-variant/40 pt-3">
+          {chatInput}
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className={PANEL_SECTION_CLASS}>
+    <section className="flex min-h-0 flex-col">
       <div className="mb-4 flex shrink-0 items-end justify-between gap-3">
         <div>
           <p className="text-xs uppercase tracking-[0.18em] text-on-surface-variant">
@@ -334,28 +474,21 @@ export function StockAgentPanel({ code }: { code: string }) {
       </div>
 
       <p className="mb-4 shrink-0 text-xs leading-relaxed text-on-surface-variant">
-        AI 生成内容仅供研究参考，不构成投资建议。分析数字以 Twelvewin
-        日终数据为准。
+        AI 生成内容仅供研究参考，不构成投资建议。分析数字以 Twelvewin 日终数据为准。
       </p>
 
-      <div className="flex min-h-0 flex-[5] flex-col overflow-hidden rounded-sm border border-outline-variant/40 bg-surface-container-low p-4 lg:min-h-[13rem]">
-        <h3 className="mb-2 shrink-0 text-sm font-semibold text-on-surface">研究摘要</h3>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
-          {summaryLoading ? (
-            <p className="text-sm text-on-surface-variant">正在生成摘要…</p>
-          ) : summaryError ? (
-            <p className="text-sm text-error">{summaryError}</p>
-          ) : summary ? (
-            <AgentMessageBody content={summary} />
-          ) : (
-            <p className="text-sm text-on-surface-variant">暂无摘要。</p>
-          )}
-        </div>
+      <div className="rounded-sm border border-outline-variant/40 bg-surface-container-low p-4">
+        <h3 className="mb-2 text-sm font-semibold text-on-surface">研究摘要</h3>
+        <AgentSummaryView
+          content={summary}
+          loading={summaryLoading}
+          error={summaryError}
+        />
       </div>
 
-      <div className="mt-4 flex min-h-0 flex-[3] flex-col lg:mt-5">
-        <h3 className="mb-3 shrink-0 text-sm font-semibold text-on-surface">继续提问</h3>
-        <div className="mb-3 flex shrink-0 flex-wrap gap-2">
+      <div className="mt-4">
+        <h3 className="mb-3 text-sm font-semibold text-on-surface">继续提问</h3>
+        <div className="mb-3 flex flex-wrap gap-2">
           {QUICK_PROMPTS.map((prompt) => (
             <button
               key={prompt}
@@ -369,10 +502,7 @@ export function StockAgentPanel({ code }: { code: string }) {
           ))}
         </div>
 
-        <div
-          ref={messagesScrollRef}
-          className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain rounded-sm border border-outline-variant/40 bg-surface-container-low p-4 lg:max-h-[min(16rem,32vh)]"
-        >
+        <div ref={messagesScrollRef} className="max-h-64 space-y-3 overflow-y-auto rounded-sm border border-outline-variant/40 bg-surface-container-low p-4">
           {messages.length === 0 ? (
             <p className="text-sm text-on-surface-variant">
               输入问题，助手会通过 Twelvewin 研究 API 查询数据后回答。
@@ -400,26 +530,9 @@ export function StockAgentPanel({ code }: { code: string }) {
           )}
         </div>
 
-        {chatError ? (
-          <p className="mt-2 shrink-0 text-sm text-error">{chatError}</p>
-        ) : null}
+        {chatError ? <p className="mt-2 text-sm text-error">{chatError}</p> : null}
 
-        <form className="mt-4 flex shrink-0 gap-2" onSubmit={onSubmit}>
-          <input
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder="例如：和银行业 peers 比估值如何？"
-            className="min-w-0 flex-1 rounded-sm border border-outline-variant/50 bg-surface px-3 py-2 text-sm text-on-surface outline-none transition focus:border-outline"
-            disabled={chatLoading}
-          />
-          <button
-            type="submit"
-            className="btn-primary-container shrink-0 rounded-sm px-4 py-2 text-sm font-semibold transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
-            disabled={chatLoading || !draft.trim()}
-          >
-            {chatLoading ? "发送中…" : "发送"}
-          </button>
-        </form>
+        <div className="mt-4">{chatInput}</div>
       </div>
     </section>
   );

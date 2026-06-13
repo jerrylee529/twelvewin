@@ -74,7 +74,7 @@ export function StockLivePrice() {
       </p>
       {quotSource === "daily_bar" ? (
         <p className="mt-2 text-xs text-on-surface-variant">
-          基于最新收盘数据（Redis 实时行情未就绪）
+          收盘价 · {quot.update_time || "—"}
         </p>
       ) : null}
     </div>

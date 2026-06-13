@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { JsonLd } from "@/components/json-ld";
-import { StockAgentPanel } from "@/components/stock-agent-panel";
+import { StockAgentAside } from "@/components/stock-agent-aside";
 import { StockChartSection } from "@/components/stock-chart-section";
 import { StockFinanceSection } from "@/components/stock-finance-section";
 import { StockLivePrice } from "@/components/stock-live-quote";
@@ -9,62 +10,15 @@ import {
   quoteToHeaderProps,
   StockPageHeader,
 } from "@/components/stock-page-header";
+import { StockPageNav } from "@/components/stock-page-nav";
 import { StockQuoteProvider } from "@/components/stock-quote-provider";
+import { StockResearchSection } from "@/components/stock-research-section";
+import { StockFinanceSkeleton } from "@/components/stock-skeletons";
+import { absoluteUrl, buildStockMetadata } from "@/lib/seo";
 import {
-  StockChartSkeleton,
-  StockFinanceSkeleton,
-  StockStatsSkeleton,
-} from "@/components/stock-skeletons";
-import { getStockBars, getStockQuote } from "@/lib/api";
-import {
-  absoluteUrl,
-  buildStockDescription,
-  buildStockMetadata,
-} from "@/lib/seo";
-import {
-  compute52WeekRange,
-  parseNumber,
-  type BarRow,
-} from "@/lib/stock-format";
-
-function ChartSuspenseFallback() {
-  return (
-    <>
-      <StockChartSkeleton />
-      <StockStatsSkeleton />
-    </>
-  );
-}
-
-async function loadStockSeoContext(code: string) {
-  const [quotePayload, barsPayload] = await Promise.all([
-    getStockQuote(code).catch(() => ({ quot: null, quot_source: null })),
-    getStockBars(code, { days: 252 }).catch(() => ({
-      rows: [],
-      updateTime: null,
-      error: null,
-    })),
-  ]);
-
-  const quot = quotePayload.quot;
-  const name = quot?.name || code;
-  const rows = (barsPayload.rows || []) as BarRow[];
-  const week52 = compute52WeekRange(rows);
-
-  return {
-    quotePayload,
-    name,
-    description: buildStockDescription({
-      code,
-      name,
-      trade: parseNumber(quot?.trade) || undefined,
-      pe: parseNumber(quot?.per) || undefined,
-      week52Low: week52.low || undefined,
-      week52High: week52.high || undefined,
-    }),
-    updateTime: barsPayload.updateTime || quot?.update_time || null,
-  };
-}
+  isStockPageMissing,
+  loadStockPageContext,
+} from "@/lib/stock-page-context";
 
 export async function generateMetadata({
   params,
@@ -72,7 +26,7 @@ export async function generateMetadata({
   params: Promise<{ code: string }>;
 }): Promise<Metadata> {
   const { code } = await params;
-  const context = await loadStockSeoContext(code);
+  const context = await loadStockPageContext(code);
   return buildStockMetadata({
     code,
     name: context.name,
@@ -86,7 +40,12 @@ export default async function StockPage({
   params: Promise<{ code: string }>;
 }) {
   const { code } = await params;
-  const context = await loadStockSeoContext(code);
+  const context = await loadStockPageContext(code);
+
+  if (isStockPageMissing(context)) {
+    notFound();
+  }
+
   const headerProps = quoteToHeaderProps(code, context.quotePayload.quot);
 
   const jsonLd = {
@@ -116,35 +75,33 @@ export default async function StockPage({
   return (
     <StockQuoteProvider code={code} initialData={context.quotePayload}>
       <JsonLd data={jsonLd} />
-      <div className="w-full max-w-[var(--container-max-width)] pb-10">
-        <div className="flex flex-col gap-6 xl:gap-8 lg:flex-row lg:items-start">
-          <div className="min-w-0 flex-1">
-            <StockPageHeader {...headerProps} />
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-on-surface-variant">
-              {context.description}
-            </p>
-            <StockLivePrice />
+      <div className="w-full max-w-[var(--container-max-width)] pb-16">
+        <StockPageHeader {...headerProps} />
+        <StockLivePrice />
+        <StockPageNav />
 
-            <Suspense fallback={<ChartSuspenseFallback />}>
-              <StockChartSection
-                code={code}
-                name={context.name}
-                initialQuot={context.quotePayload.quot}
-              />
-            </Suspense>
+        <div id="stock-chart">
+          <StockChartSection
+            code={code}
+            name={context.name}
+            initialQuot={context.quotePayload.quot}
+            initialBars={context.barsPayload}
+            researchContext={context.researchContext}
+          />
+        </div>
 
-            <Suspense fallback={<StockFinanceSkeleton />}>
-              <StockFinanceSection code={code} />
-            </Suspense>
-          </div>
+        <div id="stock-research">
+          <StockResearchSection context={context.researchContext} />
+        </div>
 
-          <aside className="w-full lg:w-[480px] xl:w-[520px] lg:shrink-0">
-            <div className="flex min-h-0 flex-col lg:sticky lg:top-4 lg:h-[calc(100dvh-7rem)] lg:max-h-[calc(100dvh-7rem)] lg:overflow-hidden lg:rounded-sm lg:border lg:border-outline-variant/40 lg:bg-surface-container-low/50 lg:p-4">
-              <StockAgentPanel code={code} />
-            </div>
-          </aside>
+        <div id="stock-finance">
+          <Suspense fallback={<StockFinanceSkeleton />}>
+            <StockFinanceSection code={code} />
+          </Suspense>
         </div>
       </div>
+
+      <StockAgentAside code={code} />
     </StockQuoteProvider>
   );
 }

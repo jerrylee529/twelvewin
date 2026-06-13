@@ -1,25 +1,28 @@
-import { getStockBars } from "@/lib/api";
-import { StockLineChart } from "@/components/stock-line-chart";
+import { StockPriceChart } from "@/components/stock-price-chart";
 import { StockStatsSection } from "@/components/stock-stats-section";
 import type { BarRow } from "@/lib/stock-format";
+import type { BarsResponse, ResearchContextResponse } from "@/lib/types";
 
-export async function StockChartSection({
+export function StockChartSection({
   code,
   name,
   initialQuot,
+  initialBars,
+  researchContext,
 }: {
   code: string;
   name: string;
   initialQuot?: Record<string, string> | null;
+  initialBars: BarsResponse;
+  researchContext?: ResearchContextResponse;
 }) {
-  const bars = await getStockBars(code);
-  const rows = bars.rows as BarRow[];
+  const rows = (initialBars.rows || []) as BarRow[];
 
   return (
     <>
-      <section className="mt-6">
+      <section className="scroll-mt-16 mt-6">
         {rows.length > 0 ? (
-          <StockLineChart rows={rows} />
+          <StockPriceChart rows={rows} />
         ) : (
           <div className="rounded-lg border border-outline-variant/40 px-6 py-14 text-center">
             <p className="text-sm text-on-surface">暂无走势数据</p>
@@ -31,8 +34,9 @@ export async function StockChartSection({
         code={code}
         name={name}
         bars={rows}
-        updateTime={bars.updateTime}
+        updateTime={initialBars.updateTime}
         initialQuot={initialQuot}
+        researchContext={researchContext}
       />
     </>
   );

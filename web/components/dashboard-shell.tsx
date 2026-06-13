@@ -1,17 +1,12 @@
 import Link from "next/link";
 import { SiteHeader } from "@/components/site-header";
-import { DashboardSidebar } from "@/components/dashboard-sidebar";
+import { DashboardShellClient } from "@/components/dashboard-shell-client";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <SiteHeader />
-      <div className="flex min-h-0 flex-1">
-        <DashboardSidebar />
-        <main className="min-w-0 flex-1 overflow-auto p-5 lg:p-6">
-          {children}
-        </main>
-      </div>
+      <DashboardShellClient>{children}</DashboardShellClient>
     </div>
   );
 }

@@ -42,12 +42,12 @@ export function SiteHeader({
       <div className="flex h-12 items-stretch">
         <Link
           href="/"
-          className="flex w-56 shrink-0 items-center border-r border-on-surface/5 px-4 transition hover:opacity-90"
+          className="flex shrink-0 items-center border-r border-on-surface/5 px-4 transition hover:opacity-90 lg:w-56"
         >
           <BrandLogo />
         </Link>
 
-        <div className="nav-menu flex min-w-0 flex-1 items-center gap-1 overflow-visible px-2">
+        <div className="nav-menu hidden min-w-0 flex-1 items-center gap-1 overflow-visible px-2 md:flex">
           {primaryNavTabs.map((tab) => {
             const active = tab.match.test(pathname);
             const children = "children" in tab ? tab.children : undefined;
@@ -101,7 +101,7 @@ export function SiteHeader({
           })}
         </div>
 
-        <div className="flex items-center gap-3 border-l border-on-surface/5 px-4">
+        <div className="flex items-center gap-2 border-l border-on-surface/5 px-3 sm:gap-3 sm:px-4">
           <div className="hidden w-52 items-center gap-2 rounded-md bg-surface-container-lowest px-2 py-1.5 md:flex">
             <Search className="h-3.5 w-3.5 shrink-0 text-on-surface-variant" />
             <div className="min-w-0 flex-1 [&_input]:border-none [&_input]:bg-transparent [&_input]:px-0 [&_input]:py-0 [&_input]:text-xs">

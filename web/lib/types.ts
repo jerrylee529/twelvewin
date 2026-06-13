@@ -22,8 +22,52 @@ export type IndustriesResponse = {
 };
 
 export type BarsResponse = {
-  rows: Array<[string, number, number, number, number]>;
+  rows: Array<[string, number, number, number, number, number?]>;
   updateTime?: string | null;
+  error?: string | null;
+};
+
+export type ResearchContextResponse = {
+  code?: string | null;
+  name?: string | null;
+  industry?: string | null;
+  data_as_of?: string | null;
+  labels?: string | null;
+  fundamentals?: {
+    pe_ttm?: number | null;
+    pb_lf?: number | null;
+    roe?: number | null;
+    dividend_yield?: number | null;
+    market_cap?: number | null;
+    float_market_cap?: number | null;
+    pe_discount_to_industry?: number | null;
+    pb_discount_to_industry?: number | null;
+    close?: number | null;
+    updateTime?: string | null;
+  } | null;
+  industry_benchmark?: {
+    industry?: string;
+    median_pe_ttm?: number | null;
+    median_pb_lf?: number | null;
+    median_roe?: number | null;
+    median_dividend_yield?: number | null;
+    stock_count?: number | null;
+    trade_date?: string | null;
+  } | null;
+  technical_signals?: string[];
+  rankings?: Record<string, number>;
+  quote?: Record<string, unknown> | null;
+  bars_summary?: Record<string, unknown> | null;
+  finance_profile?: Record<string, unknown>;
+  cluster_peers?: Array<{
+    code?: string;
+    name?: string;
+    pe?: number | null;
+    pb?: number | null;
+    label?: string | null;
+  }>;
+  artifacts_freshness?: Record<string, unknown>;
+  errors?: Record<string, unknown>;
   error?: string | null;
 };
 
@@ -151,6 +195,14 @@ export const RANKING_META: Record<
   pb: { title: "市净率排行", description: "按市净率从低到高筛选 A 股" },
   roe: { title: "净资产收益率排行", description: "按 ROE 从高到低筛选 A 股" },
   divi: { title: "现金股息率排行", description: "按股息率从高到低筛选 A 股" },
+};
+
+export const RANKING_DISPLAY_META: Record<
+  string,
+  { title: string; description: string }
+> = {
+  ...RANKING_META,
+  value: { title: "价值分析排行", description: "综合价值因子筛选 A 股" },
 };
 
 export const TECHNICAL_META: Record<

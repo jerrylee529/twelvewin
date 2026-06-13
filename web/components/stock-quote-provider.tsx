@@ -51,7 +51,17 @@ export function StockQuoteProvider({
     setLoading(!initialData?.quot);
     setData(initialData);
     setError(null);
-    void refresh();
+
+    const source = initialData?.quot_source;
+    const shouldPoll = source === "redis";
+
+    if (!initialData?.quot) {
+      void refresh();
+    }
+
+    if (!shouldPoll) {
+      return;
+    }
 
     const timer = window.setInterval(() => {
       void refresh();

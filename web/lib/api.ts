@@ -10,6 +10,7 @@ import type {
   ProfileResponse,
   QuoteResponse,
   RankingKey,
+  ResearchContextResponse,
   TableResponse,
   TechnicalKey,
 } from "@/lib/types";
@@ -166,7 +167,7 @@ export function getStockQuote(code: string) {
   return fetchJson<QuoteResponse>(
     `/api/v1/stocks/${encodeURIComponent(code)}/quote`,
     undefined,
-    { revalidate: false },
+    { revalidate: 60 },
   );
 }
 
@@ -174,7 +175,15 @@ export function getStockProfile(code: string) {
   return fetchJson<ProfileResponse>(
     `/api/v1/stocks/${encodeURIComponent(code)}/profile`,
     undefined,
-    { revalidate: false },
+    { revalidate: 3600 },
+  );
+}
+
+export function getStockResearchContext(code: string) {
+  return fetchJson<ResearchContextResponse>(
+    `/api/v1/stocks/${encodeURIComponent(code)}/research-context`,
+    undefined,
+    { revalidate: 300 },
   );
 }
 
