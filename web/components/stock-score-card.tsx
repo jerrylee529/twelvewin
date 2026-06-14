@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw } from "lucide-react";
 
 import { useStockQuote } from "@/components/stock-quote-provider";
+import { StockScoreSkeleton } from "@/components/stock-skeletons";
 import { StockScoreRadar } from "@/components/stock-score-radar";
 import {
   scoreToneClass,
@@ -204,12 +205,14 @@ export function StockScoreCard({
     void loadScore();
   }, [loadScore, status?.scoreEnabled]);
 
-  if (!status?.scoreEnabled) {
+  if (status !== null && !status.scoreEnabled) {
     return null;
   }
 
   const score = result?.score;
   const totalScore = score?.total_score ?? null;
+  const checkingStatus = status === null;
+  const computingScore = loading && !score;
 
   return (
     <section className="scroll-mt-16 border-t border-outline-variant/40 pt-8">
@@ -217,27 +220,30 @@ export function StockScoreCard({
         <div>
           <h2 className="text-xl font-bold text-on-surface">AI投资价值评分</h2>
           <p className="mt-2 text-sm text-on-surface-variant">
-            基于已发布 EOD 量化数据的 AI 综合研究指标
-            {score?.data_as_of || dataAsOf
-              ? ` · 数据截至 ${score?.data_as_of || dataAsOf}`
-              : null}
+            {checkingStatus
+              ? "正在检查 AI 评分服务…"
+              : `基于已发布 EOD 量化数据的 AI 综合研究指标${
+                  score?.data_as_of || dataAsOf
+                    ? ` · 数据截至 ${score?.data_as_of || dataAsOf}`
+                    : ""
+                }`}
           </p>
         </div>
         <button
           type="button"
           onClick={() => void loadScore(true)}
-          disabled={loading}
+          disabled={checkingStatus || computingScore}
           className="inline-flex items-center gap-1.5 rounded-sm border border-outline-variant/50 px-3 py-1.5 text-xs font-semibold text-on-surface transition hover:bg-surface-container-high disabled:cursor-not-allowed disabled:opacity-50"
         >
-          <RefreshCw className={`size-3.5 ${loading ? "animate-spin" : ""}`} />
+          <RefreshCw
+            className={`size-3.5 ${loading ? "animate-spin" : ""}`}
+          />
           刷新评分
         </button>
       </div>
 
       <div className="mt-6 rounded-lg border border-outline-variant/40 bg-surface-container-low p-5">
-        {loading && !score ? (
-          <p className="text-sm text-on-surface-variant">正在计算评分…</p>
-        ) : null}
+        {checkingStatus || computingScore ? <StockScoreSkeleton /> : null}
 
         {error ? (
           <p className="text-sm text-bearish">{error}</p>

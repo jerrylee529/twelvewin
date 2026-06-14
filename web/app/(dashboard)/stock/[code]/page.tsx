@@ -5,6 +5,7 @@ import { JsonLd } from "@/components/json-ld";
 import { StockAgentAside } from "@/components/stock-agent-aside";
 import { StockChartSection } from "@/components/stock-chart-section";
 import { StockFinanceSection } from "@/components/stock-finance-section";
+import { StockStatsSection } from "@/components/stock-stats-section";
 import { StockLivePrice } from "@/components/stock-live-quote";
 import {
   quoteToHeaderProps,
@@ -16,6 +17,7 @@ import { StockResearchSection } from "@/components/stock-research-section";
 import { StockScoreCard } from "@/components/stock-score-card";
 import { StockFinanceSkeleton } from "@/components/stock-skeletons";
 import { absoluteUrl, buildStockMetadata } from "@/lib/seo";
+import type { BarRow } from "@/lib/stock-format";
 import {
   isStockPageMissing,
   loadStockPageContext,
@@ -82,17 +84,7 @@ export default async function StockPage({
         <StockPageNav />
 
         <div id="stock-chart">
-          <StockChartSection
-            code={code}
-            name={context.name}
-            initialQuot={context.quotePayload.quot}
-            initialBars={context.barsPayload}
-            researchContext={context.researchContext}
-          />
-        </div>
-
-        <div id="stock-research">
-          <StockResearchSection context={context.researchContext} />
+          <StockChartSection initialBars={context.barsPayload} />
         </div>
 
         <div id="stock-score">
@@ -100,6 +92,19 @@ export default async function StockPage({
             code={code}
             dataAsOf={context.researchContext.data_as_of}
           />
+        </div>
+
+        <StockStatsSection
+          code={code}
+          name={context.name}
+          bars={(context.barsPayload.rows || []) as BarRow[]}
+          updateTime={context.barsPayload.updateTime}
+          initialQuot={context.quotePayload.quot}
+          researchContext={context.researchContext}
+        />
+
+        <div id="stock-research">
+          <StockResearchSection context={context.researchContext} />
         </div>
 
         <div id="stock-finance">

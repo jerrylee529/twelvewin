@@ -2,9 +2,9 @@
 
 const SECTIONS = [
   { id: "stock-chart", label: "走势" },
+  { id: "stock-score", label: "投资评分" },
   { id: "stock-stats", label: "指标" },
   { id: "stock-research", label: "研究概览" },
-  { id: "stock-score", label: "投资评分" },
   { id: "stock-finance", label: "财务" },
 ] as const;
 
