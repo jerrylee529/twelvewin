@@ -13,6 +13,7 @@ import {
 import { StockPageNav } from "@/components/stock-page-nav";
 import { StockQuoteProvider } from "@/components/stock-quote-provider";
 import { StockResearchSection } from "@/components/stock-research-section";
+import { StockScoreCard } from "@/components/stock-score-card";
 import { StockFinanceSkeleton } from "@/components/stock-skeletons";
 import { absoluteUrl, buildStockMetadata } from "@/lib/seo";
 import {
@@ -92,6 +93,13 @@ export default async function StockPage({
 
         <div id="stock-research">
           <StockResearchSection context={context.researchContext} />
+        </div>
+
+        <div id="stock-score">
+          <StockScoreCard
+            code={code}
+            dataAsOf={context.researchContext.data_as_of}
+          />
         </div>
 
         <div id="stock-finance">

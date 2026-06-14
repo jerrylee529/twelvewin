@@ -25,7 +25,7 @@ FINANCE_PROFILE_FIELDS = (
     'end_date',
     'roe',
     'eps',
-    'dt_eps',
+    'bps',
     'grossprofit_margin',
     'dt_netprofit_yoy',
     'profit_dedt',
@@ -37,7 +37,7 @@ TUSHARE_TO_PROFILE_FIELDS = {
     'gross_selling_rate': 'grossprofit_margin',
     'np_atsopc_nrgal_yoy': 'dt_netprofit_yoy',
     'net_profit_after_nrgal_atsolc': 'profit_dedt',
-    'np_per_share': 'dt_eps',
+    'np_per_share': 'bps',
 }
 
 

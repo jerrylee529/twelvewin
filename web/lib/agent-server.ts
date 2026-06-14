@@ -4,10 +4,14 @@ export {
   getAgentStatus,
   getDifyAgentApiKey,
   getDifyApiUrl,
+  getDifyScoreApiKey,
   getDifySummaryApiKey,
   isAgentEnabled,
+  isAgentScoreEnabled,
+  isAgentScoreWorkflow,
   isAgentSummaryWorkflow,
   type AgentChatRequest,
+  type AgentScoreRequest,
   type AgentSummaryRequest,
 } from "@/lib/agent-config";
 

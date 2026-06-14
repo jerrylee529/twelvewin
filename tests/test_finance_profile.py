@@ -32,7 +32,7 @@ class FinanceProfileBuildTestCase(unittest.TestCase):
                 'end_date': '20241231',
                 'roe': 9.0457,
                 'eps': 0.3176,
-                'dt_eps': 0.3176,
+                'bps': 3.4821,
                 'grossprofit_margin': 54.9693,
                 'dt_netprofit_yoy': 3.9,
                 'profit_dedt': 463191833.42,
@@ -43,7 +43,7 @@ class FinanceProfileBuildTestCase(unittest.TestCase):
         self.assertEqual(item['gross_selling_rate'], [54.9693])
         self.assertEqual(item['np_atsopc_nrgal_yoy'], [3.9])
         self.assertEqual(item['net_profit_after_nrgal_atsolc'], [463191833.42])
-        self.assertEqual(item['np_per_share'], [0.3176])
+        self.assertEqual(item['np_per_share'], [3.4821])
 
     def test_build_finance_profile_report_data(self):
         payload = build_finance_profile_report_data(
@@ -80,7 +80,7 @@ class FinanceProfileServiceTestCase(unittest.TestCase):
                     'gross_selling_rate': [53.25],
                     'np_atsopc_nrgal_yoy': [8.93],
                     'net_profit_after_nrgal_atsolc': [458734600.0],
-                    'np_per_share': [0.31],
+                    'np_per_share': [3.41],
                 },
                 {
                     'report_date': period_to_report_date_ms('20241231'),
@@ -89,7 +89,7 @@ class FinanceProfileServiceTestCase(unittest.TestCase):
                     'gross_selling_rate': [54.97],
                     'np_atsopc_nrgal_yoy': [3.9],
                     'net_profit_after_nrgal_atsolc': [463191833.42],
-                    'np_per_share': [0.32],
+                    'np_per_share': [3.48],
                 },
             ]
         )

@@ -26,10 +26,27 @@ export function isAgentSummaryWorkflow(): boolean {
   return process.env.TW_AGENT_SUMMARY_MODE === "workflow";
 }
 
+export function getDifyScoreApiKey(): string | null {
+  return (
+    process.env.DIFY_STOCK_SCORER_API_KEY?.trim() ||
+    process.env.DIFY_STOCK_AGENT_API_KEY?.trim() ||
+    null
+  );
+}
+
+export function isAgentScoreWorkflow(): boolean {
+  return process.env.TW_AGENT_SCORE_MODE === "workflow";
+}
+
+export function isAgentScoreEnabled(): boolean {
+  return isAgentEnabled() && Boolean(getDifyApiUrl() && getDifyScoreApiKey());
+}
+
 export function getAgentStatus() {
   const agentFlag = isAgentEnabled();
   const difyUrl = getDifyApiUrl();
   const apiKey = getDifyAgentApiKey();
+  const scoreApiKey = getDifyScoreApiKey();
   const missing: string[] = [];
 
   if (!agentFlag) {
@@ -44,7 +61,9 @@ export function getAgentStatus() {
 
   return {
     enabled: agentFlag && Boolean(difyUrl && apiKey),
-    summaryMode: isAgentSummaryWorkflow() ? "workflow" : "chat",
+    summaryMode: isAgentSummaryWorkflow() ? ("workflow" as const) : ("chat" as const),
+    scoreEnabled: agentFlag && Boolean(difyUrl && scoreApiKey),
+    scoreMode: isAgentScoreWorkflow() ? ("workflow" as const) : ("chat" as const),
     missing,
   };
 }
@@ -68,3 +87,5 @@ export type AgentSummaryRequest = {
     locale?: string;
   };
 };
+
+export type AgentScoreRequest = AgentSummaryRequest;
