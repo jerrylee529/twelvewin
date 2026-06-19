@@ -4,33 +4,7 @@
 
 
 import datetime
-from app import db, bcrypt
-from flask_login import UserMixin
-
-
-class User(UserMixin, db.Model):
-    __tablename__ = "users"
-
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(128), unique=True, nullable=False)
-    password = db.Column(db.String(256), nullable=False)
-    registered_on = db.Column(db.DateTime, nullable=False)
-    admin = db.Column(db.Boolean, nullable=False, default=False)
-    confirmed = db.Column(db.Boolean, nullable=False, default=False)
-    confirmed_on = db.Column(db.DateTime, nullable=True)
-    password_reset_token = db.Column(db.String(256), nullable=True)
-
-    def __init__(self, email, password, confirmed,
-                 admin=False, confirmed_on=None,
-                 password_reset_token=None):
-        self.email = email
-        hashed = bcrypt.generate_password_hash(password)
-        self.password = hashed.decode('utf-8') if isinstance(hashed, bytes) else hashed
-        self.registered_on = datetime.datetime.now()
-        self.admin = admin
-        self.confirmed = confirmed
-        self.confirmed_on = confirmed_on
-        self.password_reset_token = password_reset_token
+from app import db
 
 
 # 精选股票数据
@@ -64,39 +38,6 @@ class StockLabels(db.Model):
         self.code = code
         self.name = name
         self.labels = labels
-
-
-# 自选股数据
-class SelfSelectedStock(db.Model):
-    __tablename__ = 'self_selected_stock'
-
-    __table_args__ = (
-        db.UniqueConstraint('email', 'code', name='uix_email_code'),
-        db.Index('ix_email_code', 'email', 'code'),
-    )
-
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(128), nullable=False)
-    code = db.Column(db.String(8), nullable=False)
-    labels = db.Column(db.String(128))
-    deleted = db.Column(db.Boolean, default=False, nullable=False)
-    update_time = db.Column(db.DateTime, nullable=False)
-
-    def __init__(self, email, code, labels, deleted=False):
-        self.code = code
-        self.email = email
-        self.labels = labels
-        self.deleted = deleted
-        self.update_time = datetime.datetime.now()
-
-    def to_json(self):
-        result = {}
-        result['email'] = self.email
-        result['code'] = self.code
-        result['labels'] = self.labels
-        result['deleted'] = self.deleted
-
-        return result
 
 
 # 股票代码表

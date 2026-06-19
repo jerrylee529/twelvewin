@@ -10,6 +10,7 @@ from api.routers import (
     business,
     clusters,
     data_status,
+    filings,
     fundamentals,
     health,
     industries,
@@ -56,6 +57,7 @@ def create_app() -> FastAPI:
     app.include_router(clusters.router, prefix=API_PREFIX)
     app.include_router(industries.router, prefix=API_PREFIX)
     app.include_router(stocks.router, prefix=API_PREFIX)
+    app.include_router(filings.router, prefix=API_PREFIX)
 
     return app
 

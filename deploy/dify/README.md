@@ -143,6 +143,30 @@ Web BFF（已实现，Key 不暴露给浏览器）：
 | `GET /api/agent` | 是否启用 Agent |
 | `POST /api/agent/chat` | 流式对话 |
 | `POST /api/agent/summary` | 阻塞式摘要 |
+| `POST /api/agent/filing` | 财报 PDF AI 解读（Workflow） |
+
+### 财报解读 Workflow（新增）
+
+Inputs：`stock_code`, `stock_name`, `year`, `season`, `locale`
+
+推荐 HTTP Tool：
+
+```http
+GET {{TWELVEWIN_API}}/api/v1/stocks/{{stock_code}}/filings/{{year}}/{{season}}/content
+X-Twelvewin-Api-Key: {{TW_RESEARCH_API_KEY}}
+```
+
+Workflow 输出变量建议：
+
+- `filing_analysis_json` — 结构化 JSON（summary / highlights / risks / metrics_delta）
+- `filing_analysis_markdown` — Markdown 详细解读
+
+Web 环境变量：
+
+```bash
+DIFY_FILING_ANALYSIS_API_KEY=app-xxxxxxxx
+TW_AGENT_FILING_MODE=workflow
+```
 
 多 Tool 备用方案见 [twelvewin-tools.md](./twelvewin-tools.md)。
 

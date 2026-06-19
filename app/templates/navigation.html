@@ -61,23 +61,10 @@
           </ul>
         </li>
         <li> <a href="{{ url_for('stock.list_stock', path="business") }}">精选股票</a></li>
-        <li> <a href="{{ url_for('self_selected_stock.index') }}">自选股</a></li>
       </ul>
       <ul class="nav navbar-nav navbar-right">
-        <!--
-        {% if current_user.confirmed and current_user.is_authenticated %}
-          <li><a href="{{ url_for('user.profile') }}">{{ current_user.username }}</a></li>
-        {% elif current_user.is_authenticated %}
-          <li><a href="{{ url_for('user.unconfirmed') }}">确认</a></li>
-        {% endif %}
-        -->
-        {% if current_user.is_authenticated %}
-          <li><a href="#">欢迎您, {{ current_user.email }}</a></li>
-          <li><a href="{{ url_for('user.logout') }}">退出</a></li>
-        {% else %}
-          <li><a href="{{ url_for('user.register') }}">注册</a></li>
-          <li><a href="{{ url_for('user.login') }}"><span class="glyphicon glyphicon-user"></span>&nbsp;登录</a></li>
-        {% endif %}
+        <li><a href="{{ commercial_register_url }}">注册</a></li>
+        <li><a href="{{ commercial_login_url }}"><span class="glyphicon glyphicon-user"></span>&nbsp;登录</a></li>
       </ul>
     </div>
     <!-- /.navbar-collapse -->

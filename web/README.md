@@ -24,7 +24,7 @@ UI follows [`DESIGN.md`](../DESIGN.md) — **The Predictive Terminal** aesthetic
 - Deep navy tonal surfaces (no hard borders)
 - Inter typography with tabular numbers for financial data
 - Cyber gradient (cyan → purple) for primary actions
-- Glass overlays for search dropdowns and auth panes
+- Glass overlays for search dropdowns
 - High-density tables (`body-sm` / 12px)
 
 Design tokens live in `app/globals.css`. Reusable primitives are in `components/ui/primitives.tsx`.
@@ -60,7 +60,6 @@ Open http://localhost:3000
 | `/business` | Curated business list |
 | `/clusters/sz50` | Index cluster view |
 | `/stock/[code]` | Candlestick + finance profile |
-| `/login`, `/register` | Placeholders for Phase 3 auth |
 
 ## Architecture
 

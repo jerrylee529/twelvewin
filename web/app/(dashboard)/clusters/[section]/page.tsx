@@ -7,7 +7,7 @@ import { ClusterResultTable } from "@/components/cluster-result-table";
 import { ClusterSectionTabs } from "@/components/cluster-section-tabs";
 import { Chip } from "@/components/ui/primitives";
 import { getCluster, getClusterChart } from "@/lib/api";
-import { getClusterTitle } from "@/lib/navigation";
+import { getClusterTitle, normalizeClusterSection } from "@/lib/navigation";
 
 const INDEX_SECTIONS = new Set(["sz50", "hs300", "zz500"]);
 
@@ -16,7 +16,8 @@ export default async function ClusterPage({
 }: {
   params: Promise<{ section: string }>;
 }) {
-  const { section } = await params;
+  const { section: rawSection } = await params;
+  const section = normalizeClusterSection(rawSection);
 
   if (section === "all") {
     notFound();

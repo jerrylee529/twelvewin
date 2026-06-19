@@ -2,7 +2,6 @@
 
 
 from flask import request, jsonify, Blueprint, render_template, current_app
-from flask_login import login_required, current_user
 from app.services.ranking_service import get_stock_ranking
 
 strategy_analysis_blueprint = Blueprint('strategy_analysis', __name__,)

@@ -2,11 +2,8 @@
 
 
 from flask import request, jsonify, Blueprint, render_template, current_app
-from flask_login import login_required, current_user
 import json
 from app import db
-from app.models import SelfSelectedStock
-from app.decorators import check_confirmed
 from app.util import model_to_json
 from app.services.annual_report_service import get_annual_industry_rows, get_annual_stock_rows
 

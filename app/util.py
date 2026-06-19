@@ -4,7 +4,6 @@
 
 
 from app import app, db
-from app.models import User
 from sqlalchemy.orm import class_mapper
 import json
 from werkzeug.utils import import_string

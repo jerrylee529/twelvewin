@@ -1,8 +1,9 @@
 import Link from "next/link";
+
 import { SiteHeader } from "@/components/site-header";
 import { DashboardShellClient } from "@/components/dashboard-shell-client";
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+export async function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen flex-col bg-surface">
       <SiteHeader />

@@ -4,7 +4,7 @@ import type { FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Download, Filter, RefreshCw, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import {
   exportCsv,
   FundamentalsTable,
@@ -87,9 +87,15 @@ export function FundamentalsWorkspace({
   updateTime?: string | null;
 }) {
   const router = useRouter();
-  const [filtersExpanded, setFiltersExpanded] = useState(false);
+  const filterDetailsRef = useRef<HTMLDetailsElement>(null);
   const meta = RANKING_META[metric];
   const activeFilterSummary = useMemo(() => summarizeActiveFilters(query), [query]);
+
+  useEffect(() => {
+    if (activeFilterSummary.length > 0) {
+      filterDetailsRef.current!.open = true;
+    }
+  }, [activeFilterSummary]);
   const currentPage = Math.max(Number(query.page ?? "1") || 1, 1);
   const pageSize = Math.max(Number(query.page_size ?? "50") || 50, 1);
   const pageCount = Math.max(Math.ceil(total / pageSize), 1);
@@ -177,37 +183,30 @@ export function FundamentalsWorkspace({
         })}
       </div>
 
-      <div className="overflow-hidden rounded-md border border-on-surface/5 bg-surface-container">
-        <button
-          type="button"
-          onClick={() => setFiltersExpanded((value) => !value)}
-          aria-expanded={filtersExpanded}
-          className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-surface-container-high"
-        >
+      <details
+        ref={filterDetailsRef}
+        className="group overflow-hidden rounded-md border border-on-surface/5 bg-surface-container"
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-surface-container-high [&::-webkit-details-marker]:hidden">
           <span className="flex min-w-0 flex-1 items-center gap-2">
             <Filter className="h-3.5 w-3.5 shrink-0 text-on-surface-variant" />
             <span className="text-xs font-medium text-on-surface">筛选条件</span>
-            {!filtersExpanded && activeFilterSummary.length > 0 ? (
-              <span className="truncate text-xs text-on-surface-variant">
-                {activeFilterSummary.join(" · ")}
-              </span>
-            ) : null}
+            <span className="truncate text-xs text-on-surface-variant group-open:hidden">
+              {activeFilterSummary.length > 0
+                ? activeFilterSummary.join(" · ")
+                : null}
+            </span>
             {activeFilterSummary.length > 0 ? (
               <Chip tone="neutral">{activeFilterSummary.length}</Chip>
             ) : null}
           </span>
-          <ChevronDown
-            className={`h-4 w-4 shrink-0 text-on-surface-variant transition-transform ${
-              filtersExpanded ? "rotate-180" : ""
-            }`}
-          />
-        </button>
+          <ChevronDown className="h-4 w-4 shrink-0 text-on-surface-variant transition-transform group-open:rotate-180" />
+        </summary>
 
-        {filtersExpanded ? (
-          <form
-            onSubmit={submitFilters}
-            className="grid gap-3 border-t border-on-surface/5 p-4 md:grid-cols-4"
-          >
+        <form
+          onSubmit={submitFilters}
+          className="grid gap-3 border-t border-on-surface/5 p-4 md:grid-cols-4"
+        >
         <label className="space-y-1 text-xs text-on-surface-variant">
           代码或名称
           <TradingInput name="search" defaultValue={query.search ?? ""} placeholder="600000 / 银行" />
@@ -322,40 +321,29 @@ export function FundamentalsWorkspace({
             重置当前 preset
           </Link>
         </div>
-          </form>
-        ) : null}
-      </div>
+        </form>
+      </details>
 
       <FundamentalsTable
         rows={rows}
         total={total}
         updateTime={updateTime}
-        pageSize={Math.max(rows.length, 1)}
+        pagination={{
+          currentPage,
+          pageCount,
+          pageSize,
+          buildPageHref: (page) =>
+            buildQueryHref(query, { page: String(page) }),
+        }}
+        serverSort={{
+          field: query.sort ?? PRESET_PARAMS[metric].sort ?? "pe_ttm",
+          order: (query.order ?? PRESET_PARAMS[metric].order ?? "asc") as
+            | "asc"
+            | "desc",
+          buildSortHref: (field, order) =>
+            buildQueryHref(query, { sort: field, order, page: "1" }),
+        }}
       />
-
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-on-surface-variant">
-        <p className="tabular-nums">
-          服务端分页: 第 {currentPage} / {pageCount} 页，每页 {pageSize} 条
-        </p>
-        <div className="flex items-center gap-2">
-          <Link
-            href={buildQueryHref(query, { page: String(Math.max(currentPage - 1, 1)) })}
-            className={`rounded-md border border-on-surface/10 px-3 py-1.5 transition ${
-              currentPage <= 1 ? "pointer-events-none opacity-40" : "hover:text-on-surface"
-            }`}
-          >
-            上一页
-          </Link>
-          <Link
-            href={buildQueryHref(query, { page: String(Math.min(currentPage + 1, pageCount)) })}
-            className={`rounded-md border border-on-surface/10 px-3 py-1.5 transition ${
-              currentPage >= pageCount ? "pointer-events-none opacity-40" : "hover:text-on-surface"
-            }`}
-          >
-            下一页
-          </Link>
-        </div>
-      </div>
     </div>
   );
 }

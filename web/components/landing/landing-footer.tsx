@@ -1,5 +1,13 @@
 import Link from "next/link";
 
+import {
+  getCommercialOrigin,
+  getCommercialPricingUrl,
+} from "@/lib/commercial-urls";
+
+const commercialOrigin = getCommercialOrigin();
+const commercialPricingUrl = getCommercialPricingUrl();
+
 const productLinks = [
   { href: "/fundamentals?metric=pe", label: "基本面分析" },
   { href: "/technical/highest", label: "技术面筛选" },
@@ -9,15 +17,39 @@ const productLinks = [
 
 const legalLinks = [
   { href: "/blog", label: "研究博客" },
-  { href: "/register", label: "服务条款" },
-  { href: "/register", label: "隐私政策" },
-  { href: "/register", label: "数据免责声明" },
+  { href: commercialOrigin, label: "服务条款", external: true },
+  { href: commercialOrigin, label: "隐私政策", external: true },
+  { href: commercialOrigin, label: "数据免责声明", external: true },
 ];
 
 const connectLinks = [
   { href: "mailto:support@twelvewin.win", label: "support@twelvewin.win" },
-  { href: "/register", label: "企业销售" },
+  { href: commercialPricingUrl, label: "企业销售", external: true },
 ];
+
+function FooterLink({
+  href,
+  label,
+  external = false,
+}: {
+  href: string;
+  label: string;
+  external?: boolean;
+}) {
+  const className = "body-sm text-on-surface-variant hover:text-on-surface";
+  if (external) {
+    return (
+      <a href={href} className={className}>
+        {label}
+      </a>
+    );
+  }
+  return (
+    <Link href={href} className={className}>
+      {label}
+    </Link>
+  );
+}
 
 export function LandingFooter() {
   return (
@@ -35,12 +67,7 @@ export function LandingFooter() {
           <ul className="space-y-2">
             {productLinks.map((link) => (
               <li key={link.label}>
-                <Link
-                  href={link.href}
-                  className="body-sm text-on-surface-variant hover:text-on-surface"
-                >
-                  {link.label}
-                </Link>
+                <FooterLink href={link.href} label={link.label} />
               </li>
             ))}
           </ul>
@@ -51,12 +78,7 @@ export function LandingFooter() {
           <ul className="space-y-2">
             {legalLinks.map((link) => (
               <li key={link.label}>
-                <Link
-                  href={link.href}
-                  className="body-sm text-on-surface-variant hover:text-on-surface"
-                >
-                  {link.label}
-                </Link>
+                <FooterLink href={link.href} label={link.label} external={link.external} />
               </li>
             ))}
           </ul>
@@ -67,12 +89,7 @@ export function LandingFooter() {
           <ul className="space-y-2">
             {connectLinks.map((link) => (
               <li key={link.label}>
-                <Link
-                  href={link.href}
-                  className="body-sm text-on-surface-variant hover:text-on-surface"
-                >
-                  {link.label}
-                </Link>
+                <FooterLink href={link.href} label={link.label} external={link.external} />
               </li>
             ))}
           </ul>

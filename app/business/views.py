@@ -2,10 +2,8 @@
 
 
 from flask import jsonify, request, render_template, Blueprint
-import json
 from app.models import StockLabels
 from app import db
-from flask_login import login_required
 from flask import current_app
 from app.services.business_service import get_business_rows
 
@@ -62,7 +60,6 @@ def create_business_data(labels):
 
 # 处理精选排行的ajax数据请求
 @business_blueprint.route('/data', methods=['POST', 'GET'])
-@login_required
 def get_business_data():
     print("get business data")
 

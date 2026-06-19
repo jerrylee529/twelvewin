@@ -2,14 +2,12 @@
 
 
 from flask import request, jsonify, Blueprint, render_template
-from flask_login import login_required, current_user
 import csv
 import os
 import time
 import json
 from app import db
 from app.models import StockCluster, StockClusterItem
-from app.decorators import check_confirmed
 from app.util import model_to_json
 
 cluster_analysis_blueprint = Blueprint('cluster', __name__,)

@@ -2,10 +2,6 @@
 
 
 from flask import request, jsonify, Blueprint, render_template, current_app
-from flask_login import login_required, current_user
-from app import db
-from app.models import SelfSelectedStock
-from app.decorators import check_confirmed
 from app import analyzer
 from app.util import model_to_json
 from app.services.market_data_service import get_candlestick_data
@@ -38,7 +34,7 @@ def get_stock_data(path):
     else:
         return jsonify({'total': len(data), 'rows': data})
 
-    result = get_stock_ranking(current_app.config, path, is_anonymous=current_user.is_anonymous)
+    result = get_stock_ranking(current_app.config, path, is_anonymous=True)
 
     if result.error:
         current_app.logger.warning("Could not read stock ranking CSV %s: %s", result.path, result.error)
@@ -111,28 +107,4 @@ def get_history_quotation(code):
     #del data[:-100]
 
     return jsonify({'rows': data, 'updateTime': result.update_time})
-
-
-# 增加自选股
-@stock_blueprint.route('/stock/add_self_selected_stock', methods=['POST'])
-@login_required
-def add_self_selected_stock():
-    code = request.form.get('code')
-
-    email = current_user.email
-
-    stock = db.session.query(SelfSelectedStock).filter_by(email=email, code=code).first()
-
-    if stock is None:
-        stock = SelfSelectedStock(current_user.email, code=code, labels='')
-
-        db.session.add(stock)
-    else:
-        stock.deleted = False
-
-    db.session.commit()
-
-    myClassJson = stock.to_json()
-
-    return jsonify(myClassJson)
 

@@ -29,11 +29,6 @@ const navLinks = [
     label: "研究博客",
     match: /^\/blog/,
   },
-  {
-    href: "/register",
-    label: "定价",
-    match: /^\/register/,
-  },
 ] as const;
 
 export function AppNavLinks() {

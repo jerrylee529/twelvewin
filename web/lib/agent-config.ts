@@ -38,6 +38,22 @@ export function isAgentScoreWorkflow(): boolean {
   return process.env.TW_AGENT_SCORE_MODE === "workflow";
 }
 
+export function getDifyFilingApiKey(): string | null {
+  return (
+    process.env.DIFY_FILING_ANALYSIS_API_KEY?.trim() ||
+    process.env.DIFY_STOCK_AGENT_API_KEY?.trim() ||
+    null
+  );
+}
+
+export function isAgentFilingWorkflow(): boolean {
+  return process.env.TW_AGENT_FILING_MODE !== "chat";
+}
+
+export function isAgentFilingEnabled(): boolean {
+  return isAgentEnabled() && Boolean(getDifyApiUrl() && getDifyFilingApiKey());
+}
+
 export function isAgentScoreEnabled(): boolean {
   return isAgentEnabled() && Boolean(getDifyApiUrl() && getDifyScoreApiKey());
 }
@@ -64,6 +80,8 @@ export function getAgentStatus() {
     summaryMode: isAgentSummaryWorkflow() ? ("workflow" as const) : ("chat" as const),
     scoreEnabled: agentFlag && Boolean(difyUrl && scoreApiKey),
     scoreMode: isAgentScoreWorkflow() ? ("workflow" as const) : ("chat" as const),
+    filingEnabled: isAgentFilingEnabled(),
+    filingMode: isAgentFilingWorkflow() ? ("workflow" as const) : ("chat" as const),
     missing,
   };
 }
@@ -89,3 +107,14 @@ export type AgentSummaryRequest = {
 };
 
 export type AgentScoreRequest = AgentSummaryRequest;
+
+export type AgentFilingRequest = {
+  user?: string;
+  inputs: {
+    stock_code: string;
+    stock_name?: string;
+    year: number;
+    season: number;
+    locale?: string;
+  };
+};

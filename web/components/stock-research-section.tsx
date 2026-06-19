@@ -14,28 +14,53 @@ function formatComparisonValue(
   return format === "percent" ? formatPercent(value) : formatPrice(value);
 }
 
+/** Relative percent gap: (stock - industry) / industry × 100 */
+function computeRelativeDelta(
+  stockValue: number | null | undefined,
+  industryValue: number | null | undefined,
+): number | null {
+  if (
+    stockValue == null ||
+    industryValue == null ||
+    !Number.isFinite(stockValue) ||
+    !Number.isFinite(industryValue) ||
+    industryValue === 0
+  ) {
+    return null;
+  }
+  return ((stockValue - industryValue) / industryValue) * 100;
+}
+
+function formatDeltaMagnitude(value: number, digits = 2): string {
+  return `${Math.abs(value).toFixed(digits)}%`;
+}
+
 function DeltaBadge({
-  discount,
+  stockValue,
+  industryValue,
   higherIsBetter = false,
 }: {
-  discount?: number | null;
+  stockValue?: number | null;
+  industryValue?: number | null;
   higherIsBetter?: boolean;
 }) {
-  if (discount == null || !Number.isFinite(discount)) {
+  const delta = computeRelativeDelta(stockValue, industryValue);
+
+  if (delta == null) {
     return <span className="text-on-surface-variant">—</span>;
   }
 
-  const above = discount > 0;
-  const favorable = higherIsBetter ? above : above;
+  if (Math.abs(delta) < 0.05) {
+    return (
+      <span className="text-xs text-on-surface-variant">与行业持平</span>
+    );
+  }
+
+  const above = delta > 0;
+  const favorable = higherIsBetter ? above : !above;
   const tone = favorable ? "text-bullish" : "text-bearish";
-  const prefix = higherIsBetter
-    ? above
-      ? "高于"
-      : "低于"
-    : above
-      ? "低于"
-      : "高于";
-  const magnitude = formatPercent(Math.abs(discount));
+  const prefix = above ? "高于" : "低于";
+  const magnitude = formatDeltaMagnitude(delta);
 
   return (
     <span className={`text-xs font-medium tabular-nums ${tone}`}>
@@ -71,7 +96,6 @@ export function StockResearchSection({
       label: "市盈率 (TTM)",
       stockValue: fundamentals?.pe_ttm,
       industryValue: benchmark?.median_pe_ttm,
-      discount: fundamentals?.pe_discount_to_industry,
       format: "number" as const,
       higherIsBetter: false,
     },
@@ -79,7 +103,6 @@ export function StockResearchSection({
       label: "市净率 (LF)",
       stockValue: fundamentals?.pb_lf,
       industryValue: benchmark?.median_pb_lf,
-      discount: fundamentals?.pb_discount_to_industry,
       format: "number" as const,
       higherIsBetter: false,
     },
@@ -87,12 +110,6 @@ export function StockResearchSection({
       label: "净资产收益率",
       stockValue: fundamentals?.roe,
       industryValue: benchmark?.median_roe,
-      discount:
-        fundamentals?.roe != null && benchmark?.median_roe
-          ? ((fundamentals.roe - benchmark.median_roe) /
-              benchmark.median_roe) *
-            100
-          : null,
       format: "percent" as const,
       higherIsBetter: true,
     },
@@ -100,13 +117,6 @@ export function StockResearchSection({
       label: "股息率",
       stockValue: fundamentals?.dividend_yield,
       industryValue: benchmark?.median_dividend_yield,
-      discount:
-        fundamentals?.dividend_yield != null &&
-        benchmark?.median_dividend_yield
-          ? ((fundamentals.dividend_yield - benchmark.median_dividend_yield) /
-              benchmark.median_dividend_yield) *
-            100
-          : null,
       format: "percent" as const,
       higherIsBetter: true,
     },
@@ -164,7 +174,8 @@ export function StockResearchSection({
                     </td>
                     <td className="py-2.5">
                       <DeltaBadge
-                        discount={row.discount}
+                        stockValue={row.stockValue}
+                        industryValue={row.industryValue}
                         higherIsBetter={row.higherIsBetter}
                       />
                     </td>

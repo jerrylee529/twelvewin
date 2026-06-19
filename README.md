@@ -169,13 +169,15 @@ python -m unittest discover -s tests -p 'test_*.py'
 - Web 研究终端（基本面 / 技术面 / 板块 / 单股）
 - Docker 自部署
 
-**不包含（商业版 / 后续独立仓库）：**
+**不包含（商业版 [twelvewin-cloud](https://github.com/twelvewin/twelvewin-cloud)）：**
 
 - 用户注册登录、邮箱验证、订阅支付
 - 自选股云同步、团队空间、SSO
 - 官方托管 Cloud 与托管 pipeline
 
-Legacy Flask 中的 `app/user/`、`self_selected_stock/` 等仅作参考，新功能请不要再基于 Flask 扩展。
+社区版 Web 的 `/login`、`/register` 会跳转到商业版；账户与自选股 API 由 **FastAPI + Next.js** 商业仓库提供，共用同一 Postgres（不删除 `users` / `self_selected_stock` 表）。
+
+Legacy Flask 中的 `app/user/`、`self_selected_stock/` 已移除，不再维护 Flask Web。
 
 ---
 

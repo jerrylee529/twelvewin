@@ -18,6 +18,8 @@ OpenAPI 完整定义：`http://127.0.0.1:8090/openapi.json`（宿主机导入 Di
 | 名称 | 方法 | 路径 |
 |------|------|------|
 | `get_research_context` | GET | `/api/v1/stocks/{stock_code}/research-context` |
+| `get_filing_content` | GET | `/api/v1/stocks/{stock_code}/filings/{year}/{season}/content` |
+| `list_filings` | GET | `/api/v1/stocks/{stock_code}/filings` |
 
 Dify OpenAPI 导入时可只保留此 path，或手动创建 HTTP GET Tool。
 

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import datetime
 import os
 import sys
 import unittest
@@ -11,7 +10,6 @@ from core.env import load_dotenv_files
 load_dotenv_files()
 
 from app import app, db
-from app.models import User
 
 
 def run_tests():
@@ -31,19 +29,6 @@ def drop_db():
     """Drops the db tables."""
     with app.app_context():
         db.drop_all()
-
-
-def create_admin():
-    """Creates the admin user."""
-    with app.app_context():
-        db.session.add(User(
-            email="ad@min.com",
-            password="admin",
-            admin=True,
-            confirmed=True,
-            confirmed_on=datetime.datetime.now(),
-        ))
-        db.session.commit()
 
 
 def runserver(host='127.0.0.1', port=5000):
@@ -120,7 +105,6 @@ def build_parser():
     subparsers.add_parser('test')
     subparsers.add_parser('create_db')
     subparsers.add_parser('drop_db')
-    subparsers.add_parser('create_admin')
 
     run_job_parser = subparsers.add_parser('run_job')
     run_job_parser.add_argument(
@@ -159,9 +143,6 @@ def main(argv=None):
         return 0
     if args.command == 'drop_db':
         drop_db()
-        return 0
-    if args.command == 'create_admin':
-        create_admin()
         return 0
     if args.command == 'run_job':
         return run_job(args.job_name)

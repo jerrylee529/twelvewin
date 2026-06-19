@@ -15,6 +15,7 @@ import { StockPageNav } from "@/components/stock-page-nav";
 import { StockQuoteProvider } from "@/components/stock-quote-provider";
 import { StockResearchSection } from "@/components/stock-research-section";
 import { StockScoreCard } from "@/components/stock-score-card";
+import { StockFilingSection } from "@/components/stock-filing-section";
 import { StockFinanceSkeleton } from "@/components/stock-skeletons";
 import { absoluteUrl, buildStockMetadata } from "@/lib/seo";
 import type { BarRow } from "@/lib/stock-format";
@@ -112,6 +113,8 @@ export default async function StockPage({
             <StockFinanceSection code={code} />
           </Suspense>
         </div>
+
+        <StockFilingSection code={code} stockName={context.name} />
       </div>
 
       <StockAgentAside code={code} />

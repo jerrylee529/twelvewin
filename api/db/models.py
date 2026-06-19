@@ -4,7 +4,7 @@
 
 import datetime
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Index, Integer, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -193,6 +193,83 @@ class XueQiuReportInfo(Base):
     security_name: Mapped[str] = mapped_column(String(8), index=True, nullable=False)
     report_type: Mapped[int] = mapped_column(Integer, nullable=False)
     report_data: Mapped[str] = mapped_column(Text, nullable=False)
+
+
+class FilingDocument(Base):
+    __tablename__ = 'filing_documents'
+
+    STATUS_PENDING = 'pending'
+    STATUS_PROCESSING = 'processing'
+    STATUS_EXTRACTED = 'extracted'
+    STATUS_DONE = 'done'
+    STATUS_FAILED = 'failed'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(8), index=True, nullable=False)
+    year: Mapped[int] = mapped_column(Integer, nullable=False)
+    season: Mapped[int] = mapped_column(Integer, nullable=False)
+    report_kind: Mapped[str] = mapped_column(String(16), nullable=False)
+    report_type_label: Mapped[str] = mapped_column(String(32), nullable=False)
+    qiniu_key: Mapped[str] = mapped_column(String(512), unique=True, nullable=False)
+    filename: Mapped[str] = mapped_column(String(256), nullable=False)
+    file_size: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    file_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    page_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    publish_date: Mapped[datetime.date | None] = mapped_column(Date, nullable=True)
+    analysis_status: Mapped[str] = mapped_column(String(16), nullable=False, default=STATUS_PENDING)
+    synced_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+    extracted_at: Mapped[datetime.datetime | None] = mapped_column(DateTime, nullable=True)
+
+    __table_args__ = (
+        Index('ix_filing_documents_code_year_season', 'code', 'year', 'season'),
+    )
+
+
+class FilingTextChunk(Base):
+    __tablename__ = 'filing_text_chunks'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    filing_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('filing_documents.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False,
+    )
+    page_no: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    section: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    token_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+
+class FilingAiAnalysis(Base):
+    __tablename__ = 'filing_ai_analyses'
+
+    STATUS_DONE = 'done'
+    STATUS_FAILED = 'failed'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    filing_id: Mapped[int] = mapped_column(
+        Integer,
+        ForeignKey('filing_documents.id', ondelete='CASCADE'),
+        index=True,
+        nullable=False,
+    )
+    analysis_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    highlights: Mapped[str | None] = mapped_column(Text, nullable=True)
+    risks: Mapped[str | None] = mapped_column(Text, nullable=True)
+    metrics_delta: Mapped[str | None] = mapped_column(Text, nullable=True)
+    full_markdown: Mapped[str | None] = mapped_column(Text, nullable=True)
+    disclaimer: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('filing_id', 'analysis_version', name='uq_filing_ai_analyses_filing_version'),
+    )
 
 
 class AnalysisJobRun(Base):

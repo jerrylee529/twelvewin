@@ -28,9 +28,6 @@ export function SiteHeader({
             <Link href="/fundamentals?metric=pe" className="px-2 py-1 text-on-surface-variant hover:text-on-surface">
               进入终端
             </Link>
-            <Link href="/login" className="btn-gradient-primary px-3 py-1.5 text-xs font-medium">
-              登录
-            </Link>
           </div>
         </div>
       </header>
@@ -108,12 +105,6 @@ export function SiteHeader({
               <StockSearch compact />
             </div>
           </div>
-          <Link href="/register" className="nav-menu-link hidden sm:inline">
-            注册
-          </Link>
-          <Link href="/login" className="nav-menu-cta">
-            登录
-          </Link>
         </div>
       </div>
     </header>

@@ -14,6 +14,7 @@ import type {
   TableResponse,
   TechnicalKey,
 } from "@/lib/types";
+import { normalizeClusterSection } from "@/lib/navigation";
 import { getResearchApiHeaders } from "@/lib/research-api-headers";
 
 /** Max trading days fetched for the stock chart (covers 5Y range). */
@@ -188,14 +189,20 @@ export function getStockResearchContext(code: string) {
 }
 
 export function getCluster(section: string) {
+  const normalized = normalizeClusterSection(section);
   return fetchJson<ClusterResponse>(
-    `/api/v1/clusters/${encodeURIComponent(section)}`,
+    `/api/v1/clusters/${encodeURIComponent(normalized)}`,
+    undefined,
+    { revalidate: false },
   );
 }
 
 export function getClusterChart(section: string) {
+  const normalized = normalizeClusterSection(section);
   return fetchJson<ClusterChartPayload>(
-    `/api/v1/clusters/${encodeURIComponent(section)}/chart`,
+    `/api/v1/clusters/${encodeURIComponent(normalized)}/chart`,
+    undefined,
+    { revalidate: false },
   );
 }
 

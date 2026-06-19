@@ -2,11 +2,8 @@
 
 
 from flask import request, jsonify, Blueprint, render_template, flash, current_app
-from flask_login import current_user
 import os
 import datetime
-from flask_login import login_required
-from app.decorators import check_confirmed
 from app.services.artifact_meta_service import get_artifact_update_time
 from app.services.technical_analysis_service import get_price_change_rows, get_technical_rows
 
@@ -25,7 +22,7 @@ def get_data(path):
     limit = info.get('limit',10)  # 每页显示的条数
     offset = info.get('offset',0)  # 分片数，(页码-1)*limit，它表示一段数据的起点
 
-    result = get_technical_rows(current_app.config, path, is_anonymous=current_user.is_anonymous)
+    result = get_technical_rows(current_app.config, path, is_anonymous=True)
 
     if result.error:
         current_app.logger.warning("Could not read technical analysis CSV %s: %s", result.path, result.error)

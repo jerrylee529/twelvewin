@@ -8,9 +8,6 @@
 import os
 
 from flask import Flask, render_template
-from flask_login import LoginManager
-from flask_bcrypt import Bcrypt
-from flask_mail import Mail
 from flask_debugtoolbar import DebugToolbarExtension
 from flask_sqlalchemy import SQLAlchemy
 from flask_bootstrap import Bootstrap
@@ -88,9 +85,6 @@ RedisOP.create_pool(app.config)
 #### extensions ####
 ####################
 
-login_manager = LoginManager(app)
-bcrypt = Bcrypt(app)
-mail = Mail(app)
 toolbar = DebugToolbarExtension(app)
 db = SQLAlchemy(app)
 bootstrap = Bootstrap(app)
@@ -147,40 +141,21 @@ else:
 ####################
 
 from app.main.views import main_blueprint
-from app.user.views import user_blueprint
 from app.stock.views import stock_blueprint
 from app.business.views import business_blueprint
 from app.strategy_analysis.views import strategy_analysis_blueprint
 from app.technical_analysis.views import technical_analysis_blueprint
-from app.self_selected_stock.views import self_selected_stock_blueprint
 from app.industry_analysis.views import industry_analysis_blueprint
 from app.cluster_analysis.views import cluster_analysis_blueprint
 from app.annual_report.views import annual_report_blueprint
 app.register_blueprint(main_blueprint)
-app.register_blueprint(user_blueprint)
 app.register_blueprint(stock_blueprint)
 app.register_blueprint(business_blueprint)
 app.register_blueprint(strategy_analysis_blueprint)
 app.register_blueprint(technical_analysis_blueprint)
-app.register_blueprint(self_selected_stock_blueprint)
 app.register_blueprint(industry_analysis_blueprint)
 app.register_blueprint(cluster_analysis_blueprint)
 app.register_blueprint(annual_report_blueprint)
-
-
-####################
-#### flask-login ####
-####################
-
-from app.models import User
-
-login_manager.login_view = "user.login"
-login_manager.login_message_category = "danger"
-
-
-@login_manager.user_loader
-def load_user(user_id):
-    return User.query.filter(User.id == int(user_id)).first()
 
 
 ########################
@@ -200,3 +175,19 @@ def page_not_found(error):
 @app.errorhandler(500)
 def server_error_page(error):
     return render_template("errors/500.html"), 500
+
+
+@app.context_processor
+def inject_commercial_urls():
+    register = os.environ.get(
+        'NEXT_PUBLIC_COMMERCIAL_REGISTER_URL',
+        'http://localhost:3001/register',
+    )
+    login = os.environ.get(
+        'NEXT_PUBLIC_COMMERCIAL_LOGIN_URL',
+        'http://localhost:3001/login',
+    )
+    return {
+        'commercial_register_url': register,
+        'commercial_login_url': login,
+    }

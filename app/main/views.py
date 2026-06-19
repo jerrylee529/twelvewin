@@ -1,28 +1,28 @@
 # -*- coding: utf-8 -*-
 
-
-#################
-#### imports ####
-#################
+from types import SimpleNamespace
 
 from flask import render_template
 from flask import Blueprint, request, jsonify
-from flask_login import current_user
-from flask_login import login_required
-from app.models import SelfSelectedStock, Instrument, Report, StockPrediction, InvestmentKnowledge
+from app.models import Instrument, Report, StockPrediction, InvestmentKnowledge
 from app import app, db, analyzer, log
 from app.services.data_status_service import get_data_status
 
-main_blueprint = Blueprint('main', __name__,)
+main_blueprint = Blueprint('main', __name__)
 
+# Legacy Jinja templates expect a user-like object; auth moved to Twelvewin Cloud.
+ANONYMOUS_USER = SimpleNamespace(
+    is_authenticated=False,
+    is_anonymous=True,
+    confirmed=False,
+    email="",
+    admin=False,
+)
 
-################
-#### routes ####
-################
 
 @main_blueprint.route('/')
 def home():
-    return render_template('main/index.html', current_user=current_user)
+    return render_template('main/index.html', current_user=ANONYMOUS_USER)
 
 
 @main_blueprint.route('/main/instruments', methods=['GET', 'POST'])
@@ -60,8 +60,6 @@ def get_profile(code):
 
         fields_amount_flag = {'net_profit_after_nrgal_atsolc': True, 'avg_roe': False, 'np_atsopc_nrgal_yoy': False, 'basic_eps': False, 'gross_selling_rate': False, 'np_per_share': False}
 
-        #print reports
-
         for key in sorted(reports.keys(), reverse=False):
             row = reports[key]
 
@@ -71,8 +69,6 @@ def get_profile(code):
                 item['value'] = convert_float(row[field], is_amount=fields_amount_flag[field])
 
                 result[field].append(item)
-
-        print(result)
 
     except Exception as e:
         log.error(repr(e))
@@ -84,7 +80,6 @@ def get_profile(code):
 def predict():
     code = request.values.get('code-search', '600000').split()[0]
 
-    # 获取行情数据
     quot = analyzer.get_quotation(code) or {}
 
     dates = []
@@ -117,9 +112,7 @@ def predict():
 
     quot['predictions'] = predictions
 
-    print(quot)
-
-    return render_template('main/index.html', current_user=current_user, quot=quot)
+    return render_template('main/index.html', current_user=ANONYMOUS_USER, quot=quot)
 
 
 @main_blueprint.route('/main/knowledge', methods=['GET', 'POST'])
@@ -158,5 +151,3 @@ def get_investment_knowledge():
 @main_blueprint.route('/main/data_status', methods=['GET'])
 def data_status():
     return jsonify(get_data_status(app.config))
-
-

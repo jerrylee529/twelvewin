@@ -1,6 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
+import Link from "next/link";
 import {
   flexRender,
   getCoreRowModel,
@@ -21,9 +22,11 @@ import {
   formatMarketCapCell,
   formatRankingValue,
   formatSignedPercent,
+  getNextApiSortOrder,
   isUndervalued,
   MARKET_CAP_KEYS,
   parseRankingNumber,
+  resolveApiSortField,
   SIGNED_PERCENT_KEYS,
   signedToneClass,
   type RankingRow,
@@ -31,11 +34,44 @@ import {
 
 export function SortableHeader({
   header,
+  columnKey = String(header.column.id),
+  serverSort,
 }: {
   header: Header<RankingRow, unknown>;
+  columnKey?: string;
+  serverSort?: ServerSort;
 }) {
   if (header.isPlaceholder) {
     return null;
+  }
+
+  const apiField = serverSort ? resolveApiSortField(columnKey) : undefined;
+
+  if (serverSort && apiField) {
+    const isActive = serverSort.field === apiField;
+    const order = isActive ? serverSort.order : false;
+    const nextOrder = getNextApiSortOrder(
+      apiField,
+      serverSort.field,
+      serverSort.order,
+    );
+    const href = serverSort.buildSortHref(apiField, nextOrder);
+
+    return (
+      <Link
+        href={href}
+        className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap transition hover:text-on-surface"
+      >
+        {flexRender(header.column.columnDef.header, header.getContext())}
+        {order === "asc" ? (
+          <ChevronUp className="h-3 w-3 shrink-0 text-primary-container" />
+        ) : order === "desc" ? (
+          <ChevronDown className="h-3 w-3 shrink-0 text-primary-container" />
+        ) : (
+          <ChevronsUpDown className="h-3 w-3 shrink-0 opacity-30" />
+        )}
+      </Link>
+    );
   }
 
   const sorted = header.column.getIsSorted();
@@ -124,16 +160,47 @@ function renderDefaultCell(key: string, row: RankingRow, value: unknown) {
   return <span className="tabular-nums">{formatRankingValue(value)}</span>;
 }
 
+type ServerPagination = {
+  currentPage: number;
+  pageCount: number;
+  pageSize: number;
+  buildPageHref: (page: number) => string;
+};
+
+export type ServerSort = {
+  field: string;
+  order: "asc" | "desc";
+  buildSortHref: (field: string, order: "asc" | "desc") => string;
+};
+
+function getServerSortState(
+  columnKey: string,
+  serverSort?: ServerSort,
+): false | "asc" | "desc" {
+  if (!serverSort) {
+    return false;
+  }
+  const apiField = resolveApiSortField(columnKey);
+  if (!apiField || apiField !== serverSort.field) {
+    return false;
+  }
+  return serverSort.order;
+}
+
 export function FundamentalsTable({
   rows,
   updateTime,
   total,
   pageSize = 16,
+  pagination,
+  serverSort,
 }: {
   rows: RankingRow[];
   updateTime?: string | null;
   total?: number;
   pageSize?: number;
+  pagination?: ServerPagination;
+  serverSort?: ServerSort;
 }) {
   const columns = useMemo(
     () =>
@@ -165,18 +232,35 @@ export function FundamentalsTable({
     state: { sorting },
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    initialState: { pagination: { pageSize } },
+    ...(serverSort
+      ? {}
+      : {
+          getSortedRowModel: getSortedRowModel(),
+        }),
+    ...(pagination
+      ? {}
+      : {
+          getPaginationRowModel: getPaginationRowModel(),
+          initialState: { pagination: { pageSize } },
+        }),
   });
 
   const recordTotal = total ?? rows.length;
-  const pageIndex = table.getState().pagination.pageIndex;
-  const currentPageSize = table.getState().pagination.pageSize;
+  const serverPageIndex = pagination ? pagination.currentPage - 1 : 0;
+  const serverPageCount = pagination?.pageCount ?? 1;
+  const serverPageSize = pagination?.pageSize ?? pageSize;
+  const pageIndex = pagination
+    ? serverPageIndex
+    : table.getState().pagination.pageIndex;
+  const currentPageSize = pagination
+    ? serverPageSize
+    : table.getState().pagination.pageSize;
   const rangeStart =
     recordTotal === 0 ? 0 : pageIndex * currentPageSize + 1;
-  const rangeEnd = Math.min((pageIndex + 1) * currentPageSize, rows.length);
-  const pageCount = table.getPageCount();
+  const rangeEnd = pagination
+    ? Math.min(pageIndex * currentPageSize + rows.length, recordTotal)
+    : Math.min((pageIndex + 1) * currentPageSize, rows.length);
+  const pageCount = pagination ? serverPageCount : table.getPageCount();
 
   const pageNumbers = useMemo(() => {
     const totalPages = pageCount;
@@ -203,15 +287,26 @@ export function FundamentalsTable({
                   key={headerGroup.id}
                   className="border-b border-on-surface/5 bg-surface-container-lowest"
                 >
-                  {headerGroup.headers.map((header) => (
+                  {headerGroup.headers.map((header) => {
+                    const columnKey = String(header.column.id);
+                    const sorted = serverSort
+                      ? getServerSortState(columnKey, serverSort)
+                      : header.column.getIsSorted();
+
+                    return (
                     <th
                       key={header.id}
-                      aria-sort={ariaSortValue(header.column.getIsSorted())}
+                      aria-sort={ariaSortValue(sorted)}
                       className="whitespace-nowrap px-3 py-3 text-left text-[11px] font-medium text-on-surface-variant"
                     >
-                      <SortableHeader header={header} />
+                      <SortableHeader
+                        header={header}
+                        columnKey={columnKey}
+                        serverSort={serverSort}
+                      />
                     </th>
-                  ))}
+                    );
+                  })}
                 </tr>
               ))}
             </thead>
@@ -261,47 +356,95 @@ export function FundamentalsTable({
         </div>
 
         <div className="flex flex-wrap items-center gap-1">
-          <PaginationButton
-            disabled={!table.getCanPreviousPage()}
-            onClick={() => table.setPageIndex(0)}
-          >
-            «
-          </PaginationButton>
-          <PaginationButton
-            disabled={!table.getCanPreviousPage()}
-            onClick={() => table.previousPage()}
-          >
-            上一页
-          </PaginationButton>
+          {pagination ? (
+            <>
+              <PaginationLink
+                href={pagination.buildPageHref(1)}
+                disabled={pageIndex <= 0}
+              >
+                «
+              </PaginationLink>
+              <PaginationLink
+                href={pagination.buildPageHref(Math.max(pageIndex, 1))}
+                disabled={pageIndex <= 0}
+              >
+                上一页
+              </PaginationLink>
 
-          {pageNumbers.map((page, index) => {
-            const prev = pageNumbers[index - 1];
-            const showEllipsis = prev != null && page - prev > 1;
-            return (
-              <span key={page} className="flex items-center gap-1">
-                {showEllipsis ? <span className="px-1">…</span> : null}
-                <PaginationButton
-                  active={page === pageIndex}
-                  onClick={() => table.setPageIndex(page)}
-                >
-                  {page + 1}
-                </PaginationButton>
-              </span>
-            );
-          })}
+              {pageNumbers.map((page, index) => {
+                const prev = pageNumbers[index - 1];
+                const showEllipsis = prev != null && page - prev > 1;
+                return (
+                  <span key={page} className="flex items-center gap-1">
+                    {showEllipsis ? <span className="px-1">…</span> : null}
+                    <PaginationLink
+                      href={pagination.buildPageHref(page + 1)}
+                      active={page === pageIndex}
+                    >
+                      {page + 1}
+                    </PaginationLink>
+                  </span>
+                );
+              })}
 
-          <PaginationButton
-            disabled={!table.getCanNextPage()}
-            onClick={() => table.nextPage()}
-          >
-            下一页
-          </PaginationButton>
-          <PaginationButton
-            disabled={!table.getCanNextPage()}
-            onClick={() => table.setPageIndex(pageCount - 1)}
-          >
-            »
-          </PaginationButton>
+              <PaginationLink
+                href={pagination.buildPageHref(pageIndex + 2)}
+                disabled={pageIndex >= pageCount - 1}
+              >
+                下一页
+              </PaginationLink>
+              <PaginationLink
+                href={pagination.buildPageHref(pageCount)}
+                disabled={pageIndex >= pageCount - 1}
+              >
+                »
+              </PaginationLink>
+            </>
+          ) : (
+            <>
+              <PaginationButton
+                disabled={!table.getCanPreviousPage()}
+                onClick={() => table.setPageIndex(0)}
+              >
+                «
+              </PaginationButton>
+              <PaginationButton
+                disabled={!table.getCanPreviousPage()}
+                onClick={() => table.previousPage()}
+              >
+                上一页
+              </PaginationButton>
+
+              {pageNumbers.map((page, index) => {
+                const prev = pageNumbers[index - 1];
+                const showEllipsis = prev != null && page - prev > 1;
+                return (
+                  <span key={page} className="flex items-center gap-1">
+                    {showEllipsis ? <span className="px-1">…</span> : null}
+                    <PaginationButton
+                      active={page === pageIndex}
+                      onClick={() => table.setPageIndex(page)}
+                    >
+                      {page + 1}
+                    </PaginationButton>
+                  </span>
+                );
+              })}
+
+              <PaginationButton
+                disabled={!table.getCanNextPage()}
+                onClick={() => table.nextPage()}
+              >
+                下一页
+              </PaginationButton>
+              <PaginationButton
+                disabled={!table.getCanNextPage()}
+                onClick={() => table.setPageIndex(pageCount - 1)}
+              >
+                »
+              </PaginationButton>
+            </>
+          )}
         </div>
       </div>
     </div>
@@ -311,6 +454,15 @@ export function FundamentalsTable({
 export function exportCsv(rows: RankingRow[], metric?: string) {
   exportRankingCsv(rows, metric ? `fundamentals-${metric}.csv` : "fundamentals.csv");
 }
+
+const paginationControlClass = (active?: boolean, disabled?: boolean) =>
+  `min-w-8 rounded-md px-2 py-1.5 tabular-nums transition ${
+    disabled ? "pointer-events-none opacity-30" : ""
+  } ${
+    active
+      ? "bg-primary-container/20 text-primary-container"
+      : "bg-surface-container-highest text-on-surface hover:bg-surface-container-high"
+  }`;
 
 function PaginationButton({
   children,
@@ -328,13 +480,31 @@ function PaginationButton({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`min-w-8 rounded-md px-2 py-1.5 tabular-nums transition disabled:opacity-30 ${
-        active
-          ? "bg-primary-container/20 text-primary-container"
-          : "bg-surface-container-highest text-on-surface hover:bg-surface-container-high"
-      }`}
+      className={paginationControlClass(active, disabled)}
     >
       {children}
     </button>
+  );
+}
+
+function PaginationLink({
+  children,
+  href,
+  disabled,
+  active,
+}: {
+  children: ReactNode;
+  href: string;
+  disabled?: boolean;
+  active?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      aria-disabled={disabled}
+      className={paginationControlClass(active, disabled)}
+    >
+      {children}
+    </Link>
   );
 }

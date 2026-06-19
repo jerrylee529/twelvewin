@@ -6,6 +6,7 @@ const SECTIONS = [
   { id: "stock-stats", label: "指标" },
   { id: "stock-research", label: "研究概览" },
   { id: "stock-finance", label: "财务" },
+  { id: "stock-filing", label: "财报解读" },
 ] as const;
 
 export function StockPageNav() {

@@ -6,4 +6,5 @@ numpy>=1.24
 akshare>=1.14
 yfinance>=0.2.40
 tushare>=1.2
-APScheduler>=3.10
+qiniu>=7.11,<8.0
+pymupdf>=1.24,<2.0

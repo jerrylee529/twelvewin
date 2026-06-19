@@ -25,8 +25,21 @@ export const CLUSTER_SECTION_TITLES: Record<string, string> = {
 
 const CLUSTER_INDEX_KEYS = new Set(["sz50", "hs300", "zz500", "all"]);
 
+/** Decode dynamic [section] route params before API calls (avoids double-encoding). */
+export function normalizeClusterSection(section: string) {
+  if (!section || CLUSTER_SECTION_TITLES[section]) {
+    return section;
+  }
+  try {
+    return decodeURIComponent(section);
+  } catch {
+    return section;
+  }
+}
+
 export function getClusterTitle(section: string) {
-  return CLUSTER_SECTION_TITLES[section] || decodeURIComponent(section);
+  const normalized = normalizeClusterSection(section);
+  return CLUSTER_SECTION_TITLES[normalized] || normalized;
 }
 
 export function isClusterNavChildActive(

@@ -166,6 +166,53 @@ const METRIC_SORT_FIELD: Record<RankingKey, string> = {
   divi: "dividend_yield",
 };
 
+/** Maps table column keys to Research API `sort` query values. */
+export const COLUMN_TO_API_SORT: Record<string, string> = {
+  code: "code",
+  pe_ttm: "pe_ttm",
+  pe: "pe_ttm",
+  per: "pe_ttm",
+  pb_lf: "pb_lf",
+  pb: "pb_lf",
+  roe: "roe",
+  dividend_yield: "dividend_yield",
+  market_cap: "market_cap",
+  float_market_cap: "float_market_cap",
+  pe_discount_to_industry: "pe_discount_to_industry",
+  pb_discount_to_industry: "pb_discount_to_industry",
+};
+
+const DEFAULT_API_SORT_ORDER: Record<string, "asc" | "desc"> = {
+  pe_ttm: "asc",
+  pb_lf: "asc",
+  roe: "desc",
+  dividend_yield: "desc",
+  market_cap: "desc",
+  float_market_cap: "desc",
+  pe_discount_to_industry: "asc",
+  pb_discount_to_industry: "asc",
+  code: "asc",
+};
+
+export function resolveApiSortField(columnKey: string) {
+  return COLUMN_TO_API_SORT[columnKey];
+}
+
+export function getDefaultApiSortOrder(apiField: string): "asc" | "desc" {
+  return DEFAULT_API_SORT_ORDER[apiField] ?? "asc";
+}
+
+export function getNextApiSortOrder(
+  apiField: string,
+  currentField: string,
+  currentOrder: "asc" | "desc",
+): "asc" | "desc" {
+  if (currentField === apiField) {
+    return currentOrder === "asc" ? "desc" : "asc";
+  }
+  return getDefaultApiSortOrder(apiField);
+}
+
 export function getMetricSortField(metric: RankingKey) {
   return METRIC_SORT_FIELD[metric];
 }
