@@ -12,6 +12,11 @@ import sys
 from sqlalchemy.orm import Session
 
 from api.db.models import FilingAiAnalysis, FilingDocument, FilingTextChunk
+from api.services.redis_cache import (
+    cache_get_json,
+    cache_set_json,
+    filing_analysis_cache_key,
+)
 from api.services.types import QueryResult
 from core.filing_names import SEASON_LABELS
 from core.stock_codes import normalize_stock_code
@@ -183,6 +188,11 @@ def get_filing_analysis(
         return None
 
     version = analysis_version or DEFAULT_ANALYSIS_VERSION
+    cache_key = filing_analysis_cache_key(normalized, year, season, analysis_version=version)
+    cached = cache_get_json(cache_key)
+    if cached is not None:
+        return cached
+
     analysis = (
         session.query(FilingAiAnalysis)
         .filter_by(filing_id=row.id, analysis_version=version)
@@ -192,7 +202,7 @@ def get_filing_analysis(
     if analysis is None:
         return None
 
-    return {
+    payload = {
         'code': normalized,
         'year': year,
         'season': season,
@@ -209,6 +219,8 @@ def get_filing_analysis(
         'created_at': analysis.created_at.isoformat() if analysis.created_at else None,
         'error_message': analysis.error_message,
     }
+    cache_set_json(cache_key, payload)
+    return payload
 
 
 def upsert_filing_analysis(

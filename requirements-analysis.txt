@@ -8,3 +8,4 @@ yfinance>=0.2.40
 tushare>=1.2
 qiniu>=7.11,<8.0
 pymupdf>=1.24,<2.0
+boto3>=1.34,<2.0

@@ -272,6 +272,28 @@ class FilingAiAnalysis(Base):
     )
 
 
+class StockAiScore(Base):
+    __tablename__ = 'stock_ai_scores'
+
+    STATUS_DONE = 'done'
+    STATUS_FAILED = 'failed'
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    code: Mapped[str] = mapped_column(String(8), nullable=False)
+    data_as_of: Mapped[str] = mapped_column(String(10), nullable=False)
+    score_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    status: Mapped[str] = mapped_column(String(16), nullable=False)
+    score_json: Mapped[str | None] = mapped_column(Text, nullable=True)
+    markdown: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime.datetime] = mapped_column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint('code', 'data_as_of', 'score_version', name='uq_stock_ai_scores_code_date_version'),
+        Index('ix_stock_ai_scores_code_data_as_of', 'code', 'data_as_of'),
+    )
+
+
 class AnalysisJobRun(Base):
     __tablename__ = 'analysis_job_run'
 

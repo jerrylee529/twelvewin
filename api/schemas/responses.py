@@ -70,6 +70,26 @@ class ResearchContextResponse(BaseModel):
     error: Optional[str] = None
 
 
+class StockScoreResponse(BaseModel):
+    code: Optional[str] = None
+    data_as_of: Optional[str] = None
+    score_version: Optional[str] = None
+    model: Optional[str] = None
+    status: Optional[str] = None
+    score: Optional[dict[str, Any]] = None
+    markdown: Optional[str] = None
+    created_at: Optional[str] = None
+    error: Optional[str] = None
+
+
+class StockScoreUpsertRequest(BaseModel):
+    model: Optional[str] = None
+    status: Optional[str] = None
+    score: Optional[dict[str, Any]] = None
+    markdown: Optional[str] = None
+    score_version: Optional[str] = None
+
+
 class ClusterChartResponse(BaseModel):
     nodes: list[dict[str, Any]] = Field(default_factory=list)
     edges: list[dict[str, Any]] = Field(default_factory=list)

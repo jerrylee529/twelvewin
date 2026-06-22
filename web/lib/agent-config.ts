@@ -106,10 +106,20 @@ export type AgentSummaryRequest = {
   };
 };
 
-export type AgentScoreRequest = AgentSummaryRequest;
+export type AgentScoreRequest = {
+  user?: string;
+  force?: boolean;
+  data_as_of?: string;
+  inputs: {
+    stock_code: string;
+    stock_name?: string;
+    locale?: string;
+  };
+};
 
 export type AgentFilingRequest = {
   user?: string;
+  force?: boolean;
   inputs: {
     stock_code: string;
     stock_name?: string;

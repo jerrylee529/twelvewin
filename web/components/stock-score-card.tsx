@@ -172,7 +172,11 @@ export function StockScoreCard({
         const response = await fetch("/api/agent/score", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ inputs: agentInputs }),
+          body: JSON.stringify({
+            inputs: agentInputs,
+            data_as_of: dataAsOf || undefined,
+            force,
+          }),
         });
 
         const payload = (await response.json()) as AgentScoreResponse & {

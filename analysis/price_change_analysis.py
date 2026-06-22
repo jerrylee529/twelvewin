@@ -72,7 +72,7 @@ def compute_all_instruments(instrument_filename, day_file_path, result_file_path
     instruments['update_time'] = None
 
     for period in periods:
-        instruments[period.title] = -9999
+        instruments[period.title] = -9999.0
 
     min_begin_date = min(period.begin_date for period in periods)
     code_to_index = {code: index for index, code in enumerate(instruments['code'])}
@@ -121,7 +121,7 @@ def compute_all_instruments_amplitude(period):
     result = pd.DataFrame()
     result['close'] = None
     result['update_time'] = None
-    result[period.title] = -9999
+    result[period.title] = -9999.0
     result['amp_std'] = None
     result['code'] = instruments
 

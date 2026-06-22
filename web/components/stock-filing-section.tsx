@@ -26,6 +26,7 @@ export function StockFilingSection({
   const [selectedKey, setSelectedKey] = useState<string>("");
   const [analysis, setAnalysis] = useState<FilingAnalysisPayload | null>(null);
   const [listLoading, setListLoading] = useState(true);
+  const [cacheLoading, setCacheLoading] = useState(false);
   const [analyzeLoading, setAnalyzeLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
@@ -93,13 +94,64 @@ export function StockFilingSection({
     };
   }, [code]);
 
+  useEffect(() => {
+    if (!selectedFiling) {
+      return;
+    }
+
+    let cancelled = false;
+    setCacheLoading(true);
+    setError(null);
+
+    void fetch(
+      `/api/v1/stocks/${encodeURIComponent(code)}/filings/${selectedFiling.year}/${selectedFiling.season}/analysis`,
+      {
+        headers: { Accept: "application/json" },
+        cache: "no-store",
+      },
+    )
+      .then(async (response) => {
+        if (response.status === 404) {
+          return null;
+        }
+        if (!response.ok) {
+          throw new Error(`加载财报解读失败 (${response.status})`);
+        }
+        return response.json() as Promise<FilingAnalysisPayload>;
+      })
+      .then((payload) => {
+        if (!cancelled) {
+          setAnalysis(payload);
+        }
+      })
+      .catch((fetchError) => {
+        if (!cancelled) {
+          setAnalysis(null);
+          setError(
+            fetchError instanceof Error
+              ? fetchError.message
+              : "加载财报解读失败",
+          );
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setCacheLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [code, selectedFiling]);
+
   const handleSelectFiling = (nextKey: string) => {
     setSelectedKey(nextKey);
     setAnalysis(null);
     setError(null);
   };
 
-  const runAnalysis = async () => {
+  const runAnalysis = async (force = false) => {
     if (!selectedFiling) {
       return;
     }
@@ -115,6 +167,7 @@ export function StockFilingSection({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          force,
           inputs: {
             stock_code: code,
             stock_name: stockName,
@@ -163,7 +216,7 @@ export function StockFilingSection({
         <div>
           <h2 className="text-lg font-semibold text-on-surface">财报解读</h2>
           <p className="mt-1 text-sm text-on-surface-variant">
-            基于七牛云 PDF 年报/季报的 AI 结构化解读
+            基于交易所 年报/季报的 AI 结构化解读
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -187,8 +240,8 @@ export function StockFilingSection({
           ) : null}
           <button
             type="button"
-            onClick={() => void runAnalysis()}
-            disabled={!selectedFiling || analyzeLoading}
+            onClick={() => void runAnalysis(Boolean(analysis))}
+            disabled={!selectedFiling || analyzeLoading || cacheLoading}
             className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-on-primary transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {analyzeLoading ? (
@@ -237,11 +290,13 @@ export function StockFilingSection({
         </div>
       ) : null}
 
-      {analyzeLoading ? (
-        <p className="mt-6 text-sm text-on-surface-variant">正在生成 AI 解读…</p>
+      {cacheLoading || analyzeLoading ? (
+        <p className="mt-6 text-sm text-on-surface-variant">
+          {analyzeLoading ? "正在生成 AI 解读…" : "正在加载财报解读…"}
+        </p>
       ) : null}
 
-      {!analyzeLoading && analysis ? (
+      {!cacheLoading && !analyzeLoading && analysis ? (
         <div className="mt-6 space-y-6">
           {analysis.summary ? (
             <div>
@@ -296,7 +351,7 @@ export function StockFilingSection({
         </div>
       ) : null}
 
-      {!analyzeLoading && !analysis && filings.length > 0 ? (
+      {!cacheLoading && !analyzeLoading && !analysis && filings.length > 0 ? (
         <p className="mt-6 text-sm text-on-surface-variant">
           请选择报告后点击「AI 解读」开始分析。
         </p>

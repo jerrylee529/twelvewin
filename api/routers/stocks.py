@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from api.db.session import get_db_session
@@ -12,8 +12,11 @@ from api.schemas.responses import (
     ProfileResponse,
     QuoteResponse,
     ResearchContextResponse,
+    StockScoreResponse,
+    StockScoreUpsertRequest,
 )
 from api.services.research_context import get_research_context
+from api.services.stock_scores import get_stock_score, upsert_stock_score
 from api.services.stocks import (
     get_daily_bars,
     get_profile,
@@ -100,3 +103,34 @@ def research_context(code: str, session: Session = Depends(get_db_session)):
     if payload.get('error'):
         return ResearchContextResponse(error=payload['error'])
     return ResearchContextResponse(**payload)
+
+
+@router.get('/{code}/score', response_model=StockScoreResponse)
+def stock_score(
+    code: str,
+    data_as_of: str = Query(..., min_length=8, max_length=10, description='EOD data date YYYY-MM-DD'),
+    session: Session = Depends(get_db_session),
+):
+    payload = get_stock_score(session, code, data_as_of)
+    if payload is None:
+        raise HTTPException(status_code=404, detail='score not found')
+    return StockScoreResponse(**payload)
+
+
+@router.put('/{code}/score', response_model=StockScoreResponse)
+def stock_score_upsert(
+    code: str,
+    body: StockScoreUpsertRequest,
+    data_as_of: str = Query(..., min_length=8, max_length=10, description='EOD data date YYYY-MM-DD'),
+    session: Session = Depends(get_db_session),
+):
+    payload = upsert_stock_score(
+        session,
+        code,
+        data_as_of,
+        body.model_dump(exclude_none=True),
+    )
+    session.commit()
+    if payload.get('error'):
+        raise HTTPException(status_code=400, detail=payload['error'])
+    return StockScoreResponse(**payload)

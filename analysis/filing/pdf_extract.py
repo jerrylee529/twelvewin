@@ -56,6 +56,11 @@ def sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+def sanitize_extracted_text(text: str) -> str:
+    """Remove NUL bytes; PostgreSQL text columns reject 0x00."""
+    return text.replace('\x00', '')
+
+
 def extract_pdf_text(data: bytes) -> PdfExtractResult:
     fitz = _require_fitz()
     digest = sha256_hex(data)
@@ -65,7 +70,7 @@ def extract_pdf_text(data: bytes) -> PdfExtractResult:
     try:
         for index in range(document.page_count):
             page = document.load_page(index)
-            text = (page.get_text('text') or '').strip()
+            text = sanitize_extracted_text((page.get_text('text') or '').strip())
             if text:
                 pages.append(PdfPageText(page_no=index + 1, content=text))
     finally:

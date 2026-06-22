@@ -8,6 +8,11 @@ import {
   isAgentScoreWorkflow,
   type AgentScoreRequest,
 } from "@/lib/agent-server";
+import {
+  fetchCachedStockScore,
+  fetchResearchDataAsOf,
+  saveStockScore,
+} from "@/lib/agent-research-api";
 import { extractAgentAnswer, parseAgentScoreResponse } from "@/lib/agent-score";
 
 const SCORE_QUERY = `请对当前股票进行投资价值综合评分（0–100，越高表示综合投资价值越高）。
@@ -20,6 +25,17 @@ const SCORE_QUERY = `请对当前股票进行投资价值综合评分（0–100�
 5. 再输出 Markdown 解读，章节标题使用：**综合评分**、**维度解读**、**优势与短板**、**风险提示**、**数据来源**
 
 禁止给出买入/卖出/目标价/仓位建议。所有数字必须来自工具返回的 JSON。`;
+
+async function resolveDataAsOf(
+  stockCode: string,
+  requested?: string,
+): Promise<string | null> {
+  const trimmed = requested?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+  return fetchResearchDataAsOf(stockCode);
+}
 
 export async function POST(request: Request) {
   if (!isAgentScoreEnabled()) {
@@ -46,12 +62,29 @@ export async function POST(request: Request) {
     );
   }
 
+  const stockCode = body.inputs.stock_code.trim();
+  const dataAsOf = await resolveDataAsOf(stockCode, body.data_as_of);
+  if (!dataAsOf) {
+    return NextResponse.json(
+      { error: "Unable to resolve data_as_of for score caching." },
+      { status: 400 },
+    );
+  }
+
+  if (!body.force) {
+    const cached = await fetchCachedStockScore(stockCode, dataAsOf);
+    if (cached?.score) {
+      return NextResponse.json(cached);
+    }
+  }
+
   const inputs = {
-    stock_code: body.inputs.stock_code.trim(),
-    stock_name: body.inputs.stock_name?.trim() || body.inputs.stock_code,
+    stock_code: stockCode,
+    stock_name: body.inputs.stock_name?.trim() || stockCode,
     locale: body.inputs.locale || "zh-CN",
   };
 
+  let parsed;
   if (isAgentScoreWorkflow()) {
     const difyResponse = await fetch(`${difyUrl}/workflows/run`, {
       method: "POST",
@@ -75,31 +108,50 @@ export async function POST(request: Request) {
     }
 
     const answer = extractAgentAnswer(payload);
-    return NextResponse.json(parseAgentScoreResponse(answer));
+    parsed = parseAgentScoreResponse(answer);
+  } else {
+    const difyResponse = await fetch(`${difyUrl}/chat-messages`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        inputs,
+        query: SCORE_QUERY,
+        response_mode: "blocking",
+        user: body.user || "twelvewin-web",
+      }),
+    });
+
+    const payload = (await difyResponse.json()) as Record<string, unknown>;
+    if (!difyResponse.ok) {
+      return NextResponse.json(
+        { error: "Dify score request failed.", detail: payload },
+        { status: 502 },
+      );
+    }
+
+    const answer = extractAgentAnswer(payload);
+    parsed = parseAgentScoreResponse(answer);
   }
 
-  const difyResponse = await fetch(`${difyUrl}/chat-messages`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      inputs,
-      query: SCORE_QUERY,
-      response_mode: "blocking",
-      user: body.user || "twelvewin-web",
-    }),
-  });
-
-  const payload = (await difyResponse.json()) as Record<string, unknown>;
-  if (!difyResponse.ok) {
-    return NextResponse.json(
-      { error: "Dify score request failed.", detail: payload },
-      { status: 502 },
-    );
+  if (parsed.score) {
+    try {
+      await saveStockScore(stockCode, dataAsOf, parsed);
+    } catch (error) {
+      return NextResponse.json(
+        {
+          ...parsed,
+          warning:
+            error instanceof Error
+              ? error.message
+              : "Score generated but cache write failed.",
+        },
+        { status: 200 },
+      );
+    }
   }
 
-  const answer = extractAgentAnswer(payload);
-  return NextResponse.json(parseAgentScoreResponse(answer));
+  return NextResponse.json(parsed);
 }

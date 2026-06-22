@@ -89,6 +89,18 @@ export function extractAgentAnswer(payload: Record<string, unknown>): string {
   if (data && typeof data === "object") {
     const outputs = (data as { outputs?: Record<string, unknown> }).outputs;
     if (outputs) {
+      const preferredKeys = [
+        "filing_analysis_json",
+        "result",
+        "filing_analysis_markdown",
+      ];
+      for (const key of preferredKeys) {
+        const value = outputs[key];
+        if (typeof value === "string" && value.trim()) {
+          return value;
+        }
+      }
+
       for (const value of Object.values(outputs)) {
         if (typeof value === "string" && value.trim()) {
           return value;

@@ -10,6 +10,7 @@ import {
 } from "@/lib/agent-server";
 import { parseFilingAnalysisPayload } from "@/lib/agent-filing";
 import { extractAgentAnswer } from "@/lib/agent-score";
+import { fetchCachedFilingAnalysis } from "@/lib/agent-research-api";
 import { getResearchApiHeaders } from "@/lib/research-api-headers";
 
 const FILING_QUERY = `请根据工具返回的财报 PDF 文本，输出结构化 JSON（字段含 summary, highlights[], risks[], metrics_delta, full_markdown, disclaimer）。
@@ -17,7 +18,8 @@ const FILING_QUERY = `请根据工具返回的财报 PDF 文本，输出结构�
 1. 数字与结论必须来自 PDF 文本，无法确认时写入 data_gaps
 2. highlights/risks 条目尽量带 page 页码
 3. 禁止给出买卖建议
-4. 先输出合法 JSON，再输出 Markdown 解读`;
+4. 只输出一个合法 JSON 对象，不要输出思考过程、不要输出 Markdown 标题或额外说明文字
+5. 若需详细解读，写入 full_markdown 字段，不要放在 JSON 外部`;
 
 function getApiBase(): string {
   return (process.env.API_URL || "http://127.0.0.1:8090").replace(/\/$/, "");
@@ -94,6 +96,18 @@ export async function POST(request: Request) {
     season: String(season),
     locale: body.inputs.locale || "zh-CN",
   };
+
+  const cached = await fetchCachedFilingAnalysis(stockCode, year, season);
+  if (!body.force && (cached?.summary || cached?.full_markdown)) {
+    return NextResponse.json({
+      analysis: {
+        ...cached,
+        code: stockCode,
+        year,
+        season,
+      },
+    });
+  }
 
   let difyPayload: Record<string, unknown>;
 
